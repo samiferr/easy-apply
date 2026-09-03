@@ -1,0 +1,9 @@
+{% if status == "completed" %}
+  <span class="badge shrink-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">Completed</span>
+{% elif status == "failed" %}
+  <span class="badge shrink-0 bg-rose-100 text-rose-700 dark:bg-rose-900 dark:text-rose-300">Failed</span>
+{% elif status == "processing" %}
+  <span class="badge shrink-0 bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300">Analyzing…</span>
+{% else %}
+  <span class="badge shrink-0 bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">Pending</span>
+{% endif %}

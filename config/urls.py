@@ -10,6 +10,7 @@ urlpatterns = [
     path("languages/", include("languages.urls")),
     path("experience/", include("experience.urls")),
     path("education/", include("education.urls")),
+    path("jobs/", include("jobs.urls")),
     path("", include("core.urls")),
 ]
 

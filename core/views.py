@@ -28,6 +28,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         experience_count = user.experiences.count()
         degree_count = user.degrees.count()
         certificate_count = user.certificates.count()
+        job_post_count = user.job_posts.count()
 
         checklist = [
             ("Complete your profile", getattr(user, "profile", None) and user.profile.completion_percent >= 60, "accounts:profile"),
@@ -42,6 +43,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         ctx["completion_percent"] = round((done_count / len(checklist)) * 100)
 
         ctx["stats"] = [
+            {"label": "Job posts analyzed", "value": job_post_count, "url": "jobs:list"},
             {"label": "Soft skills", "value": soft_count, "url": "skills:list"},
             {"label": "Technical skills", "value": technical_count, "url": "skills:list"},
             {"label": "Languages", "value": language_count, "url": "languages:list"},

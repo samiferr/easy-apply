@@ -11,6 +11,7 @@
     {% if user.is_authenticated %}
       <div class="hidden items-center gap-1 md:flex">
         <a href="{% url 'core:dashboard' %}" class="nav-link {% if request.resolver_match.view_name == 'core:dashboard' %}nav-link-active{% endif %}">Dashboard</a>
+        <a href="{% url 'jobs:list' %}" class="nav-link {% if request.resolver_match.app_name == 'jobs' %}nav-link-active{% endif %}">Jobs</a>
         <a href="{% url 'skills:list' %}" class="nav-link {% if request.resolver_match.app_name == 'skills' %}nav-link-active{% endif %}">Skills</a>
         <a href="{% url 'languages:list' %}" class="nav-link {% if request.resolver_match.app_name == 'languages' %}nav-link-active{% endif %}">Languages</a>
         <a href="{% url 'experience:list' %}" class="nav-link {% if request.resolver_match.app_name == 'experience' %}nav-link-active{% endif %}">Experience</a>
@@ -76,6 +77,7 @@
     <div x-show="mobileMenuOpen" x-transition class="border-t border-slate-200 px-4 py-3 md:hidden dark:border-slate-800" style="display: none;">
       <div class="flex flex-col gap-1">
         <a href="{% url 'core:dashboard' %}" class="nav-link">Dashboard</a>
+        <a href="{% url 'jobs:list' %}" class="nav-link">Jobs</a>
         <a href="{% url 'skills:list' %}" class="nav-link">Skills</a>
         <a href="{% url 'languages:list' %}" class="nav-link">Languages</a>
         <a href="{% url 'experience:list' %}" class="nav-link">Experience</a>

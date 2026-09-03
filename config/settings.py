@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     "languages",
     "experience",
     "education",
+    "jobs",
 ]
 
 MIDDLEWARE = [
@@ -159,6 +160,18 @@ DEFAULT_FROM_EMAIL = config(
 PASSWORD_RESET_TIMEOUT = 60 * 60 * 24 * 3
 
 SITE_NAME = "Easy Apply"
+
+# DeepSeek API (used by the `jobs` app to structure job postings into
+# relational data). Leave DEEPSEEK_API_KEY empty to disable AI analysis —
+# the app will show a clear error instead of crashing.
+DEEPSEEK_API_KEY = config("DEEPSEEK_API_KEY", default="")
+DEEPSEEK_API_BASE = config("DEEPSEEK_API_BASE", default="https://api.deepseek.com")
+DEEPSEEK_MODEL = config("DEEPSEEK_MODEL", default="deepseek-chat")
+DEEPSEEK_TIMEOUT = config("DEEPSEEK_TIMEOUT", default=60, cast=int)
+
+# Job-post URL fetcher
+JOB_FETCH_TIMEOUT = config("JOB_FETCH_TIMEOUT", default=15, cast=int)
+JOB_FETCH_MAX_BYTES = config("JOB_FETCH_MAX_BYTES", default=2_000_000, cast=int)
 
 # Security hardening toggles (enabled automatically when DEBUG is off)
 if not DEBUG:

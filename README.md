@@ -7,6 +7,13 @@ clean Markdown recap in one click.
 
 ## Features
 
+- **AI job post analysis** — paste a job posting URL (or the description
+  text) and DeepSeek structures it into a `JobPost` (title, summary,
+  location/work arrangement, compensation & benefits, company info,
+  application instructions, red flags, growth language, ...) with its
+  requirements grouped into categories (Responsibilities, Required
+  Qualifications, Preferred Qualifications, ...), each holding individual,
+  atomic requirement rows.
 - **Soft skills & technical skills**, grouped by category, with a proficiency
   level (Beginner → Expert).
 - **Languages** with a proficiency scale (Basic → Native).
@@ -34,6 +41,7 @@ clean Markdown recap in one click.
 ```
 config/         Django project settings, root URLconf
 accounts/       Custom user model, profile, auth & security views
+jobs/           Job post analysis: models, URL fetcher, DeepSeek client, importer
 skills/         Soft/technical skill categories and per-user skills
 languages/      Languages and per-user proficiency
 experience/     Work experience
@@ -86,6 +94,46 @@ regenerates it from `node_modules`) — the app doesn't load any JS from a CDN.
 Register an account at `/accounts/register/`, then explore the dashboard,
 add a few skills/languages/experience/education entries, and download your
 recap from the dashboard or `/recap/preview/`.
+
+## AI job post analysis
+
+Under `/jobs/`, a user can paste a job posting URL (or, as a fallback, paste
+the description text directly — useful for sites that block scrapers or
+require JavaScript). The pipeline (`jobs/services/`):
+
+1. **`fetcher.py`** fetches the URL server-side and extracts its readable
+   text. Since this fetches arbitrary user-supplied URLs from the server, it
+   includes basic SSRF protections: only `http(s)` is allowed, every resolved
+   IP — including on each redirect hop — is checked against
+   private/loopback/link-local/reserved ranges, and the response body is
+   size-capped.
+2. **`deepseek_client.py`** sends the extracted (or pasted) text to the
+   [DeepSeek](https://platform.deepseek.com/) chat completions API in JSON
+   mode, with a prompt that mirrors a structured "should I apply?" reading
+   guide (title/summary, responsibilities, required vs. preferred
+   qualifications, location & work arrangement, compensation & benefits,
+   company info, application instructions, plus red flags / growth language /
+   diversity signals).
+3. **`importer.py`** defensively parses that JSON (wrong types, missing keys,
+   and invalid choices are all coerced to safe defaults rather than crashing)
+   into the relational schema:
+   - `JobPost` — the parent record: one row per analyzed posting, holding
+     every "global" attribute above.
+   - `RequirementCategory` — a named group of requirements on a job
+     (Responsibilities, Required Qualifications, ...).
+   - `Requirement` — one row per individual, atomic requirement line, under
+     its category.
+
+   Analysis runs synchronously inside the request (no task queue is set up),
+   so submitting the form takes a few seconds; the job's `status` field
+   (`pending` → `processing` → `completed`/`failed`) and a friendly
+   `error_message` make failures (bad URL, blocked scraper, missing API key,
+   AI/timeout errors) visible in the UI with a "Try again" action instead of
+   a crash.
+
+To enable it, set `DEEPSEEK_API_KEY` in `.env` (get one at
+platform.deepseek.com). Without it, the feature shows a clear
+"AI analysis isn't configured" error instead of failing silently.
 
 ## Password reset & recovery
 

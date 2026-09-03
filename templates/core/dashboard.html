@@ -41,7 +41,7 @@
     </ul>
   </div>
 
-  <div class="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+  <div class="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
     {% for stat in stats %}
       <a href="{% url stat.url %}" class="card group flex flex-col gap-1 p-4 transition hover:border-brand-300 hover:shadow-md dark:hover:border-brand-700">
         <span class="text-2xl font-bold text-slate-900 dark:text-white">{{ stat.value }}</span>
@@ -77,6 +77,7 @@
     <div class="card p-6">
       <h2 class="font-semibold text-slate-900 dark:text-white">Quick add</h2>
       <div class="mt-4 flex flex-col gap-2">
+        <a href="{% url 'jobs:add' %}" class="btn-primary justify-start">+ Analyze a job post</a>
         <a href="{% url 'skills:add' kind='soft' %}" class="btn-secondary justify-start">+ Soft skill</a>
         <a href="{% url 'skills:add' kind='technical' %}" class="btn-secondary justify-start">+ Technical skill</a>
         <a href="{% url 'languages:add' %}" class="btn-secondary justify-start">+ Language</a>
