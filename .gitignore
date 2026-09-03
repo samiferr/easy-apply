@@ -216,3 +216,19 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Node / Tailwind build tooling
+node_modules/
+
+# The compiled Tailwind CSS is committed on purpose (see the top-level `dist/`
+# rule above, meant for Python packaging builds — this app's build output
+# lives at static/dist/ and is not that).
+!/static/dist/
+!/static/dist/**
+
+# Django collected static files (run `python manage.py collectstatic` to regenerate)
+/staticfiles/
+
+# User-uploaded media
+/media/*
+!/media/.gitkeep

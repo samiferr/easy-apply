@@ -1,0 +1,6 @@
+Django>=5.0,<5.1
+django-widget-tweaks==1.5.1
+python-decouple==3.8
+Pillow>=10.0
+gunicorn>=22.0
+whitenoise>=6.7

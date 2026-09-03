@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Export recap · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<div class="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8" x-data="{ copied: false }">
+  <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Your Markdown recap</h1>
+      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Generated live from everything you've recorded so far.</p>
+    </div>
+    <div class="flex gap-3">
+      <button
+        type="button"
+        class="btn-secondary"
+        @click="navigator.clipboard.writeText($refs.recap.innerText); copied = true; setTimeout(() => copied = false, 2000)"
+      >
+        <span x-show="!copied">Copy to clipboard</span>
+        <span x-show="copied" x-cloak>Copied!</span>
+      </button>
+      <a href="{% url 'core:export_markdown' %}" class="btn-primary">Download .md</a>
+    </div>
+  </div>
+
+  <div class="card mt-6 overflow-hidden">
+    <pre x-ref="recap" class="max-h-[70vh] overflow-auto whitespace-pre-wrap break-words p-6 font-mono text-sm leading-relaxed text-slate-700 dark:text-slate-300">{{ markdown_content }}</pre>
+  </div>
+</div>
+{% endblock %}

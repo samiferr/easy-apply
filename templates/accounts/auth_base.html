@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="flex min-h-[calc(100vh-8rem)] items-center justify-center px-4 py-12">
+  <div class="w-full max-w-md">
+    <div class="mb-8 text-center">
+      <a href="{% url 'core:home' %}" class="inline-flex items-center gap-2 text-xl font-extrabold text-slate-900 dark:text-white">
+        <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-white">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" /></svg>
+        </span>
+        {{ SITE_NAME }}
+      </a>
+    </div>
+    <div class="card p-8">
+      {% block auth_content %}{% endblock %}
+    </div>
+    <p class="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
+      {% block auth_footer %}{% endblock %}
+    </p>
+  </div>
+</div>
+{% endblock %}

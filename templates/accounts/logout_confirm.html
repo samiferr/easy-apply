@@ -1,0 +1,12 @@
+{% extends "accounts/auth_base.html" %}
+{% block title %}Log out · {{ SITE_NAME }}{% endblock %}
+{% block auth_content %}
+  <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Log out of {{ SITE_NAME }}?</h1>
+  <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">You can always log back in with your email and password.</p>
+
+  <form method="post" action="{% url 'accounts:logout' %}" class="mt-6 flex gap-3">
+    {% csrf_token %}
+    <a href="{% url 'core:dashboard' %}" class="btn-secondary flex-1">Cancel</a>
+    <button type="submit" class="btn-primary flex-1">Log out</button>
+  </form>
+{% endblock %}

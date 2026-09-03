@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}{% if object %}Edit skill{% else %}Add {{ kind_label|lower }}{% endif %} · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<div class="mx-auto max-w-lg px-4 py-10 sm:px-6 lg:px-8">
+  <a href="{% url 'skills:list' %}?tab={{ kind }}" class="inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+    Back to skills
+  </a>
+  <div class="card mt-4 p-6 sm:p-8">
+    <h1 class="text-xl font-bold text-slate-900 dark:text-white">
+      {% if object %}Edit {{ kind_label|lower }}{% else %}Add a {{ kind_label|lower }}{% endif %}
+    </h1>
+    <form method="post" novalidate class="mt-6 space-y-5">
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+        <div class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">
+          {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+        </div>
+      {% endif %}
+      {% include "partials/field.html" with field=form.category %}
+      {% include "partials/field.html" with field=form.name %}
+      {% include "partials/field.html" with field=form.level %}
+      <div class="flex justify-end gap-3 border-t border-slate-100 pt-5 dark:border-slate-800">
+        <a href="{% url 'skills:list' %}?tab={{ kind }}" class="btn-secondary">Cancel</a>
+        <button type="submit" class="btn-primary">{% if object %}Save changes{% else %}Add skill{% endif %}</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

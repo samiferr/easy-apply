@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100;
+  }
+  [x-cloak] {
+    display: none !important;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold
+      transition focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
+      disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-brand-600 text-white shadow-sm hover:bg-brand-700
+      focus-visible:ring-brand-500 dark:focus-visible:ring-offset-slate-950;
+  }
+  .btn-secondary {
+    @apply btn bg-white text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300
+      hover:bg-slate-50 focus-visible:ring-brand-500 dark:bg-slate-900 dark:text-slate-200
+      dark:ring-slate-700 dark:hover:bg-slate-800 dark:focus-visible:ring-offset-slate-950;
+  }
+  .btn-danger {
+    @apply btn bg-white text-rose-600 shadow-sm ring-1 ring-inset ring-rose-200
+      hover:bg-rose-50 focus-visible:ring-rose-500 dark:bg-slate-900 dark:ring-rose-900/60
+      dark:hover:bg-rose-950/40 dark:focus-visible:ring-offset-slate-950;
+  }
+  .btn-ghost {
+    @apply btn text-slate-600 hover:bg-slate-100 focus-visible:ring-brand-500
+      dark:text-slate-300 dark:hover:bg-slate-800 dark:focus-visible:ring-offset-slate-950;
+  }
+  .card {
+    @apply rounded-2xl border border-slate-200 bg-white shadow-card dark:border-slate-800 dark:bg-slate-900;
+  }
+  .badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+  .field-label {
+    @apply mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300;
+  }
+  .field-error {
+    @apply mt-1.5 text-sm text-rose-600 dark:text-rose-400;
+  }
+  .field-help {
+    @apply mt-1.5 text-sm text-slate-500 dark:text-slate-400;
+  }
+  .nav-link {
+    @apply rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100
+      hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white;
+  }
+  .nav-link-active {
+    @apply bg-brand-50 text-brand-700 hover:bg-brand-50 hover:text-brand-700
+      dark:bg-brand-950/60 dark:text-brand-300 dark:hover:bg-brand-950/60 dark:hover:text-brand-300;
+  }
+}

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
+  <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Account settings</h1>
+  <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Manage your public profile and account security.</p>
+
+  <div class="mt-8 grid grid-cols-1 gap-8 md:grid-cols-4">
+    <nav class="flex gap-1 overflow-x-auto md:col-span-1 md:flex-col">
+      <a href="{% url 'accounts:profile' %}" class="nav-link whitespace-nowrap {% if request.resolver_match.url_name == 'profile' %}nav-link-active{% endif %}">Profile</a>
+      <a href="{% url 'accounts:security' %}" class="nav-link whitespace-nowrap {% if request.resolver_match.url_name == 'security' %}nav-link-active{% endif %}">Security</a>
+      <a href="{% url 'core:export_preview' %}" class="nav-link whitespace-nowrap">Export recap</a>
+    </nav>
+    <div class="md:col-span-3">
+      {% block settings_content %}{% endblock %}
+    </div>
+  </div>
+</div>
+{% endblock %}

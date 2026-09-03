@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Skills · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<div class="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8" x-data="{ tab: '{{ active_tab }}' }">
+  <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Skills</h1>
+      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Organize your soft and technical skills by category.</p>
+    </div>
+    <div class="flex gap-3">
+      <a x-show="tab === 'soft'" href="{% url 'skills:add' kind='soft' %}" class="btn-primary">+ Soft skill</a>
+      <a x-show="tab === 'technical'" href="{% url 'skills:add' kind='technical' %}" class="btn-primary">+ Technical skill</a>
+    </div>
+  </div>
+
+  <div class="mt-6 inline-flex rounded-lg border border-slate-200 bg-white p-1 dark:border-slate-800 dark:bg-slate-900">
+    <button type="button" @click="tab = 'soft'" :class="tab === 'soft' ? 'bg-brand-600 text-white' : 'text-slate-600 dark:text-slate-300'" class="rounded-md px-4 py-2 text-sm font-semibold transition">
+      Soft skills <span class="ml-1 opacity-75">({{ soft_skills|length }})</span>
+    </button>
+    <button type="button" @click="tab = 'technical'" :class="tab === 'technical' ? 'bg-brand-600 text-white' : 'text-slate-600 dark:text-slate-300'" class="rounded-md px-4 py-2 text-sm font-semibold transition">
+      Technical skills <span class="ml-1 opacity-75">({{ technical_skills|length }})</span>
+    </button>
+  </div>
+
+  <div class="mt-6" x-show="tab === 'soft'">
+    {% include "skills/_skill_category_grid.html" with grouped=soft_skills kind="soft" empty_message="No soft skills yet. Add your first one to strengthen your recap." %}
+  </div>
+  <div class="mt-6" x-show="tab === 'technical'" x-cloak>
+    {% include "skills/_skill_category_grid.html" with grouped=technical_skills kind="technical" empty_message="No technical skills yet. Add the tools and languages you know." %}
+  </div>
+</div>
+{% endblock %}
