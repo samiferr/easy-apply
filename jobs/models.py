@@ -87,6 +87,7 @@ class JobPost(models.Model):
     ai_model = models.CharField(max_length=100, blank=True)
     fetched_at = models.DateTimeField(null=True, blank=True)
     analyzed_at = models.DateTimeField(null=True, blank=True)
+    profile_matched_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -117,6 +118,26 @@ class JobPost(models.Model):
             return f"{currency}{self.salary_min:,} – {currency}{self.salary_max:,}{period}"
         amount = self.salary_max or self.salary_min
         return f"{currency}{amount:,}{period}"
+
+    def requirement_match_summary(self):
+        """Aggregate match status across every requirement on this job,
+        for the "Match to my profile" fit score."""
+        requirements = Requirement.objects.filter(category__job=self)
+        total = requirements.count()
+        strong = requirements.filter(match_status=Requirement.STRONG).count()
+        partial = requirements.filter(match_status=Requirement.PARTIAL).count()
+        none_ = requirements.filter(match_status=Requirement.NONE).count()
+        analyzed = strong + partial + none_
+        score_percent = round(((strong + 0.5 * partial) / total) * 100) if total else 0
+        return {
+            "total": total,
+            "strong": strong,
+            "partial": partial,
+            "none": none_,
+            "analyzed": analyzed,
+            "unanalyzed": total - analyzed,
+            "score_percent": score_percent,
+        }
 
 
 class RequirementCategory(models.Model):
@@ -150,14 +171,31 @@ class RequirementCategory(models.Model):
 class Requirement(models.Model):
     """A single, atomic requirement / responsibility line within a category."""
 
+    STRONG = "strong"
+    PARTIAL = "partial"
+    NONE = "none"
+    MATCH_CHOICES = [
+        (STRONG, "Strong match"),
+        (PARTIAL, "Partial match"),
+        (NONE, "Not covered"),
+    ]
+
     category = models.ForeignKey(
         RequirementCategory, on_delete=models.CASCADE, related_name="requirements"
     )
     text = models.TextField()
     order = models.PositiveSmallIntegerField(default=0)
 
+    # Populated by the "Match to my profile" action (jobs/services/matcher.py).
+    match_status = models.CharField(max_length=10, choices=MATCH_CHOICES, blank=True)
+    match_evidence = models.TextField(blank=True)
+
     class Meta:
         ordering = ["order", "id"]
 
     def __str__(self):
         return self.text[:80]
+
+    @property
+    def is_matched(self):
+        return bool(self.match_status)

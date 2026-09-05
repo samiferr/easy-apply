@@ -14,6 +14,11 @@ clean Markdown recap in one click.
   requirements grouped into categories (Responsibilities, Required
   Qualifications, Preferred Qualifications, ...), each holding individual,
   atomic requirement rows.
+- **Match to my profile** — for an analyzed job, DeepSeek evaluates every
+  extracted requirement individually against your profile and shows, right
+  beside each one, whether it's a strong/partial/no match and *which*
+  specific skill, role or credential of yours supports that verdict — plus
+  an overall fit-score meter for the job.
 - **Import from resume** — upload a PDF/DOCX/TXT resume and DeepSeek extracts
   your profile info, skills, languages, work experience and education. You
   review every item on a checklist (duplicates of what you already have are
@@ -142,6 +147,25 @@ require JavaScript). The pipeline (`jobs/services/`):
 To enable it, set `DEEPSEEK_API_KEY` in `.env` (get one at
 platform.deepseek.com). Without it, the feature shows a clear
 "AI analysis isn't configured" error instead of failing silently.
+
+### Match to my profile
+
+On an analyzed job's detail page, "Match to my profile" (`jobs/services/matcher.py`)
+sends the job's full requirement list — every row, tagged with its real
+database id — together with a structured snapshot of the user's profile
+(`core.utils.build_profile_snapshot`) to DeepSeek in a single request whose
+prompt explicitly instructs it to evaluate each requirement independently,
+one by one, rather than forming one overall impression. It returns a
+verdict (`strong` / `partial` / `none`) plus a one-sentence, specific
+justification for every requirement id, which are written back onto each
+`Requirement` row (`match_status`, `match_evidence`) and rendered right next
+to that requirement, alongside an overall fit-score meter
+(`JobPost.requirement_match_summary`, weighting strong matches fully and
+partial matches at half). Unrecognized ids, invalid statuses, and
+non-integer ids in the AI's response are dropped rather than applied. If the
+user's profile has nothing recorded yet, the action is skipped with a
+message pointing them at their profile instead of spending an API call on a
+guaranteed all-"none" result.
 
 ## Import from resume
 

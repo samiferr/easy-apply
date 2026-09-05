@@ -4,9 +4,12 @@ from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, View
 
+from core.ai import AIServiceError
+
 from .forms import JobAnalysisForm
 from .models import JobPost
 from .services.importer import run_analysis
+from .services.matcher import match_requirements_to_profile
 
 
 class JobPostListView(LoginRequiredMixin, ListView):
@@ -47,6 +50,11 @@ class JobPostDetailView(LoginRequiredMixin, DetailView):
             "categories__requirements"
         )
 
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["match_summary"] = self.object.requirement_match_summary()
+        return ctx
+
 
 class JobPostDeleteView(LoginRequiredMixin, DeleteView):
     model = JobPost
@@ -69,4 +77,28 @@ class JobPostReanalyzeView(LoginRequiredMixin, View):
             messages.error(request, f"Re-analysis failed: {job.error_message}")
         else:
             messages.success(request, "Job post re-analyzed.")
+        return redirect(job.get_absolute_url())
+
+
+class JobPostMatchProfileView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        job = get_object_or_404(JobPost, pk=pk, user=request.user)
+        try:
+            result = match_requirements_to_profile(job, request.user)
+        except AIServiceError as exc:
+            messages.error(request, f"Couldn't match this job to your profile: {exc}")
+            return redirect(job.get_absolute_url())
+
+        if result.get("skipped") == "empty_profile":
+            messages.warning(
+                request,
+                "Add some skills, experience or education to your profile first, "
+                "then come back to match them against this job.",
+            )
+        elif result.get("skipped") == "no_requirements":
+            messages.warning(request, "This job doesn't have any extracted requirements yet.")
+        else:
+            messages.success(
+                request, f"Matched {result['matched']} of {result['total']} requirements to your profile."
+            )
         return redirect(job.get_absolute_url())

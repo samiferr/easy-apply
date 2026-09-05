@@ -141,3 +141,64 @@ def recap_filename(user) -> str:
     slug = (user.get_full_name() or user.email.split("@")[0]).strip().lower()
     slug = "-".join(slug.split()) or "recap"
     return f"{slug}-easy-apply-recap.md"
+
+
+def build_profile_snapshot(user) -> dict:
+    """Gather everything a user has recorded into plain structured data —
+    used to hand the AI a candidate's profile (e.g. to match it against a
+    job's requirements) without formatting it as Markdown."""
+
+    profile = getattr(user, "profile", None)
+
+    snapshot = {
+        "headline": profile.headline if profile else "",
+        "bio": profile.bio if profile else "",
+        "soft_skills": [
+            {"name": s.name, "category": s.category.name, "level": s.get_level_display()}
+            for s in user.skills.filter(category__kind="soft").select_related("category")
+        ],
+        "technical_skills": [
+            {"name": s.name, "category": s.category.name, "level": s.get_level_display()}
+            for s in user.skills.filter(category__kind="technical").select_related("category")
+        ],
+        "languages": [
+            {"name": ul.language.name, "proficiency": ul.get_proficiency_display()}
+            for ul in user.languages.select_related("language")
+        ],
+        "experience": [
+            {
+                "job_title": exp.job_title,
+                "company": exp.company,
+                "duration": exp.duration_label,
+                "employment_type": exp.get_employment_type_display() if exp.employment_type else "",
+                "highlights": [h.text for h in exp.highlights.all()],
+            }
+            for exp in user.experiences.prefetch_related("highlights")
+        ],
+        "degrees": [
+            {
+                "degree": degree.degree,
+                "school": degree.school,
+                "field_of_study": degree.field_of_study,
+            }
+            for degree in user.degrees.all()
+        ],
+        "certificates": [
+            {"name": cert.name, "issuing_organization": cert.issuing_organization}
+            for cert in user.certificates.all()
+        ],
+    }
+    return snapshot
+
+
+def profile_snapshot_is_empty(snapshot: dict) -> bool:
+    return not (
+        snapshot.get("headline")
+        or snapshot.get("bio")
+        or snapshot.get("soft_skills")
+        or snapshot.get("technical_skills")
+        or snapshot.get("languages")
+        or snapshot.get("experience")
+        or snapshot.get("degrees")
+        or snapshot.get("certificates")
+    )
