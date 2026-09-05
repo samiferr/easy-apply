@@ -38,7 +38,51 @@
           {% include "partials/field.html" with field=form.end_date %}
         </div>
       </div>
-      {% include "partials/field.html" with field=form.description %}
+      <div>
+        <label class="field-label">Highlights</label>
+        <p class="field-help mb-3 mt-0">Add one achievement or responsibility per line — each is its own bullet point on your recap.</p>
+
+        {{ formset.management_form }}
+        {% if formset.non_form_errors %}
+          <div class="mb-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">
+            {% for error in formset.non_form_errors %}<p>{{ error }}</p>{% endfor %}
+          </div>
+        {% endif %}
+
+        <div id="highlights-container" class="space-y-2">
+          {% for hform in formset %}
+            <div class="highlight-row flex items-start gap-2">
+              {{ hform.id }}
+              <div class="flex-1">
+                {{ hform.text }}
+                {% for error in hform.text.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+              </div>
+              {% if hform.instance.pk %}
+                <div class="hidden">{{ hform.DELETE }}</div>
+                <button type="button" class="remove-highlight-btn btn-ghost mt-0.5 shrink-0 px-2.5" data-mode="delete" aria-label="Remove">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg>
+                </button>
+              {% else %}
+                <button type="button" class="remove-highlight-btn btn-ghost mt-0.5 shrink-0 px-2.5" data-mode="remove" aria-label="Remove">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg>
+                </button>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+
+        <button type="button" id="add-highlight-btn" class="btn-secondary mt-3">+ Add bullet point</button>
+
+        <template id="empty-highlight-template">
+          <div class="highlight-row flex items-start gap-2">
+            <div class="flex-1">{{ formset.empty_form.text }}</div>
+            <button type="button" class="remove-highlight-btn btn-ghost mt-0.5 shrink-0 px-2.5" data-mode="remove" aria-label="Remove">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg>
+            </button>
+          </div>
+        </template>
+      </div>
+
       <div class="flex justify-end gap-3 border-t border-slate-100 pt-5 dark:border-slate-800">
         <a href="{% url 'experience:list' %}" class="btn-secondary">Cancel</a>
         <button type="submit" class="btn-primary">{% if object %}Save changes{% else %}Add experience{% endif %}</button>
@@ -46,4 +90,37 @@
     </form>
   </div>
 </div>
+{% endblock %}
+{% block extra_body %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    var container = document.getElementById("highlights-container");
+    var addBtn = document.getElementById("add-highlight-btn");
+    var template = document.getElementById("empty-highlight-template");
+    var totalForms = document.getElementById("id_{{ formset.prefix }}-TOTAL_FORMS");
+    if (!container || !addBtn || !template || !totalForms) return;
+
+    addBtn.addEventListener("click", function () {
+      var index = parseInt(totalForms.value, 10);
+      var html = template.innerHTML.split("__prefix__").join(index);
+      var wrapper = document.createElement("div");
+      wrapper.innerHTML = html.trim();
+      container.appendChild(wrapper.firstElementChild);
+      totalForms.value = index + 1;
+    });
+
+    container.addEventListener("click", function (event) {
+      var btn = event.target.closest(".remove-highlight-btn");
+      if (!btn) return;
+      var row = btn.closest(".highlight-row");
+      if (btn.dataset.mode === "delete") {
+        var checkbox = row.querySelector('input[type="checkbox"]');
+        if (checkbox) checkbox.checked = true;
+        row.classList.add("hidden");
+      } else {
+        row.remove();
+      }
+    });
+  });
+</script>
 {% endblock %}

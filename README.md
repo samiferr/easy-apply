@@ -14,10 +14,17 @@ clean Markdown recap in one click.
   requirements grouped into categories (Responsibilities, Required
   Qualifications, Preferred Qualifications, ...), each holding individual,
   atomic requirement rows.
+- **Import from resume** — upload a PDF/DOCX/TXT resume and DeepSeek extracts
+  your profile info, skills, languages, work experience and education. You
+  review every item on a checklist (duplicates of what you already have are
+  flagged and unchecked by default) before anything is added — nothing is
+  overwritten silently.
 - **Soft skills & technical skills**, grouped by category, with a proficiency
   level (Beginner → Expert).
 - **Languages** with a proficiency scale (Basic → Native).
-- **Work experience** with a visual timeline.
+- **Work experience** with a visual timeline — each role's highlights are
+  recorded as individual bullet-point rows (add/remove them dynamically on
+  the form) rather than one free-text block.
 - **Education**: degrees and certificates (with credential links and
   expiration tracking).
 - **One-click Markdown recap** — preview it in the browser, copy it to the
@@ -42,11 +49,12 @@ clean Markdown recap in one click.
 config/         Django project settings, root URLconf
 accounts/       Custom user model, profile, auth & security views
 jobs/           Job post analysis: models, URL fetcher, DeepSeek client, importer
+resume/         Resume upload -> AI parsing -> review -> profile auto-fill
 skills/         Soft/technical skill categories and per-user skills
 languages/      Languages and per-user proficiency
-experience/     Work experience
+experience/     Work experience (each role has ExperienceHighlight bullet rows)
 education/      Degrees and certificates
-core/           Landing page, dashboard, Markdown export utility
+core/           Landing page, dashboard, Markdown export utility, shared AI client (core/ai.py)
 templates/      Shared base layout, partials, and per-app templates
 static/src/     Tailwind input CSS (source of truth)
 static/dist/    Compiled Tailwind output (generated, but committed so the
@@ -134,6 +142,36 @@ require JavaScript). The pipeline (`jobs/services/`):
 To enable it, set `DEEPSEEK_API_KEY` in `.env` (get one at
 platform.deepseek.com). Without it, the feature shows a clear
 "AI analysis isn't configured" error instead of failing silently.
+
+## Import from resume
+
+Under `/resume/upload/` (also linked from the Profile page and dashboard), a
+user uploads a resume and DeepSeek turns it into the same shape used
+throughout the rest of the app. The pipeline (`resume/services/`):
+
+1. **`extractor.py`** pulls plain text out of the uploaded PDF (`pypdf`),
+   DOCX (`python-docx`), or TXT file — with friendly errors for encrypted
+   PDFs, scanned/image-only PDFs, or corrupted files.
+2. **`deepseek_resume.py`** sends that text to DeepSeek (via the same shared
+   `core/ai.py` client the job-analysis feature uses) asking for profile
+   info, soft/technical skills, languages, work experience (with highlight
+   bullets), degrees and certificates — steered to reuse the site's existing
+   skill categories where they fit.
+3. **`importer.py`** does the rest in two steps:
+   - `build_review_sections()` compares every suggested item against what
+     the user already has (same skill name + kind, same language, same
+     company + title, same school + degree, same certificate name + issuer)
+     and flags matches as "Already have this". Profile fields are only
+     offered when the corresponding field is currently empty — the app never
+     proposes overwriting something you already filled in.
+   - The review page (one form, a checkbox per item, pre-checked except for
+     flagged duplicates) posts back just the list of checked keys;
+     `apply_selected()` re-reads the AI response stored on the
+     `ResumeImport` row server-side and creates rows only for what was
+     checked, inside one transaction.
+
+Nothing touches your profile until you explicitly submit the review page, so
+a bad AI guess costs you an unchecked box, not corrupted data.
 
 ## Password reset & recovery
 

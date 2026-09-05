@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     "experience",
     "education",
     "jobs",
+    "resume",
 ]
 
 MIDDLEWARE = [
@@ -172,6 +173,9 @@ DEEPSEEK_TIMEOUT = config("DEEPSEEK_TIMEOUT", default=60, cast=int)
 # Job-post URL fetcher
 JOB_FETCH_TIMEOUT = config("JOB_FETCH_TIMEOUT", default=15, cast=int)
 JOB_FETCH_MAX_BYTES = config("JOB_FETCH_MAX_BYTES", default=2_000_000, cast=int)
+
+# Resume upload (jobs -> profile auto-fill)
+RESUME_MAX_UPLOAD_BYTES = config("RESUME_MAX_UPLOAD_BYTES", default=8_000_000, cast=int)
 
 # Security hardening toggles (enabled automatically when DEBUG is off)
 if not DEBUG:

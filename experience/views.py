@@ -1,9 +1,11 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
-from django.views.generic import CreateView, DeleteView, ListView, UpdateView
+from django.views import View
+from django.views.generic import DeleteView, ListView
 
-from .forms import WorkExperienceForm
+from .forms import HighlightFormSet, WorkExperienceForm
 from .models import WorkExperience
 
 
@@ -13,30 +15,60 @@ class ExperienceListView(LoginRequiredMixin, ListView):
     context_object_name = "experiences"
 
     def get_queryset(self):
-        return WorkExperience.objects.filter(user=self.request.user)
+        return WorkExperience.objects.filter(user=self.request.user).prefetch_related(
+            "highlights"
+        )
 
 
-class ExperienceFormMixin(LoginRequiredMixin):
-    model = WorkExperience
-    form_class = WorkExperienceForm
+class BaseExperienceFormView(LoginRequiredMixin, View):
     template_name = "experience/experience_form.html"
     success_url = reverse_lazy("experience:list")
 
-    def get_queryset(self):
-        return WorkExperience.objects.filter(user=self.request.user)
+    def get_object(self):
+        """Return the WorkExperience being edited, or None when creating."""
+        return None
+
+    def get_success_message(self, experience):
+        raise NotImplementedError
+
+    def get(self, request, *args, **kwargs):
+        instance = self.get_object()
+        form = WorkExperienceForm(instance=instance)
+        formset = HighlightFormSet(instance=instance)
+        return render(
+            request, self.template_name, {"form": form, "formset": formset, "object": instance}
+        )
+
+    def post(self, request, *args, **kwargs):
+        instance = self.get_object()
+        form = WorkExperienceForm(request.POST, instance=instance)
+        formset = HighlightFormSet(request.POST, instance=instance or WorkExperience(user=request.user))
+
+        if form.is_valid() and formset.is_valid():
+            experience = form.save(commit=False)
+            experience.user = request.user
+            experience.save()
+            formset.instance = experience
+            formset.save()
+            messages.success(request, self.get_success_message(experience))
+            return redirect(self.success_url)
+
+        return render(
+            request, self.template_name, {"form": form, "formset": formset, "object": instance}
+        )
 
 
-class ExperienceCreateView(ExperienceFormMixin, CreateView):
-    def form_valid(self, form):
-        form.instance.user = self.request.user
-        messages.success(self.request, f"Added your role at {form.instance.company}.")
-        return super().form_valid(form)
+class ExperienceCreateView(BaseExperienceFormView):
+    def get_success_message(self, experience):
+        return f"Added your role at {experience.company}."
 
 
-class ExperienceUpdateView(ExperienceFormMixin, UpdateView):
-    def form_valid(self, form):
-        messages.success(self.request, "Work experience updated.")
-        return super().form_valid(form)
+class ExperienceUpdateView(BaseExperienceFormView):
+    def get_object(self):
+        return get_object_or_404(WorkExperience, pk=self.kwargs["pk"], user=self.request.user)
+
+    def get_success_message(self, experience):
+        return "Work experience updated."
 
 
 class ExperienceDeleteView(LoginRequiredMixin, DeleteView):

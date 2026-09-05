@@ -73,7 +73,7 @@ def generate_markdown_recap(user) -> str:
     experiences = user.experiences.order_by("-is_current", "-start_date")
     if experiences.exists():
         _section(lines, "Work Experience")
-        for exp in experiences:
+        for exp in experiences.prefetch_related("highlights"):
             lines.append("")
             lines.append(f"### {exp.job_title} — {exp.company}")
             meta_bits = [exp.duration_label]
@@ -82,9 +82,8 @@ def generate_markdown_recap(user) -> str:
             if exp.employment_type:
                 meta_bits.append(exp.get_employment_type_display())
             lines.append(f"*{' · '.join(meta_bits)}*")
-            if exp.description:
-                lines.append("")
-                lines.append(exp.description.strip())
+            for highlight in exp.highlights.all():
+                lines.append(f"- {highlight.text}")
 
     # --- Education: degrees --------------------------------------------------
     degrees = user.degrees.order_by("-is_current", "-end_date", "-start_date")

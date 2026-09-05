@@ -78,6 +78,7 @@
       <h2 class="font-semibold text-slate-900 dark:text-white">Quick add</h2>
       <div class="mt-4 flex flex-col gap-2">
         <a href="{% url 'jobs:add' %}" class="btn-primary justify-start">+ Analyze a job post</a>
+        <a href="{% url 'resume:upload' %}" class="btn-secondary justify-start">+ Import from resume</a>
         <a href="{% url 'skills:add' kind='soft' %}" class="btn-secondary justify-start">+ Soft skill</a>
         <a href="{% url 'skills:add' kind='technical' %}" class="btn-secondary justify-start">+ Technical skill</a>
         <a href="{% url 'languages:add' %}" class="btn-secondary justify-start">+ Language</a>

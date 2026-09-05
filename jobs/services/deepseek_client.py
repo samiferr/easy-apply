@@ -1,12 +1,13 @@
-"""Talks to the DeepSeek chat completions API to turn raw job-post text
-into structured data matching our JobPost / RequirementCategory /
-Requirement schema.
+"""Turns raw job-post text into structured data matching our JobPost /
+RequirementCategory / Requirement schema, via the shared DeepSeek client.
 """
 
-import json
+from core.ai import AIConfigError, AIServiceError, call_deepseek_json
 
-import requests
-from django.conf import settings
+# Kept as aliases so existing imports (e.g. jobs/services/importer.py)
+# don't need to change.
+DeepSeekError = AIServiceError
+DeepSeekConfigError = AIConfigError
 
 SYSTEM_PROMPT = """You are an expert job-post analyst. You read a raw job \
 posting and extract structured information, the same way a careful \
@@ -88,71 +89,10 @@ item.
 """
 
 
-class DeepSeekError(Exception):
-    """Raised for any failure calling or parsing the DeepSeek API response."""
-
-
-class DeepSeekConfigError(DeepSeekError):
-    """Raised when DEEPSEEK_API_KEY isn't configured."""
-
-
 def analyze_job_text(raw_text: str, source_url: str = "") -> dict:
-    api_key = settings.DEEPSEEK_API_KEY
-    if not api_key:
-        raise DeepSeekConfigError(
-            "AI analysis isn't configured yet — set DEEPSEEK_API_KEY in your "
-            "environment to enable it."
-        )
-
     truncated = raw_text[:18000]
     user_content = (
         f"Job posting URL: {source_url or '(pasted manually)'}\n\n"
         f"--- Job posting text ---\n{truncated}"
     )
-
-    try:
-        response = requests.post(
-            f"{settings.DEEPSEEK_API_BASE.rstrip('/')}/chat/completions",
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": settings.DEEPSEEK_MODEL,
-                "messages": [
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": user_content},
-                ],
-                "response_format": {"type": "json_object"},
-                "temperature": 0.2,
-            },
-            timeout=settings.DEEPSEEK_TIMEOUT,
-        )
-    except requests.exceptions.Timeout:
-        raise DeepSeekError("The AI analysis took too long and timed out. Please try again.")
-    except requests.exceptions.RequestException:
-        raise DeepSeekError("Couldn't reach the AI analysis service. Please try again.")
-
-    if response.status_code == 401:
-        raise DeepSeekError("The AI analysis service rejected our API key.")
-    if response.status_code == 429:
-        raise DeepSeekError("The AI analysis service is rate-limiting us. Please try again shortly.")
-    if not response.ok:
-        raise DeepSeekError(f"The AI analysis service returned an error (HTTP {response.status_code}).")
-
-    try:
-        payload = response.json()
-        content = payload["choices"][0]["message"]["content"]
-    except (ValueError, KeyError, IndexError, TypeError):
-        raise DeepSeekError("The AI analysis service returned an unexpected response.")
-
-    try:
-        data = json.loads(content)
-    except (ValueError, TypeError):
-        raise DeepSeekError("The AI analysis service returned invalid JSON.")
-
-    if not isinstance(data, dict):
-        raise DeepSeekError("The AI analysis service returned an unexpected response.")
-
-    data["_model"] = payload.get("model", settings.DEEPSEEK_MODEL)
-    return data
+    return call_deepseek_json(SYSTEM_PROMPT, user_content)

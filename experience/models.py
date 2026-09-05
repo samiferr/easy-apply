@@ -29,7 +29,6 @@ class WorkExperience(models.Model):
     start_date = models.DateField()
     end_date = models.DateField(null=True, blank=True)
     is_current = models.BooleanField(default=False)
-    description = models.TextField(blank=True, max_length=3000)
 
     class Meta:
         ordering = ["-is_current", "-start_date"]
@@ -47,3 +46,21 @@ class WorkExperience(models.Model):
     def duration_label(self):
         end = "Present" if self.is_current else (self.end_date.strftime("%b %Y") if self.end_date else "—")
         return f"{self.start_date.strftime('%b %Y')} – {end}"
+
+
+class ExperienceHighlight(models.Model):
+    """A single bullet point describing an achievement/responsibility
+    within a WorkExperience — recorded as its own row instead of being
+    part of one free-text description."""
+
+    experience = models.ForeignKey(
+        WorkExperience, on_delete=models.CASCADE, related_name="highlights"
+    )
+    text = models.CharField(max_length=500)
+    order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["order", "id"]
+
+    def __str__(self):
+        return self.text[:80]
