@@ -232,3 +232,5 @@ node_modules/
 # User-uploaded media
 /media/*
 !/media/.gitkeep
+/.idea/*
+.idea
