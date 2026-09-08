@@ -167,7 +167,7 @@ SITE_NAME = "Easy Apply"
 # the app will show a clear error instead of crashing.
 DEEPSEEK_API_KEY = config("DEEPSEEK_API_KEY", default="")
 DEEPSEEK_API_BASE = config("DEEPSEEK_API_BASE", default="https://api.deepseek.com")
-DEEPSEEK_MODEL = config("DEEPSEEK_MODEL", default="deepseek-chat")
+DEEPSEEK_MODEL = config("DEEPSEEK_MODEL", default="deepseek-v4-flash")
 DEEPSEEK_TIMEOUT = config("DEEPSEEK_TIMEOUT", default=60, cast=int)
 
 # Job-post URL fetcher
