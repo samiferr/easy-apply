@@ -1,9 +1,9 @@
 from django import forms
 from django.conf import settings
 
-from core.forms import StyledModelForm
+from core.forms import TEXT_INPUT_CLASSES, StyledModelForm
 
-from .models import ResumeImport
+from .models import ResumeImport, TailoredResume
 
 
 class ResumeUploadForm(StyledModelForm):
@@ -29,3 +29,28 @@ class ResumeUploadForm(StyledModelForm):
             max_mb = settings.RESUME_MAX_UPLOAD_BYTES // (1024 * 1024)
             raise forms.ValidationError(f"That file is too large — please keep it under {max_mb} MB.")
         return file
+
+
+class TailoredResumeForm(StyledModelForm):
+    """The Markdown editor on the tailored-resume page."""
+
+    class Meta:
+        model = TailoredResume
+        fields = ["markdown"]
+        labels = {"markdown": "Resume (Markdown)"}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        field = self.fields["markdown"]
+        # The model field is blank=True (a draft can start empty), but the
+        # editor should never save an empty resume. Django strips the value,
+        # so a whitespace-only submission trips this too.
+        field.required = True
+        field.error_messages["required"] = "Your resume can't be empty."
+        field.widget.attrs.update(
+            {
+                "rows": 28,
+                "spellcheck": "true",
+                "class": TEXT_INPUT_CLASSES + " font-mono text-xs leading-relaxed",
+            }
+        )

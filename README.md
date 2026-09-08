@@ -19,6 +19,12 @@ clean Markdown recap in one click.
   beside each one, whether it's a strong/partial/no match and *which*
   specific skill, role or credential of yours supports that verdict — plus
   an overall fit-score meter for the job.
+- **Tailored resume + PDF export** — once a job is analyzed (and, ideally,
+  matched), generate a resume written for *that* posting: DeepSeek rewrites
+  your recorded experience in the job's own vocabulary, the document is
+  assembled from `templates/resume_template.md`, and you get it as editable
+  Markdown. Tweak anything, then export a clean, print-ready PDF (or the
+  `.md`).
 - **Import from resume** — upload a PDF/DOCX/TXT resume and DeepSeek extracts
   your profile info, skills, languages, work experience and education. You
   review every item on a checklist (duplicates of what you already have are
@@ -54,13 +60,15 @@ clean Markdown recap in one click.
 config/         Django project settings, root URLconf
 accounts/       Custom user model, profile, auth & security views
 jobs/           Job post analysis: models, URL fetcher, DeepSeek client, importer
-resume/         Resume upload -> AI parsing -> review -> profile auto-fill
+resume/         Resume upload -> AI parsing -> review -> profile auto-fill,
+                plus job-tailored resumes (Markdown draft -> edit -> PDF)
 skills/         Soft/technical skill categories and per-user skills
 languages/      Languages and per-user proficiency
 experience/     Work experience (each role has ExperienceHighlight bullet rows)
 education/      Degrees and certificates
 core/           Landing page, dashboard, Markdown export utility, shared AI client (core/ai.py)
 templates/      Shared base layout, partials, and per-app templates
+                (resume_template.md is the tailored-resume skeleton)
 static/src/     Tailwind input CSS (source of truth)
 static/dist/    Compiled Tailwind output (generated, but committed so the
                 app runs without a Node toolchain in production)
@@ -166,6 +174,39 @@ non-integer ids in the AI's response are dropped rather than applied. If the
 user's profile has nothing recorded yet, the action is skipped with a
 message pointing them at their profile instead of spending an API call on a
 guaranteed all-"none" result.
+
+## Tailored resume & PDF export
+
+On an analyzed job's detail page, **Generate tailored resume**
+(`resume/services/tailored.py`) writes a resume for that specific posting:
+
+1. The job — its framing plus every extracted requirement, tagged with the
+   `strong`/`partial`/`none` verdict and evidence from "Match to my profile"
+   when it has been run — goes to DeepSeek together with a full snapshot of
+   the user's profile (`core.utils.build_resume_snapshot`, which adds contact
+   details, locations and dates to the snapshot the matcher uses) and the raw
+   `templates/resume_template.md` skeleton.
+2. The model returns only the *content* of each section (summary, grouped
+   skills, per-role highlights rewritten in the job's vocabulary, education,
+   languages) as JSON, under a prompt that forbids inventing employers,
+   dates, credentials or skills the user hasn't recorded.
+3. `render_markdown()` assembles that content into one Markdown document,
+   following the `##` headings found in `templates/resume_template.md` — edit
+   that file and every future resume follows the new shape. The header (name,
+   location, phone, email, links) is built straight from the profile, never
+   from the model, and sections the model returned nothing for are dropped
+   instead of printed empty.
+
+The draft is stored on a `TailoredResume` row (one per job) and opened in a
+Markdown editor. Nothing is auto-sent anywhere: the user edits the text,
+saves, and exports when happy.
+
+**PDF export** (`resume/services/pdf.py`) renders that Markdown with
+ReportLab — no headless browser or system libraries needed. It covers the
+subset a resume uses (headings, bullets, bold/italic/code, links, rules);
+everything above the first `##` heading becomes the centered header block,
+and unrecognized syntax falls through as plain text rather than raising.
+Set `RESUME_PDF_PAGE_SIZE=a4` in `.env` for A4 instead of US Letter.
 
 ## Import from resume
 
