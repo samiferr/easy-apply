@@ -5,6 +5,7 @@ from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, View
 
 from core.ai import AIServiceError
+from resume.models import TailoredResume
 
 from .forms import JobAnalysisForm
 from .models import JobPost
@@ -53,6 +54,7 @@ class JobPostDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["match_summary"] = self.object.requirement_match_summary()
+        ctx["tailored_resume"] = TailoredResume.objects.filter(job=self.object).first()
         return ctx
 
 

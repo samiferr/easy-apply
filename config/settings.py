@@ -177,6 +177,9 @@ JOB_FETCH_MAX_BYTES = config("JOB_FETCH_MAX_BYTES", default=2_000_000, cast=int)
 # Resume upload (jobs -> profile auto-fill)
 RESUME_MAX_UPLOAD_BYTES = config("RESUME_MAX_UPLOAD_BYTES", default=8_000_000, cast=int)
 
+# Tailored-resume PDF export ("letter" or "a4")
+RESUME_PDF_PAGE_SIZE = config("RESUME_PDF_PAGE_SIZE", default="letter")
+
 # Security hardening toggles (enabled automatically when DEBUG is off)
 if not DEBUG:
     SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=False, cast=bool)

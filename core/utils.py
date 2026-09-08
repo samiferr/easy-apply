@@ -202,3 +202,68 @@ def profile_snapshot_is_empty(snapshot: dict) -> bool:
         or snapshot.get("degrees")
         or snapshot.get("certificates")
     )
+
+
+def build_resume_snapshot(user) -> dict:
+    """Everything `build_profile_snapshot` gathers, plus the contact
+    details, locations and dates a resume needs — used when the AI has to
+    draft a full document rather than just judge requirement coverage."""
+
+    profile = getattr(user, "profile", None)
+    snapshot = build_profile_snapshot(user)
+
+    snapshot["contact"] = {
+        "full_name": user.get_full_name(),
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "email": user.email,
+        "phone": profile.phone if profile else "",
+        "location": profile.location if profile else "",
+        "linkedin_url": profile.linkedin_url if profile else "",
+        "portfolio_url": profile.portfolio_url if profile else "",
+        "github_url": profile.github_url if profile else "",
+    }
+    snapshot["experience"] = [
+        {
+            "job_title": exp.job_title,
+            "company": exp.company,
+            "location": exp.location,
+            "employment_type": exp.get_employment_type_display() if exp.employment_type else "",
+            "duration": exp.duration_label,
+            "is_current": exp.is_current,
+            "highlights": [h.text for h in exp.highlights.all()],
+        }
+        for exp in user.experiences.prefetch_related("highlights").order_by(
+            "-is_current", "-start_date"
+        )
+    ]
+    snapshot["degrees"] = [
+        {
+            "degree": degree.degree,
+            "school": degree.school,
+            "field_of_study": degree.field_of_study,
+            "dates": _date_range(degree.start_date, degree.end_date, degree.is_current),
+            "grade": degree.grade,
+            "description": degree.description,
+        }
+        for degree in user.degrees.all()
+    ]
+    snapshot["certificates"] = [
+        {
+            "name": cert.name,
+            "issuing_organization": cert.issuing_organization,
+            "issue_date": _format_date(cert.issue_date),
+            "credential_id": cert.credential_id,
+            "credential_url": cert.credential_url,
+        }
+        for cert in user.certificates.all()
+    ]
+    return snapshot
+
+
+def _date_range(start, end, is_current=False) -> str:
+    start_label = _format_date(start)
+    end_label = "Present" if is_current else _format_date(end)
+    if start_label and end_label:
+        return f"{start_label} – {end_label}"
+    return start_label or end_label

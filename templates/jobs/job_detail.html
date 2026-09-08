@@ -31,6 +31,16 @@
             </button>
           </form>
         {% endif %}
+        {% if job.status == "completed" %}
+          {% if tailored_resume %}
+            <a href="{% url 'resume:tailored' job.pk %}" class="btn-secondary">Tailored resume</a>
+          {% else %}
+            <form method="post" action="{% url 'resume:tailored_generate' job.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="btn-secondary">Generate tailored resume</button>
+            </form>
+          {% endif %}
+        {% endif %}
         <form method="post" action="{% url 'jobs:reanalyze' job.pk %}">
           {% csrf_token %}
           <button type="submit" class="btn-secondary">Re-analyze</button>

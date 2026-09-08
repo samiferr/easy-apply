@@ -1,6 +1,8 @@
 from django.conf import settings
 from django.core.validators import FileExtensionValidator
 from django.db import models
+from django.urls import reverse
+from django.utils.text import slugify
 
 
 def resume_upload_path(instance, filename):
@@ -43,3 +45,48 @@ class ResumeImport(models.Model):
 
     def __str__(self):
         return self.original_filename or f"Resume #{self.pk}"
+
+
+class TailoredResume(models.Model):
+    """A job-specific resume drafted by the AI from the user's profile and
+    the job's requirement match, kept as editable Markdown until the user
+    is happy with it and exports it as a PDF."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="tailored_resumes"
+    )
+    job = models.OneToOneField(
+        "jobs.JobPost", on_delete=models.CASCADE, related_name="tailored_resume"
+    )
+    markdown = models.TextField(blank=True)
+    ai_model = models.CharField(max_length=100, blank=True)
+    edited_by_user = models.BooleanField(
+        default=False, help_text="True once the user has changed the AI's draft."
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    generated_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+
+    def __str__(self):
+        return f"Tailored resume for {self.job}"
+
+    def get_absolute_url(self):
+        return reverse("resume:tailored", args=[self.job_id])
+
+    @property
+    def pdf_filename(self) -> str:
+        """A safe, descriptive download name, e.g. "jane-doe-acme-resume.pdf"."""
+        bits = [self.user.get_full_name() or self.user.email.split("@")[0]]
+        if self.job.company_name:
+            bits.append(self.job.company_name)
+        elif self.job.title:
+            bits.append(self.job.title)
+        slug = slugify(" ".join(bits)) or "resume"
+        return f"{slug}-resume.pdf"
+
+    @property
+    def markdown_filename(self) -> str:
+        return f"{self.pdf_filename.removesuffix('.pdf')}.md"

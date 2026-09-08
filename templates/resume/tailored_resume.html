@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Tailored resume · {{ job.title|default:"Job post" }} · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<div class="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
+  <a href="{% url 'jobs:detail' job.pk %}" class="inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+    Back to {{ job.title|default:"the job post" }}
+  </a>
+
+  <div class="mt-4 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+    <div class="min-w-0">
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Your tailored resume</h1>
+      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+        Written for {{ job.title|default:"this role" }}{% if job.company_name %} at {{ job.company_name }}{% endif %} from what you've recorded, and laid out like
+        <code class="rounded bg-slate-100 px-1 py-0.5 font-mono text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300">resume_template.md</code>.
+        Edit anything below, then export it as a PDF.
+      </p>
+    </div>
+    <div class="flex shrink-0 flex-wrap gap-2">
+      <a href="{% url 'resume:tailored_markdown' job.pk %}" class="btn-secondary">Download .md</a>
+      <a href="{% url 'resume:tailored_pdf' job.pk %}" class="btn-secondary">Download PDF</a>
+    </div>
+  </div>
+
+  <p class="mt-3 text-xs text-slate-400 dark:text-slate-500">
+    {% if tailored_resume.generated_at %}Drafted {{ tailored_resume.generated_at|date:"M j, Y, g:i a" }}{% endif %}
+    {% if tailored_resume.edited_by_user %} · edited by you {{ tailored_resume.updated_at|date:"M j, Y, g:i a" }}{% endif %}
+  </p>
+
+  <form method="post" class="mt-6">
+    {% csrf_token %}
+    <div class="card p-6 sm:p-8">
+      {% include "partials/field.html" with field=form.markdown %}
+      <p class="field-help">
+        Markdown: <code class="font-mono">## SECTION</code> for a section, <code class="font-mono">### Role — Company</code> for an entry,
+        <code class="font-mono">- </code> for bullets, <code class="font-mono">**bold**</code> and <code class="font-mono">*italic*</code> for emphasis.
+        Everything above the first section heading becomes the centered header of the PDF.
+      </p>
+      <div class="mt-6 flex flex-wrap gap-3">
+        <button type="submit" name="action" value="save" class="btn-secondary">Save changes</button>
+        <button type="submit" name="action" value="pdf" class="btn-primary">Save &amp; export PDF</button>
+      </div>
+    </div>
+  </form>
+
+  <div class="mt-6 flex flex-wrap items-center justify-between gap-3">
+    <form method="post" action="{% url 'resume:tailored_generate' job.pk %}" onsubmit="return confirm('Re-draft this resume from scratch? Any edits you made here will be replaced.');">
+      {% csrf_token %}
+      <button type="submit" class="btn-ghost">Re-generate from my profile</button>
+    </form>
+    <form method="post" action="{% url 'resume:tailored_delete' job.pk %}" onsubmit="return confirm('Delete this tailored resume?');">
+      {% csrf_token %}
+      <button type="submit" class="btn-danger">Delete</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
