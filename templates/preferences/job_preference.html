@@ -1,5 +1,5 @@
 {% extends "partials/profile_base.html" %}
-{% load i18n widget_tweaks %}
+{% load i18n %}
 {% block title %}{% trans "Job preferences" %} · {{ SITE_NAME }}{% endblock %}
 {% block profile_title %}{% trans "Job preferences" %}{% endblock %}
 {% block profile_intro %}
@@ -95,9 +95,9 @@
 
     <form method="post" action="{% url 'preferences:benefit_add' %}" class="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_12rem_minmax(0,1fr)_auto]">
       {% csrf_token %}
-      {% render_field benefit_form.name placeholder=benefit_form.name.label class="rounded-lg border-slate-300 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white" %}
-      {% render_field benefit_form.importance class="rounded-lg border-slate-300 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white" %}
-      {% render_field benefit_form.notes placeholder=benefit_form.notes.label class="rounded-lg border-slate-300 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white" %}
+      {{ benefit_form.name }}
+      {{ benefit_form.importance }}
+      {{ benefit_form.notes }}
       <button type="submit" class="btn-secondary">{% trans "Add benefit" %}</button>
     </form>
   </div>

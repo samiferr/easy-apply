@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
+from core.forms import StyledFormMixin
 from education.models import Certificate, Degree
 from experience.models import ExperienceHighlight, WorkExperience
 from languages.models import Language, UserLanguage
@@ -23,8 +24,12 @@ from skills.models import SkillCategory, UserSkill
 # ---------------------------------------------------------------------------
 # Forms — each pre-filled from the element text, then reviewed by the user.
 # ---------------------------------------------------------------------------
-class BaseAddForm(forms.Form):
-    """Every add-to-profile form gets the user and the source element."""
+class BaseAddForm(StyledFormMixin, forms.Form):
+    """Every add-to-profile form gets the user and the source element.
+
+    StyledFormMixin gives the modal's widgets the same classes as the rest of
+    the app — without it they render unstyled and overflow on narrow screens.
+    """
 
     def __init__(self, *args, user=None, element=None, **kwargs):
         self.user = user

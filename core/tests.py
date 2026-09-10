@@ -156,3 +156,41 @@ class FrenchCatalogueTests(TestCase):
         self.client.cookies["django_language"] = "en"
         body = self.client.get(reverse("core:home")).content.decode()
         self.assertIn("Stop guessing whether you fit the job.", body)
+
+
+class ResponsiveContractTests(TestCase):
+    """Guards the layout rules that are easy to regress silently."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(email="r@example.com", password="pw12345678")
+        self.client.force_login(self.user)
+
+    def test_every_form_widget_carries_the_shared_classes(self):
+        """An unstyled widget falls back to the browser's intrinsic width and
+        overflows on a phone — this is how the preferences textareas broke."""
+        from jobs.profile_targets import ADD_TARGETS
+        from preferences.forms import BenefitPreferenceForm, JobPreferenceForm
+        from preferences.models import get_or_create_preference
+
+        preference = get_or_create_preference(self.user)
+        forms_to_check = [
+            JobPreferenceForm(instance=preference),
+            BenefitPreferenceForm(preference=preference),
+        ]
+        for target in ADD_TARGETS.values():
+            forms_to_check.append(target.form_class(user=self.user, element=None))
+
+        for form in forms_to_check:
+            for name, field in form.fields.items():
+                with self.subTest(form=type(form).__name__, field=name):
+                    css = field.widget.attrs.get("class", "")
+                    self.assertTrue(
+                        css, f"{type(form).__name__}.{name} has no CSS class"
+                    )
+
+    def test_the_screen_reader_chart_table_is_wrapped(self):
+        """sr-only on a <table> does not clamp its height (display:table treats
+        it as a minimum), so the table must sit inside a block wrapper."""
+        body = self.client.get(reverse("core:dashboard")).content.decode()
+        self.assertIn('<div class="sr-only">', body)
+        self.assertNotIn('<table class="sr-only">', body)

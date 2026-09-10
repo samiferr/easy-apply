@@ -1,10 +1,12 @@
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
+from core.forms import StyledFormMixin
+
 from .models import BenefitPreference, JobPreference
 
 
-class JobPreferenceForm(forms.ModelForm):
+class JobPreferenceForm(StyledFormMixin, forms.ModelForm):
     class Meta:
         model = JobPreference
         fields = [
@@ -47,10 +49,14 @@ class JobPreferenceForm(forms.ModelForm):
         return cleaned
 
 
-class BenefitPreferenceForm(forms.ModelForm):
+class BenefitPreferenceForm(StyledFormMixin, forms.ModelForm):
     class Meta:
         model = BenefitPreference
         fields = ["name", "importance", "notes"]
+        widgets = {
+            "name": forms.TextInput(attrs={"placeholder": _("Benefit")}),
+            "notes": forms.TextInput(attrs={"placeholder": _("Notes")}),
+        }
 
     def __init__(self, *args, preference=None, **kwargs):
         self.preference = preference
