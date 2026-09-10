@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Easy Apply\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-10 01:54+0000\n"
+"POT-Creation-Date: 2026-09-10 02:05+0000\n"
 "PO-Revision-Date: 2026-09-10 01:20+0000\n"
 "Last-Translator: Easy Apply <noreply@easy-apply.app>\n"
 "Language-Team: French <fr@easy-apply.app>\n"
@@ -181,194 +181,193 @@ msgstr "élément d’offre"
 msgid "job elements"
 msgstr "éléments d’offre"
 
-#: jobs/profile_targets.py:41
+#: jobs/profile_targets.py:46
 msgid "Skill"
 msgstr "Compétence"
 
-#: jobs/profile_targets.py:42
+#: jobs/profile_targets.py:47
 msgid "Category"
 msgstr "Catégorie"
 
-#: jobs/profile_targets.py:44
+#: jobs/profile_targets.py:49
 msgid "Level"
 msgstr "Niveau"
 
-#: jobs/profile_targets.py:64
+#: jobs/profile_targets.py:69
 #, python-format
 msgid "“%(name)s” is already in that category on your profile."
 msgstr "« %(name)s » figure déjà dans cette catégorie de votre profil."
 
-#: jobs/profile_targets.py:83 templates/partials/footer.html:33
+#: jobs/profile_targets.py:88 templates/partials/footer.html:33
 msgid "Language"
 msgstr "Langue"
 
-#: jobs/profile_targets.py:85
+#: jobs/profile_targets.py:90
 msgid "Proficiency"
 msgstr "Niveau de maîtrise"
 
-#: jobs/profile_targets.py:95
+#: jobs/profile_targets.py:100
 #, python-format
 msgid "%(name)s is already on your profile."
 msgstr "%(name)s figure déjà dans votre profil."
 
-#: jobs/profile_targets.py:111
+#: jobs/profile_targets.py:116
 msgid "Add to which role?"
 msgstr "À quel poste l’ajouter ?"
 
-#: jobs/profile_targets.py:113
+#: jobs/profile_targets.py:118
 msgid "Highlight"
 msgstr "Réalisation"
 
-#: jobs/profile_targets.py:123
+#: jobs/profile_targets.py:128
 msgid "Add a work experience to your profile first, then come back."
 msgstr "Ajoutez d’abord une expérience professionnelle à votre profil, puis revenez ici."
 
-#: jobs/profile_targets.py:141
+#: jobs/profile_targets.py:146
 msgid "Record as"
 msgstr "Enregistrer comme"
 
-#: jobs/profile_targets.py:142
+#: jobs/profile_targets.py:147
 msgid "Degree"
 msgstr "Diplôme"
 
-#: jobs/profile_targets.py:142
+#: jobs/profile_targets.py:147
 msgid "Certificate"
 msgstr "Certificat"
 
-#: jobs/profile_targets.py:146
+#: jobs/profile_targets.py:151
 msgid "Degree or certificate name"
 msgstr "Nom du diplôme ou du certificat"
 
-#: jobs/profile_targets.py:148
+#: jobs/profile_targets.py:153
 msgid "School or issuing organization"
 msgstr "Établissement ou organisme émetteur"
 
-#: jobs/profile_targets.py:150
+#: jobs/profile_targets.py:155
 msgid "Field of study"
 msgstr "Domaine d’études"
 
-#: jobs/profile_targets.py:155
+#: jobs/profile_targets.py:160
 msgid "Certificates need an issuing organization."
 msgstr "Un certificat doit indiquer un organisme émetteur."
 
-#: jobs/profile_targets.py:174 preferences/models.py:133
-#: templates/preferences/job_preference.html:58
+#: jobs/profile_targets.py:179 preferences/forms.py:57
+#: preferences/models.py:133 templates/preferences/job_preference.html:58
 msgid "Benefit"
 msgstr "Avantage"
 
-#: jobs/profile_targets.py:176 preferences/models.py:135
+#: jobs/profile_targets.py:181 preferences/models.py:135
 #: templates/preferences/job_preference.html:59
 msgid "Importance"
 msgstr "Importance"
 
-#: jobs/profile_targets.py:180 preferences/models.py:137
-#: templates/preferences/job_preference.html:60
+#: jobs/profile_targets.py:185 preferences/forms.py:58
+#: preferences/models.py:137 templates/preferences/job_preference.html:60
 msgid "Notes"
 msgstr "Remarques"
 
-#: jobs/profile_targets.py:187 preferences/forms.py:67
+#: jobs/profile_targets.py:192 preferences/forms.py:73
 #, python-format
 msgid "“%(name)s” is already in your preferences."
 msgstr "« %(name)s » figure déjà dans vos préférences."
 
-#: jobs/profile_targets.py:210
+#: jobs/profile_targets.py:215
 msgid "Record this as"
 msgstr "Enregistrer ceci comme"
 
-#: jobs/profile_targets.py:212
+#: jobs/profile_targets.py:217
 msgid "A preferred location"
 msgstr "Un lieu souhaité"
 
-#: jobs/profile_targets.py:213
+#: jobs/profile_targets.py:218
 msgid "An acceptable work arrangement"
 msgstr "Un mode de travail acceptable"
 
-#: jobs/profile_targets.py:214
+#: jobs/profile_targets.py:219
 msgid "My time zone preference"
 msgstr "Ma préférence de fuseau horaire"
 
-#: jobs/profile_targets.py:215
+#: jobs/profile_targets.py:220
 msgid "Maximum travel I accept"
 msgstr "Déplacements maximum acceptés"
 
-#: jobs/profile_targets.py:219
+#: jobs/profile_targets.py:224
 msgid "Value"
 msgstr "Valeur"
 
-#: jobs/profile_targets.py:221
+#: jobs/profile_targets.py:226
 msgid "Arrangement"
 msgstr "Mode de travail"
 
-#: jobs/profile_targets.py:222 templates/jobs/_arrangement_badge.html:3
+#: jobs/profile_targets.py:227 templates/jobs/_arrangement_badge.html:3
 msgid "Remote"
 msgstr "Télétravail"
 
-#: jobs/profile_targets.py:222 templates/jobs/_arrangement_badge.html:5
+#: jobs/profile_targets.py:227 templates/jobs/_arrangement_badge.html:5
 msgid "Hybrid"
 msgstr "Hybride"
 
-#: jobs/profile_targets.py:222 templates/jobs/_arrangement_badge.html:7
+#: jobs/profile_targets.py:227 templates/jobs/_arrangement_badge.html:7
 msgid "On-site"
 msgstr "Sur site"
 
-#: jobs/profile_targets.py:226 preferences/models.py:51
-#| msgid "Maximum travel (%)"
+#: jobs/profile_targets.py:231 preferences/models.py:51
 msgid "Max. travel (%)"
 msgstr "Déplacements max. (%)"
 
-#: jobs/profile_targets.py:233
+#: jobs/profile_targets.py:238
 msgid "Pick which arrangement this is."
 msgstr "Indiquez de quel mode de travail il s’agit."
 
-#: jobs/profile_targets.py:235
+#: jobs/profile_targets.py:240
 msgid "Give a maximum travel percentage."
 msgstr "Indiquez un pourcentage maximum de déplacements."
 
-#: jobs/profile_targets.py:300
+#: jobs/profile_targets.py:305
 msgid "Add to my technical skills"
 msgstr "Ajouter à mes compétences techniques"
 
-#: jobs/profile_targets.py:301 jobs/profile_targets.py:307
+#: jobs/profile_targets.py:306 jobs/profile_targets.py:312
 msgid "Review the name and level before adding it to your profile."
 msgstr "Vérifiez le nom et le niveau avant de l’ajouter à votre profil."
 
-#: jobs/profile_targets.py:306
+#: jobs/profile_targets.py:311
 msgid "Add to my soft skills"
 msgstr "Ajouter à mes compétences comportementales"
 
-#: jobs/profile_targets.py:312
+#: jobs/profile_targets.py:317
 msgid "Add to my languages"
 msgstr "Ajouter à mes langues"
 
-#: jobs/profile_targets.py:313
+#: jobs/profile_targets.py:318
 msgid "Set the proficiency that actually matches yours."
 msgstr "Indiquez le niveau qui correspond réellement au vôtre."
 
-#: jobs/profile_targets.py:318
+#: jobs/profile_targets.py:323
 msgid "Add to my experience"
 msgstr "Ajouter à mon expérience"
 
-#: jobs/profile_targets.py:319
+#: jobs/profile_targets.py:324
 msgid "Reword this in your own terms, then pick the role it belongs to."
 msgstr "Reformulez-le avec vos mots, puis choisissez le poste concerné."
 
-#: jobs/profile_targets.py:324
+#: jobs/profile_targets.py:329
 msgid "Add to my education"
 msgstr "Ajouter à ma formation"
 
-#: jobs/profile_targets.py:325
+#: jobs/profile_targets.py:330
 msgid "Record this as a degree or as a certificate."
 msgstr "Enregistrez ceci comme un diplôme ou comme un certificat."
 
-#: jobs/profile_targets.py:330 jobs/profile_targets.py:336
+#: jobs/profile_targets.py:335 jobs/profile_targets.py:341
 msgid "Add to my job preferences"
 msgstr "Ajouter à mes préférences d’emploi"
 
-#: jobs/profile_targets.py:331
+#: jobs/profile_targets.py:336
 msgid "Say how much this benefit matters to you."
 msgstr "Indiquez l’importance de cet avantage pour vous."
 
-#: jobs/profile_targets.py:337
+#: jobs/profile_targets.py:342
 msgid "Choose which preference this fact should update."
 msgstr "Choisissez la préférence que cette information doit mettre à jour."
 
@@ -563,29 +562,29 @@ msgstr "Nouvelle comparaison : %(section)s."
 msgid "This section can't be added to your profile."
 msgstr "Cette section ne peut pas être ajoutée à votre profil."
 
-#: preferences/forms.py:28
+#: preferences/forms.py:30
 msgid ""
 "Montréal, QC\n"
 "Remote (Canada)"
 msgstr "Montréal, QC\nTélétravail (Canada)"
 
-#: preferences/forms.py:31
+#: preferences/forms.py:33
 msgid "Available from March, 4 weeks notice"
 msgstr "Disponible dès mars, préavis de 4 semaines"
 
-#: preferences/forms.py:34
+#: preferences/forms.py:36
 msgid "EST ±2h"
 msgstr "HNE ±2 h"
 
-#: preferences/forms.py:36
+#: preferences/forms.py:38
 msgid "Full-time, Contract"
 msgstr "Temps plein, Contrat"
 
-#: preferences/forms.py:45
+#: preferences/forms.py:47
 msgid "The target salary can't be below the minimum."
 msgstr "Le salaire visé ne peut pas être inférieur au minimum."
 
-#: preferences/forms.py:62
+#: preferences/forms.py:68
 msgid "Give this benefit a name."
 msgstr "Donnez un nom à cet avantage."
 
@@ -642,7 +641,6 @@ msgid "Open to on-site"
 msgstr "Ouvert au travail sur site"
 
 #: preferences/models.py:45
-#| msgid "Maximum on-site days per week"
 msgid "Max. on-site days / week"
 msgstr "Jours sur site max. / semaine"
 
