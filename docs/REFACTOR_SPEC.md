@@ -8,10 +8,14 @@
 
 ## 0. Context you must respect
 
-**Stack (do not change):** Django 5 · SQLite · Tailwind CSS 3 (CLI build) ·
-Alpine.js · WhiteNoise · DeepSeek chat-completions in JSON mode via
-`core/ai.py::call_deepseek_json`. No Celery, no Redis, no HTMX, no Node runtime
-in production (`static/dist/output.css` is committed).
+**Stack:** Django 5 · SQLite · Tailwind CSS 3 (CLI build) · Alpine.js ·
+WhiteNoise · DeepSeek chat-completions in JSON mode via
+`core/ai.py::call_deepseek_json`. No HTMX, no Node runtime in production
+(`static/dist/output.css` is committed).
+
+**This refactor adds Celery + Redis** — every AI call moves off the request
+cycle (§7). That is the one infrastructure addition; do not introduce any other
+new service.
 
 **Must keep working, re-skinned but not re-architected:**
 resume import (`resume/services/importer.py`), tailored resume + PDF export
@@ -199,10 +203,12 @@ Clicking **Add to my profile** on a row:
    in JS.
 2. The user **reviews and edits** the pre-filled values, then submits.
 3. `POST` to the same URL creates the profile object, stamps
-   `element.added_to_profile_at`, then **re-evaluates that one element only** and
-   returns JSON: `{ "ok": true, "row_html": "...", "summary": {...} }`.
-4. Alpine swaps the row and updates the section + job match meters. **Nothing else
-   is re-evaluated and no full page reload happens.**
+   `element.added_to_profile_at`, and **enqueues a single-element re-evaluation
+   task** (§7.3). It returns immediately with
+   `{ "ok": true, "task_id": "...", "row_html": "<row in its re-evaluating state>" }`.
+4. Alpine swaps in the pending row, polls `/tasks/<task_id>/status/` until terminal,
+   then fetches the finished row and updates the section + job match meters.
+   **Nothing else is re-evaluated and no full page reload happens.**
 
 The per-section target is a registry in `jobs/sections.py`, so adding a section
 later means one dict entry, not a chain of `if` branches:
@@ -298,18 +304,18 @@ If a slice is empty, **do not call the API**. Mark every element in that section
 `none` with evidence like "No languages recorded in your profile yet" and link to the
 matching profile tab. This saves a call per empty section.
 
-### 6.3 Execution model — progressive
-1. **On submit:** one inline extraction call (`analyze_job_text`) that returns all
-   13 sections at once. Job goes `completed`; all sections exist with
-   `match_state = "idle"`. This is the only AI call in the request cycle.
-2. **On the analysis page:** Alpine fires one `fetch` per matched section to
-   `POST /jobs/<pk>/sections/<key>/match/`, at most 2–3 concurrent. Each tab shows a
-   spinner, then fills in. A failed section shows a **Retry** button — it never
-   poisons the others.
-3. **Per element:** `POST /jobs/<pk>/elements/<el_id>/match/` re-evaluates one row.
+### 6.3 Execution model
+Every call described here runs in a Celery task, never in a request. The task
+graph, progress model and polling contract are specified in §7.
 
-Set `section.match_state` around each call so a reload mid-run is never ambiguous.
-No request should ever hold more than one AI call.
+- **Extraction** — one call producing all 13 sections at once.
+- **Per-section match** — one call per matched section, each with only its slice.
+- **Per-element match** — one call for one row, after add-to-profile or a manual
+  re-evaluate.
+
+`JobSection.match_state` (`idle | running | done | failed`) is set around each
+call so a page reload mid-run is never ambiguous. **No task may hold more than one
+AI call**, so one failing section never poisons the others.
 
 ### 6.4 Prompts
 Split `jobs/services/deepseek_client.py`:
@@ -327,7 +333,169 @@ Keep the defensive parsing style of `jobs/services/importer.py` (`_clean_str`,
 
 ---
 
-## 7. Marketing page (`templates/core/home.html`)
+## 7. Background AI processing
+
+**Every AI call moves off the request cycle.** Four paths are in scope:
+resume analysis, job analysis, matching analysis, and tailored-resume generation.
+No view may call DeepSeek directly — views enqueue, then redirect to a page that
+shows live progress.
+
+### 7.1 Infrastructure
+
+Add Celery + Redis.
+
+- `config/celery.py` — `Celery("easy_apply")`, `autodiscover_tasks()`, and the
+  `app` re-exported from `config/__init__.py` so tasks register on startup.
+- Settings, all via `python-decouple` like everything else:
+  `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND`, `CELERY_TASK_ALWAYS_EAGER`
+  (default `True` in `DEBUG`, so the app still runs with no worker for local dev
+  and in tests), `CELERY_TASK_TIME_LIMIT`, `CELERY_TASK_SOFT_TIME_LIMIT`.
+- `requirements.txt`: `celery[redis]>=5.4`, `redis>=5.0`.
+- `.env.example`: the new vars, documented, with `redis://localhost:6379/0` defaults.
+- **README**: a "Running the worker" section — `celery -A config worker -l info`
+  — and a note that Redis is now required in production.
+
+⚠️ **SQLite + a concurrent worker is the real risk in this change.** The worker
+writes to the same database as the web process. Mitigate all three ways:
+1. Enable **WAL mode** and set a busy timeout on the SQLite connection
+   (`OPTIONS: {"init_command": "PRAGMA journal_mode=WAL;", "timeout": 20}`).
+2. **Never hold a transaction open across an AI call** — do the HTTP call first,
+   then open a short `transaction.atomic()` block to write results. The current
+   `apply_analysis` wraps the whole thing; restructure it.
+3. Keep worker concurrency low (`--concurrency=2`) and document that **Postgres is
+   the recommended production database** now that there are two writer processes.
+
+### 7.2 One progress model for all four paths
+
+Add `core/models.py::AITask` — a single record every AI operation reports through,
+so the UI has one widget and one polling contract instead of four:
+
+```python
+class AITask(models.Model):
+    KIND = [("resume_import","Resume analysis"), ("job_analysis","Job analysis"),
+            ("job_match","Matching analysis"), ("tailored_resume","Resume generation")]
+    STATE = [("queued","Queued"), ("running","Running"), ("done","Done"),
+             ("failed","Failed"), ("canceled","Canceled")]
+
+    user           = FK(settings.AUTH_USER_MODEL, related_name="ai_tasks")
+    kind           = CharField(choices=KIND)
+    state          = CharField(choices=STATE, default="queued")
+    # Generic link to whatever the task is about (JobPost / ResumeImport / TailoredResume)
+    content_type   = FK(ContentType, on_delete=CASCADE)
+    object_id      = PositiveIntegerField()
+    target         = GenericForeignKey("content_type", "object_id")
+
+    celery_task_id = CharField(max_length=100, blank=True, db_index=True)
+    steps_total    = PositiveSmallIntegerField(default=1)
+    steps_done     = PositiveSmallIntegerField(default=0)
+    current_step   = CharField(max_length=200, blank=True)   # translated label
+    error_message  = TextField(blank=True)
+    attempts       = PositiveSmallIntegerField(default=0)
+
+    queued_at / started_at / finished_at = DateTimeField(null=True, blank=True)
+
+    @property
+    def percent(self): ...      # 0 when steps_total in (0, None); else clamped 0-100
+    @property
+    def is_terminal(self): ...  # state in {done, failed, canceled}
+```
+
+Rules:
+- `steps_total = 1` means **indeterminate** — render a moving bar, not "0%".
+- `current_step` is a **translated** string (§2), written with `gettext`, since it
+  is shown to the user verbatim.
+- Keep the existing `JobPost.status` and `ResumeImport.status` fields as the
+  domain state; `AITask.state` is the *job-run* state. They are related but not the
+  same — a job can be `completed` while a re-match task is `running`.
+- **`TailoredResume` has no status field today.** Add `state` + `error_message` to
+  it so generation can be tracked like the rest.
+
+### 7.3 Task graph per path
+
+**Job analysis** — `steps_total = 2 + len(matched_sections_with_rows)`:
+
+```
+chord(
+  header = chain(fetch_job_text → extract_job_sections),   # steps 1-2
+  body   = group(match_job_section.s(section_id) for each matched section)
+) → finalize_job_analysis      # recomputes the match summary, stamps profile_matched_at
+```
+
+Each `match_job_section` task increments `steps_done` and sets `current_step` to
+e.g. *"Matching Required Technical Skills"*. A section that fails sets its own
+`JobSection.match_state = "failed"` and **does not fail the chord** — the user
+retries just that section.
+
+**Resume analysis** — `analyze_resume_import` (`steps_total = 2`: extract text,
+then parse with AI). On success `ResumeImport.status = completed` and the review
+page becomes available.
+
+**Matching analysis (re-run)** — `match_job_section` per section, or
+`match_job_element` for a single row after add-to-profile. Single-element tasks are
+indeterminate and should complete in a couple of seconds.
+
+**Tailored-resume generation** — `generate_tailored_resume_task` (indeterminate).
+
+### 7.4 Retries and failure
+
+- Retry only on transient failures — `AIServiceError` from a timeout, a 429, or a
+  5xx: `autoretry_for`, `retry_backoff=True`, `retry_jitter=True`, `max_retries=3`.
+- **Never retry `AIConfigError`** (no API key) or a JSON-parse failure — those are
+  deterministic. Fail fast with the message already produced by `core/ai.py`, which
+  is written to be user-safe.
+- On final failure: `state = "failed"`, `error_message` set, and the domain record
+  set to its failed status. Every failed task surfaces a **Retry** button that
+  enqueues a fresh `AITask` rather than resurrecting the old one.
+- Set `CELERY_TASK_SOFT_TIME_LIMIT` below the reverse proxy's limits and handle
+  `SoftTimeLimitExceeded` by marking the task failed with a clear timeout message.
+
+### 7.5 Polling contract
+
+`GET /tasks/<task_id>/status/` → JSON, owner-scoped (404 for anyone else):
+
+```json
+{ "state": "running", "percent": 45, "current_step": "Matching Languages",
+  "steps_done": 5, "steps_total": 11, "error_message": "",
+  "is_terminal": false, "redirect_url": null }
+```
+
+Plus `GET /jobs/<pk>/analysis-state/` returning the per-section states in one call,
+so the analysis rail updates without 13 separate requests.
+
+- Poll with Alpine `fetch` on a **2s interval, backing off to 5s after 30s**, and
+  **stop on `is_terminal`** — no unbounded polling loops.
+- Stop polling when the tab is hidden (`document.visibilityState`) and resume on focus.
+- When a terminal task returns `redirect_url`, navigate there (resume analysis →
+  review page; tailored resume → editor).
+
+### 7.6 UI
+
+- **Shared partial** `templates/partials/_ai_progress.html` — bar, percent,
+  `current_step`, elapsed time, and a Retry button on failure. Used by all four paths.
+- **Job analysis page** — the progress bar sits above the section rail; each rail
+  item carries its own spinner/tick/warning while the chord runs, and tabs become
+  readable as their sections land instead of waiting for the whole run.
+- **Job submit** — enqueue, then redirect straight to the detail page in its
+  `queued` state. Never block the POST.
+- **Resume upload** — redirect to the review page, which shows the progress bar
+  until parsing finishes, then renders the checklist.
+- **Dashboard** — show any of the user's non-terminal `AITask`s as an "In progress"
+  strip, so work started elsewhere is visible.
+- Every state needs a **translated** label, and `aria-live="polite"` plus
+  `role="progressbar"` with the aria value attributes on the bar.
+
+### 7.7 Housekeeping
+
+- Admin registration for `AITask` (read-only, filterable by kind/state) — this is
+  the debugging surface when a worker misbehaves.
+- A management command or periodic task pruning terminal `AITask` rows older than
+  30 days.
+- Mark tasks stuck in `running` with no update for over an hour as `failed` on
+  worker startup, so a killed worker does not leave permanent spinners.
+
+---
+
+## 8. Marketing page (`templates/core/home.html`)
 
 Public, `base_public.html`, large display-scale headings.
 
@@ -338,13 +506,13 @@ Public, `base_public.html`, large display-scale headings.
 3. **Why** — 4–6 benefit cards (per-requirement matching, one-click add to profile,
    red-flag detection, tailored resume + PDF, bilingual, your data stays yours).
 4. **Final CTA** band.
-5. **Footer** — product links, and the legal links from §9.
+5. **Footer** — product links, and the legal links from §10.
 
 Fully translated FR/EN. Must look right at 375px.
 
 ---
 
-## 8. Dashboard (`templates/core/dashboard.html`)
+## 9. Dashboard (`templates/core/dashboard.html`)
 
 Replace the current stat-tiles + checklist page with:
 
@@ -362,7 +530,7 @@ Replace the current stat-tiles + checklist page with:
 
 ---
 
-## 9. Legal pages
+## 10. Legal pages
 
 New `legal` app (or `core` routes) with real, complete content in **both FR and EN**:
 
@@ -387,7 +555,7 @@ Link all of these from the public footer and from the app footer.
 
 ---
 
-## 10. Jobs list (`templates/jobs/job_list.html`)
+## 11. Jobs list (`templates/jobs/job_list.html`)
 
 Full-width **card list** (one card per row, not a grid of tiles), large headings.
 Each card: job title (display size), company · seniority, status badge, work-
@@ -397,7 +565,7 @@ Add a search box, a status filter, and empty/loading states.
 
 ---
 
-## 11. Definition of done
+## 12. Definition of done
 
 - [ ] `python manage.py makemigrations --check` clean; `migrate` runs on a fresh DB **and** on a copy of the old one.
 - [ ] `python manage.py check` and the existing test suite pass.
@@ -405,6 +573,15 @@ Add a search box, a status filter, and empty/loading states.
 - [ ] The analyzer cannot produce a section outside the 13 keys — verify with a test that feeds it a junk section.
 - [ ] Each match call's payload contains **only** the mapped profile slice — verify with a test asserting an unmapped key is absent.
 - [ ] Empty slices short-circuit without an HTTP call.
+- [ ] **No view calls DeepSeek directly** — grep the `views.py` files for the service
+      entrypoints and confirm every one is behind a task.
+- [ ] With the worker stopped, submitting a job leaves it visibly `queued` and the
+      web process stays responsive; starting the worker drains it.
+- [ ] `CELERY_TASK_ALWAYS_EAGER=True` makes the whole suite run with no broker.
+- [ ] A section that fails mid-chord leaves the other sections finished and offers Retry.
+- [ ] Progress polling stops on terminal state and on tab hide — verify in devtools
+      that requests actually cease.
+- [ ] SQLite is in WAL mode and no AI call happens inside an open transaction.
 - [ ] Add-to-profile creates the right object, re-evaluates exactly one element, and updates the row without a page reload.
 - [ ] `django-admin compilemessages` produces no fuzzy/empty FR strings; switching to FR translates every screen including the legals.
 - [ ] `npm run build` regenerated and `static/dist/output.css` committed.
@@ -412,15 +589,18 @@ Add a search box, a status filter, and empty/loading states.
 - [ ] Light and dark both look right on every new component.
 - [ ] Resume import, tailored resume + PDF, and Markdown recap all still work.
 
-## 12. Suggested commit sequence
+## 13. Suggested commit sequence
 
 1. Theme + `base_app`/`base_public` split + sidebar/topbar shell
 2. i18n wiring + language switcher (catalogue filled last, once strings settle)
 3. `jobs/sections.py` + model rename + wipe migration
 4. New extraction prompt + importer rewrite
-5. Scoped slices + per-section/per-element matchers + JSON endpoints
-6. `preferences` app + profile tab rail
-7. Job analysis page (tab rail, tables, add-to-profile modal)
-8. Dashboard + jobs list
-9. Marketing page + legal pages
-10. FR catalogue, `npm run build`, README update
+5. Celery + Redis wiring, `AITask` model, polling endpoint + shared progress partial
+6. Move all four AI paths behind tasks (resume analysis, job analysis, matching,
+   resume generation)
+7. Scoped slices + per-section/per-element matchers + JSON endpoints
+8. `preferences` app + profile tab rail
+9. Job analysis page (tab rail, tables, add-to-profile modal)
+10. Dashboard + jobs list
+11. Marketing page + legal pages
+12. FR catalogue, `npm run build`, README update
