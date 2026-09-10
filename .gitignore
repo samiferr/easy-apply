@@ -239,3 +239,7 @@ node_modules/
 
 # Compiled message catalogues (regenerate with `manage.py compilemessages`)
 *.mo
+
+# SQLite WAL sidecar files (created by the WAL pragma in core/apps.py)
+db.sqlite3-shm
+db.sqlite3-wal
