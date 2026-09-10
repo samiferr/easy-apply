@@ -6,9 +6,9 @@
 <div>
   <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
     <div>
-      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Every language you speak, with your proficiency level.</p>
+      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{% trans "Every language you speak, with your proficiency level." %}</p>
     </div>
-    <a href="{% url 'languages:add' %}" class="btn-primary">+ Add language</a>
+    <a href="{% url 'languages:add' %}" class="btn-primary">{% trans "+ Add language" %}</a>
   </div>
 
   {% if user_languages %}
@@ -38,8 +38,8 @@
     </div>
   {% else %}
     <div class="card mt-6 flex flex-col items-center gap-3 p-10 text-center">
-      <p class="text-sm text-slate-500 dark:text-slate-400">You haven't added any languages yet.</p>
-      <a href="{% url 'languages:add' %}" class="btn-primary">Add your first language</a>
+      <p class="text-sm text-slate-500 dark:text-slate-400">{% trans "You haven't added any languages yet." %}</p>
+      <a href="{% url 'languages:add' %}" class="btn-primary">{% trans "Add your first language" %}</a>
     </div>
   {% endif %}
 </div>

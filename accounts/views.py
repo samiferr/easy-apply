@@ -99,8 +99,8 @@ class SecurityView(LoginRequiredMixin, TemplateView):
             field.widget.attrs.setdefault(
                 "class",
                 "block w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 "
-                "text-sm text-slate-900 shadow-sm focus:border-teal-500 focus:outline-none "
-                "focus:ring-2 focus:ring-teal-500/30 dark:border-slate-700 dark:bg-slate-900 "
+                "text-sm text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none "
+                "focus:ring-2 focus:ring-brand-500/30 dark:border-slate-700 dark:bg-slate-900 "
                 "dark:text-slate-100",
             )
         if form.is_valid():

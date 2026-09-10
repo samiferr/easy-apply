@@ -46,3 +46,24 @@ def guard(fn):
             )
 
     return wrapper
+
+
+def dispatch(ai_task, signature, *, args=()):
+    """Send a task to the broker, surviving a broker that is down.
+
+    Without this, an unreachable Redis raises out of the view and the user gets
+    a 500 instead of a page telling them what happened. The AITask is marked
+    failed so the UI shows its Retry button.
+    """
+    try:
+        async_result = signature.apply_async(args=args) if args else signature.apply_async()
+    except Exception as exc:  # kombu OperationalError, redis ConnectionError, ...
+        logger.warning("Could not enqueue %s: %s", ai_task.kind, exc)
+        ai_task.mark_failed(
+            _("Background processing is unavailable right now. Please try again shortly.")
+        )
+        return None
+
+    ai_task.celery_task_id = getattr(async_result, "id", "") or ""
+    ai_task.save(update_fields=["celery_task_id", "updated_at"])
+    return async_result

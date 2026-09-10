@@ -1,9 +1,0 @@
-{% comment %}A single sidebar entry. Expects: url, label, active (bool), icon (svg path block via `icon` include).{% endcomment %}
-<a href="{{ url }}"
-   class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition
-     {% if active %}bg-brand-50 text-brand-700 dark:bg-brand-950/60 dark:text-brand-300
-     {% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white{% endif %}"
-   {% if active %}aria-current="page"{% endif %}>
-  <span class="shrink-0">{{ icon }}</span>
-  <span x-show="!collapsed" x-cloak class="truncate">{{ label }}</span>
-</a>

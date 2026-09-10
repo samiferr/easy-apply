@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
+from django.utils import translation
 from django.urls import reverse
 
 from core.models import AITask
@@ -250,3 +251,55 @@ class AITaskProgressTests(TestCase):
         AITask.start_for(self.user, AITask.JOB_ANALYSIS, self.job)
         first.refresh_from_db()
         self.assertEqual(first.state, AITask.CANCELED)
+
+
+class BrokerDownTests(TestCase):
+    """A broker outage must never reach the view as an exception.
+
+    The failure is simulated rather than produced by a dead port: Celery's own
+    reconnect loop takes ~13s per call, which does not belong in a test suite.
+    What matters is that `core.tasks.dispatch` catches it and leaves the user a
+    failed AITask with a Retry button.
+    """
+
+    def setUp(self):
+        self.user = User.objects.create_user(email="nw@example.com", password="pw12345678")
+        self.client.force_login(self.user)
+
+    @staticmethod
+    def _broker_down():
+        from kombu.exceptions import OperationalError
+
+        return patch(
+            "celery.canvas._chain.apply_async",
+            side_effect=OperationalError("Cannot connect to redis://localhost:6379/0"),
+        )
+
+    def test_enqueue_does_not_raise_when_the_broker_is_down(self):
+        from jobs.tasks import enqueue_job_analysis
+
+        job = JobPost.objects.create(user=self.user, source_url="https://x.test/j")
+        # The message is stored already translated, so pin the language rather
+        # than depending on whatever a previous test left active.
+        with translation.override("en"), self._broker_down():
+            task = enqueue_job_analysis(job)  # must not raise
+
+        job.refresh_from_db()
+        task.refresh_from_db()
+        self.assertEqual(task.state, AITask.FAILED)
+        self.assertIn("unavailable", task.error_message.lower())
+        self.assertEqual(job.status, JobPost.STATUS_FAILED)
+        self.assertTrue(job.error_message, "the user must be told why")
+
+    def test_the_submit_view_returns_a_redirect_not_a_500(self):
+        with self._broker_down():
+            response = self.client.post(
+                reverse("jobs:add"),
+                {"source_url": "https://x.test/job", "manual_text": "Some job text"},
+            )
+        self.assertEqual(response.status_code, 302)
+
+    def test_pages_still_render(self):
+        for name in ["core:dashboard", "jobs:list"]:
+            with self.subTest(name=name):
+                self.assertEqual(self.client.get(reverse(name)).status_code, 200)

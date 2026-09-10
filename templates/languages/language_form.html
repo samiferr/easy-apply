@@ -1,4 +1,5 @@
 {% extends "base_app.html" %}
+{% load i18n %}
 {% block title %}{% if object %}Edit language{% else %}Add language{% endif %} · {{ SITE_NAME }}{% endblock %}
 {% block content %}
 <div class="mx-auto max-w-lg px-4 py-10 sm:px-6 lg:px-8">
@@ -18,7 +19,7 @@
       {% include "partials/field.html" with field=form.language_name %}
       {% include "partials/field.html" with field=form.proficiency %}
       <div class="flex justify-end gap-3 border-t border-slate-100 pt-5 dark:border-slate-800">
-        <a href="{% url 'languages:list' %}" class="btn-secondary">Cancel</a>
+        <a href="{% url 'languages:list' %}" class="btn-secondary">{% trans "Cancel" %}</a>
         <button type="submit" class="btn-primary">{% if object %}Save changes{% else %}Add language{% endif %}</button>
       </div>
     </form>

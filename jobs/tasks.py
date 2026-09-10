@@ -17,7 +17,7 @@ from django.utils.translation import gettext as _
 
 from core.ai import AIServiceError
 from core.models import AITask
-from core.tasks import fail_task, get_task, guard, is_retryable
+from core.tasks import dispatch, fail_task, get_task, guard, is_retryable
 
 from .models import JobElement, JobPost, JobSection
 from .services.deepseek_client import analyze_job_text
@@ -211,9 +211,10 @@ def enqueue_job_analysis(job: JobPost, language: str = "en") -> AITask:
         extract_job_sections.s(language),
         _dispatch_section_matches.s(),
     )
-    async_result = workflow.apply_async()
-    task.celery_task_id = getattr(async_result, "id", "") or ""
-    task.save(update_fields=["celery_task_id", "updated_at"])
+    if dispatch(task, workflow) is None:
+        job.status = JobPost.STATUS_FAILED
+        job.error_message = str(task.error_message)
+        job.save(update_fields=["status", "error_message"])
     return task
 
 
@@ -249,13 +250,11 @@ def enqueue_section_match(section: JobSection) -> AITask:
         steps_total=1,
         step=_("Matching %(section)s") % {"section": str(section.label)},
     )
-    async_result = match_job_section.apply_async(args=(section.pk, task.pk))
-    task.celery_task_id = getattr(async_result, "id", "") or ""
-    task.save(update_fields=["celery_task_id", "updated_at"])
-    if task.state != AITask.FAILED:
-        task.refresh_from_db()
-        if not task.is_terminal:
-            task.mark_done()
+    if dispatch(task, match_job_section.s(), args=(section.pk, task.pk)) is None:
+        return task
+    task.refresh_from_db()
+    if not task.is_terminal:
+        task.mark_done()
     return task
 
 
@@ -273,12 +272,11 @@ def enqueue_full_match(job: JobPost) -> AITask:
         task.mark_done()
         return task
 
-    async_result = chord(
+    workflow = chord(
         group(match_job_section.s(s.pk, task.pk) for s in sections),
         finalize_job_analysis.s(job.pk, task.pk),
-    ).apply_async()
-    task.celery_task_id = getattr(async_result, "id", "") or ""
-    task.save(update_fields=["celery_task_id", "updated_at"])
+    )
+    dispatch(task, workflow)
     return task
 
 
@@ -328,7 +326,6 @@ def enqueue_element_match(element: JobElement) -> AITask:
         step=_("Re-evaluating this item"),
     )
     JobElement.objects.filter(pk=element.pk).update(is_evaluating=True)
-    async_result = match_job_element.apply_async(args=(element.pk, task.pk))
-    task.celery_task_id = getattr(async_result, "id", "") or ""
-    task.save(update_fields=["celery_task_id", "updated_at"])
+    if dispatch(task, match_job_element.s(), args=(element.pk, task.pk)) is None:
+        JobElement.objects.filter(pk=element.pk).update(is_evaluating=False)
     return task

@@ -112,3 +112,47 @@ class DashboardChartTests(TestCase):
         self.assertTrue(chart["has_data"])
         self.assertEqual(chart["total"], 2)
         self.assertEqual(chart["peak"], 2)
+
+
+class FrenchCatalogueTests(TestCase):
+    """The FR catalogue must actually reach the rendered page, not just compile."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(email="fr@example.com", password="pw12345678")
+        self.client.cookies["django_language"] = "fr"
+
+    def test_marketing_page_is_translated(self):
+        body = self.client.get(reverse("core:home")).content.decode()
+        for needle in ["Ne devinez plus", "Trois étapes vers un CV personnalisé", "Créez votre compte"]:
+            self.assertIn(needle, body, f"missing French string: {needle}")
+        self.assertNotIn("Stop guessing whether you fit the job.", body)
+
+    def test_privacy_policy_is_translated(self):
+        body = self.client.get(reverse("legal:privacy")).content.decode()
+        for needle in ["Politique de confidentialité", "Traitement par IA", "Vos droits"]:
+            self.assertIn(needle, body, f"missing French string: {needle}")
+
+    def test_app_shell_and_dashboard_are_translated(self):
+        self.client.force_login(self.user)
+        body = self.client.get(reverse("core:dashboard")).content.decode()
+        for needle in ["Tableau de bord", "Analyser une offre", "Importer un CV", "Aller au contenu"]:
+            self.assertIn(needle, body, f"missing French string: {needle}")
+
+    def test_job_sections_are_translated(self):
+        self.client.force_login(self.user)
+        job = JobPost.objects.create(user=self.user, source_url="https://x.test/j")
+        apply_analysis(job, {"title": "X", "sections": [{"key": "overview", "body": "b", "elements": []}]}, "raw")
+        body = self.client.get(job.get_absolute_url()).content.decode()
+        for needle in ["Vue d’ensemble", "Rémunération et avantages", "Signaux d’alerte possibles"]:
+            self.assertIn(needle, body, f"missing French section label: {needle}")
+
+    def test_seeded_benefits_are_translated(self):
+        self.client.force_login(self.user)
+        body = self.client.get(reverse("preferences:detail")).content.decode()
+        self.assertIn("Soins dentaires", body)
+        self.assertIn("Congés payés", body)
+
+    def test_english_is_unaffected(self):
+        self.client.cookies["django_language"] = "en"
+        body = self.client.get(reverse("core:home")).content.decode()
+        self.assertIn("Stop guessing whether you fit the job.", body)

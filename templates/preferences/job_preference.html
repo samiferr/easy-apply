@@ -12,7 +12,7 @@
   <form method="post" class="card p-5 sm:p-6">
     {% csrf_token %}
     <h2 class="section-title">{% trans "Compensation" %}</h2>
-    <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="mt-4 grid grid-cols-1 items-end gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {% include "partials/field.html" with field=form.desired_salary_min %}
       {% include "partials/field.html" with field=form.desired_salary_max %}
       {% include "partials/field.html" with field=form.salary_currency %}
@@ -20,7 +20,7 @@
     </div>
 
     <h2 class="section-title mt-8">{% trans "Location & work arrangement" %}</h2>
-    <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:items-start">
       {% include "partials/field.html" with field=form.preferred_locations %}
       <div>
         <p class="field-label">{% trans "Acceptable arrangements" %}</p>
@@ -32,7 +32,7 @@
         </div>
       </div>
     </div>
-    <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="mt-4 grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {% include "partials/field.html" with field=form.max_onsite_days_per_week %}
       {% include "partials/field.html" with field=form.max_travel_percentage %}
       {% include "partials/field.html" with field=form.timezone_preference %}

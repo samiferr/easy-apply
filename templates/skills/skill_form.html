@@ -1,4 +1,5 @@
 {% extends "base_app.html" %}
+{% load i18n %}
 {% block title %}{% if object %}Edit skill{% else %}Add {{ kind_label|lower }}{% endif %} · {{ SITE_NAME }}{% endblock %}
 {% block content %}
 <div class="mx-auto max-w-lg px-4 py-10 sm:px-6 lg:px-8">
@@ -21,7 +22,7 @@
       {% include "partials/field.html" with field=form.name %}
       {% include "partials/field.html" with field=form.level %}
       <div class="flex justify-end gap-3 border-t border-slate-100 pt-5 dark:border-slate-800">
-        <a href="{% url 'skills:list' %}?tab={{ kind }}" class="btn-secondary">Cancel</a>
+        <a href="{% url 'skills:list' %}?tab={{ kind }}" class="btn-secondary">{% trans "Cancel" %}</a>
         <button type="submit" class="btn-primary">{% if object %}Save changes{% else %}Add skill{% endif %}</button>
       </div>
     </form>

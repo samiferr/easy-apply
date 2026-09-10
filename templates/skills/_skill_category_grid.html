@@ -1,3 +1,4 @@
+{% load i18n %}
 {% if grouped %}
   <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
     {% for category, skills in grouped %}
@@ -33,6 +34,6 @@
 {% else %}
   <div class="card flex flex-col items-center gap-3 p-10 text-center">
     <p class="text-sm text-slate-500 dark:text-slate-400">{{ empty_message }}</p>
-    <a href="{% url 'skills:add' kind=kind %}" class="btn-primary">Add your first skill</a>
+    <a href="{% url 'skills:add' kind=kind %}" class="btn-primary">{% trans "Add your first skill" %}</a>
   </div>
 {% endif %}

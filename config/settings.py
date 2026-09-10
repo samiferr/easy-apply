@@ -227,6 +227,18 @@ CELERY_TASK_ACKS_LATE = True
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
+# Fail fast when the broker is unreachable rather than retrying for ~20s while
+# a user waits on the page. core.tasks.dispatch turns the resulting error into
+# a failed AITask with a Retry button; see the NoWorkerTests in jobs/tests.py.
+CELERY_BROKER_CONNECTION_MAX_RETRIES = config(
+    "CELERY_BROKER_CONNECTION_MAX_RETRIES", default=1, cast=int
+)
+CELERY_BROKER_TRANSPORT_OPTIONS = {"max_retries": 1, "socket_connect_timeout": 3}
+CELERY_RESULT_BACKEND_ALWAYS_RETRY = False
+CELERY_RESULT_BACKEND_MAX_RETRIES = 1
+CELERY_REDIS_SOCKET_CONNECT_TIMEOUT = 3
+CELERY_REDIS_SOCKET_TIMEOUT = 10
+
 # How long a running AITask may go without an update before the worker's
 # startup sweep marks it failed (seconds).
 AI_TASK_STALE_AFTER = config("AI_TASK_STALE_AFTER", default=3600, cast=int)

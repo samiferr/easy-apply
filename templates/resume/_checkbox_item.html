@@ -1,8 +1,9 @@
+{% load i18n %}
 <label class="flex items-start gap-3 rounded-lg p-2 hover:bg-slate-50 dark:hover:bg-slate-800/50">
-  <input type="checkbox" name="selected" value="{{ key }}" {% if not is_duplicate %}checked{% endif %} class="mt-0.5 h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500" />
+  <input type="checkbox" name="selected" value="{{ key }}" {% if not is_duplicate %}checked{% endif %} class="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
   <span class="text-sm">
     <span class="font-medium text-slate-700 dark:text-slate-200">{{ main }}</span>
     {% if meta %}<span class="text-slate-500 dark:text-slate-400"> — {{ meta }}</span>{% endif %}
-    {% if is_duplicate %}<span class="badge ml-1 bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">Already have this</span>{% endif %}
+    {% if is_duplicate %}<span class="badge ml-1 bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">{% trans "Already have this" %}</span>{% endif %}
   </span>
 </label>

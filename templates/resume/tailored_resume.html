@@ -1,4 +1,5 @@
 {% extends "base_app.html" %}
+{% load i18n %}
 {% block title %}Tailored resume · {{ job.title|default:"Job post" }} · {{ SITE_NAME }}{% endblock %}
 {% block content %}
 <div class="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
@@ -9,7 +10,7 @@
 
   <div class="mt-4 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
     <div class="min-w-0">
-      <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Your tailored resume</h1>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-white">{% trans "Your tailored resume" %}</h1>
       <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
         Written for {{ job.title|default:"this role" }}{% if job.company_name %} at {{ job.company_name }}{% endif %} from what you've recorded, and laid out like
         <code class="rounded bg-slate-100 px-1 py-0.5 font-mono text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300">resume_template.md</code>.
@@ -17,8 +18,8 @@
       </p>
     </div>
     <div class="flex shrink-0 flex-wrap gap-2">
-      <a href="{% url 'resume:tailored_markdown' job.pk %}" class="btn-secondary">Download .md</a>
-      <a href="{% url 'resume:tailored_pdf' job.pk %}" class="btn-secondary">Download PDF</a>
+      <a href="{% url 'resume:tailored_markdown' job.pk %}" class="btn-secondary">{% trans "Download .md" %}</a>
+      <a href="{% url 'resume:tailored_pdf' job.pk %}" class="btn-secondary">{% trans "Download PDF" %}</a>
     </div>
   </div>
 
@@ -32,12 +33,12 @@
     <div class="card p-6 sm:p-8">
       {% include "partials/field.html" with field=form.markdown %}
       <p class="field-help">
-        Markdown: <code class="font-mono">## SECTION</code> for a section, <code class="font-mono">### Role — Company</code> for an entry,
-        <code class="font-mono">- </code> for bullets, <code class="font-mono">**bold**</code> and <code class="font-mono">*italic*</code> for emphasis.
-        Everything above the first section heading becomes the centered header of the PDF.
+        Markdown: <code class="font-mono">## SECTION</code> {% trans "for a section," %} <code class="font-mono">### Role — Company</code> {% trans "for an entry," %}
+        <code class="font-mono">- </code> {% trans "for bullets," %} <code class="font-mono">**bold**</code> {% trans "and" %} <code class="font-mono">*italic*</code> {% trans "for emphasis.
+        Everything above the first section heading becomes the centered header of the PDF." %}
       </p>
       <div class="mt-6 flex flex-wrap gap-3">
-        <button type="submit" name="action" value="save" class="btn-secondary">Save changes</button>
+        <button type="submit" name="action" value="save" class="btn-secondary">{% trans "Save changes" %}</button>
         <button type="submit" name="action" value="pdf" class="btn-primary">Save &amp; export PDF</button>
       </div>
     </div>
@@ -46,11 +47,11 @@
   <div class="mt-6 flex flex-wrap items-center justify-between gap-3">
     <form method="post" action="{% url 'resume:tailored_generate' job.pk %}" onsubmit="return confirm('Re-draft this resume from scratch? Any edits you made here will be replaced.');">
       {% csrf_token %}
-      <button type="submit" class="btn-ghost">Re-generate from my profile</button>
+      <button type="submit" class="btn-ghost">{% trans "Re-generate from my profile" %}</button>
     </form>
     <form method="post" action="{% url 'resume:tailored_delete' job.pk %}" onsubmit="return confirm('Delete this tailored resume?');">
       {% csrf_token %}
-      <button type="submit" class="btn-danger">Delete</button>
+      <button type="submit" class="btn-danger">{% trans "Delete" %}</button>
     </form>
   </div>
 </div>

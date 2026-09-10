@@ -7,7 +7,7 @@ from django.utils.translation import gettext as _
 
 from core.ai import AIServiceError
 from core.models import AITask
-from core.tasks import fail_task, get_task, guard, is_retryable
+from core.tasks import dispatch, fail_task, get_task, guard, is_retryable
 
 from .models import ResumeImport, TailoredResume
 
@@ -63,9 +63,10 @@ def enqueue_resume_analysis(resume_import: ResumeImport) -> AITask:
     resume_import.status = ResumeImport.STATUS_PENDING
     resume_import.error_message = ""
     resume_import.save(update_fields=["status", "error_message"])
-    async_result = analyze_resume_import.apply_async(args=(resume_import.pk, task.pk))
-    task.celery_task_id = getattr(async_result, "id", "") or ""
-    task.save(update_fields=["celery_task_id", "updated_at"])
+    if dispatch(task, analyze_resume_import.s(), args=(resume_import.pk, task.pk)) is None:
+        resume_import.status = ResumeImport.STATUS_FAILED
+        resume_import.error_message = str(task.error_message)
+        resume_import.save(update_fields=["status", "error_message"])
     return task
 
 
@@ -126,7 +127,8 @@ def enqueue_tailored_resume(job, user) -> AITask:
     task = AITask.start_for(
         user, AITask.TAILORED_RESUME, tailored, steps_total=1, step=_("Queued")
     )
-    async_result = generate_tailored_resume_task.apply_async(args=(job.pk, task.pk))
-    task.celery_task_id = getattr(async_result, "id", "") or ""
-    task.save(update_fields=["celery_task_id", "updated_at"])
+    if dispatch(task, generate_tailored_resume_task.s(), args=(job.pk, task.pk)) is None:
+        tailored.state = TailoredResume.STATE_FAILED
+        tailored.error_message = str(task.error_message)
+        tailored.save(update_fields=["state", "error_message"])
     return task

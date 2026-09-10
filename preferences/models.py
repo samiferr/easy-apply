@@ -42,13 +42,13 @@ class JobPreference(models.Model):
     hybrid_ok = models.BooleanField(_("Open to hybrid"), default=False)
     onsite_ok = models.BooleanField(_("Open to on-site"), default=False)
     max_onsite_days_per_week = models.PositiveSmallIntegerField(
-        _("Maximum on-site days per week"), null=True, blank=True
+        _("Max. on-site days / week"), null=True, blank=True
     )
     willing_to_relocate = models.BooleanField(
         _("Willing to relocate"), null=True, blank=True
     )
     max_travel_percentage = models.PositiveSmallIntegerField(
-        _("Maximum travel (%)"), null=True, blank=True
+        _("Max. travel (%)"), null=True, blank=True
     )
     timezone_preference = models.CharField(
         _("Time zone"), max_length=120, blank=True,

@@ -223,7 +223,7 @@ class LocationPreferenceAddForm(BaseAddForm):
         required=False,
     )
     travel_percentage = forms.IntegerField(
-        label=_("Maximum travel (%)"), min_value=0, max_value=100, required=False
+        label=_("Max. travel (%)"), min_value=0, max_value=100, required=False
     )
 
     def clean(self):

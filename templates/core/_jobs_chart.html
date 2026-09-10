@@ -45,11 +45,18 @@ no JS charting library (spec §9). Screen readers get the table below.
     </div>
   {% endif %}
 
-  <table class="sr-only">
+  {% comment %}
+  The sr-only class must sit on a block wrapper, not on the table itself: a
+  table is display:table, where the 1px height is treated as a minimum, so the
+  table keeps its full height and pushes the whole page out.
+  {% endcomment %}
+  <div class="sr-only">
+  <table>
     <caption>{% blocktrans with month=chart.month_label %}Jobs analyzed each day in {{ month }}{% endblocktrans %}</caption>
     <thead><tr><th scope="col">{% trans "Day" %}</th><th scope="col">{% trans "Jobs analyzed" %}</th></tr></thead>
     <tbody>
       {% for bar in chart.bars %}<tr><th scope="row">{{ bar.day|date:"j F" }}</th><td>{{ bar.count }}</td></tr>{% endfor %}
     </tbody>
   </table>
+  </div>
 </div>
