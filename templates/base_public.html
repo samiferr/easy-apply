@@ -1,0 +1,25 @@
+{% load static i18n %}{% get_current_language as LANGUAGE_CODE %}<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE }}" class="h-full">
+<head>
+  {% include "partials/_head.html" %}
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="flex min-h-full flex-col font-sans" x-data="{ mobileOpen: false, toggleTheme() { document.documentElement.classList.toggle('dark'); localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light'; } }">
+  <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:m-3 focus:rounded-lg focus:bg-brand-600 focus:px-4 focus:py-2 focus:text-white">{% trans "Skip to content" %}</a>
+
+  {% include "partials/public_nav.html" %}
+
+  {% if messages %}
+    <div class="mx-auto mt-4 w-full max-w-5xl px-4 sm:px-6 lg:px-8">{% include "partials/messages.html" %}</div>
+  {% endif %}
+
+  <main id="main-content" class="flex-1">
+    {% block content %}{% endblock %}
+  </main>
+
+  {% include "partials/footer.html" %}
+
+  <script defer src="{% static 'js/alpine.min.js' %}"></script>
+  {% block extra_body %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,9 @@
+{% load i18n %}
+<footer class="border-t border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+  <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-5 sm:flex-row sm:px-6 lg:px-8">
+    <p class="text-xs text-slate-500 dark:text-slate-400">&copy; {% now "Y" %} {{ SITE_NAME }}</p>
+    <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs">
+      {% include "partials/_legal_links.html" %}
+    </div>
+  </div>
+</footer>

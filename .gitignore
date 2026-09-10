@@ -234,3 +234,5 @@ node_modules/
 !/media/.gitkeep
 /.idea/*
 .idea
+# Local virtualenv created for development
+.venv/
