@@ -52,7 +52,8 @@ coverage.xml
 cover/
 
 # Translations
-*.mo
+# *.mo is intentionally NOT ignored: the compiled catalog is committed
+# (see the note further down) so the app runs with no build step.
 *.pot
 
 # Django stuff:
@@ -237,8 +238,11 @@ node_modules/
 # Local virtualenv created for development
 .venv/
 
-# Compiled message catalogues (regenerate with `manage.py compilemessages`)
-*.mo
+# The compiled French message catalogue (locale/fr/LC_MESSAGES/django.mo) is
+# committed on purpose, same reasoning as static/dist/ above: Django only
+# reads the compiled .mo at runtime, never the .po source, so without it every
+# translated string silently falls back to English. Regenerate and re-commit
+# it with `python manage.py compilemessages -l fr` after any string change.
 
 # SQLite WAL sidecar files (created by the WAL pragma in core/apps.py)
 db.sqlite3-shm
