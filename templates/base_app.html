@@ -1,0 +1,48 @@
+{% load static i18n %}{% get_current_language as LANGUAGE_CODE %}<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE }}" class="h-full">
+<head>
+  {% include "partials/_head.html" %}
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="min-h-full font-sans" x-data="appShell()">
+  <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:z-[60] focus:m-3 focus:rounded-lg focus:bg-brand-600 focus:px-4 focus:py-2 focus:text-white">{% trans "Skip to content" %}</a>
+
+  {% include "partials/sidebar.html" %}
+
+  <!-- Mobile scrim -->
+  <div x-show="mobileOpen" x-cloak x-transition.opacity @click="mobileOpen = false"
+       class="fixed inset-0 z-40 bg-slate-900/50 md:hidden" aria-hidden="true"></div>
+
+  <div class="flex min-h-full flex-col transition-all duration-200" :class="collapsed ? 'md:pl-[4.5rem]' : 'md:pl-64'">
+    {% include "partials/topbar.html" %}
+
+    <main id="main-content" class="flex-1">
+      <div class="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        {% include "partials/messages.html" %}
+      </div>
+      {% block content %}{% endblock %}
+    </main>
+
+    {% include "partials/app_footer.html" %}
+  </div>
+
+  <script defer src="{% static 'js/alpine.min.js' %}"></script>
+  <script>
+    function appShell() {
+      return {
+        collapsed: localStorage.sidebarCollapsed === "1",
+        mobileOpen: false,
+        toggleCollapsed() {
+          this.collapsed = !this.collapsed;
+          localStorage.sidebarCollapsed = this.collapsed ? "1" : "0";
+        },
+        toggleTheme() {
+          document.documentElement.classList.toggle("dark");
+          localStorage.theme = document.documentElement.classList.contains("dark") ? "dark" : "light";
+        },
+      };
+    }
+  </script>
+  {% block extra_body %}{% endblock %}
+</body>
+</html>

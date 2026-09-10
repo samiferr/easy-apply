@@ -75,16 +75,22 @@ def _parse_date(value):
 
 # --- Pipeline: extract text, call the AI, store the result ------------------
 
-def run_analysis(resume_import) -> None:
+def run_analysis(resume_import, progress=None) -> None:
     """Extract text from the uploaded file, call the AI, and store the
     result on `resume_import`. Always leaves it saved with a final status
-    (completed or failed) — never raises."""
+    (completed or failed) — never raises.
+
+    `progress` is the AITask driving this run, if any: step 1 is text
+    extraction, step 2 is the AI parse.
+    """
     resume_import.status = resume_import.STATUS_PROCESSING
     resume_import.save(update_fields=["status"])
 
     try:
         raw_text = extract_resume_text(resume_import.file)
         resume_import.raw_text = raw_text
+        if progress is not None:
+            progress.advance("Understanding your resume")
 
         soft_categories = list(
             SkillCategory.objects.filter(kind=SkillCategory.SOFT).values_list("name", flat=True)
@@ -94,6 +100,7 @@ def run_analysis(resume_import) -> None:
                 "name", flat=True
             )
         )
+        # The AI call sits outside any transaction — see spec §7.1.
         data = analyze_resume_text(raw_text, soft_categories, technical_categories)
 
         resume_import.ai_response = data

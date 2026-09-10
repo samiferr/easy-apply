@@ -1,25 +1,25 @@
 {% extends "accounts/settings_base.html" %}
-{% load widget_tweaks %}
+{% load widget_tweaks i18n %}
 {% block title %}Security · {{ SITE_NAME }}{% endblock %}
 {% block settings_content %}
   <div class="space-y-6">
     <div class="card p-6 sm:p-8">
-      <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Account</h2>
+      <h2 class="text-lg font-semibold text-slate-900 dark:text-white">{% trans "Account" %}</h2>
       <dl class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          <dt class="text-xs font-medium uppercase tracking-wide text-slate-400">Email address</dt>
+          <dt class="text-xs font-medium uppercase tracking-wide text-slate-400">{% trans "Email address" %}</dt>
           <dd class="mt-1 text-sm text-slate-900 dark:text-white">{{ request.user.email }}</dd>
         </div>
         <div>
-          <dt class="text-xs font-medium uppercase tracking-wide text-slate-400">Member since</dt>
+          <dt class="text-xs font-medium uppercase tracking-wide text-slate-400">{% trans "Member since" %}</dt>
           <dd class="mt-1 text-sm text-slate-900 dark:text-white">{{ request.user.date_joined|date:"F j, Y" }}</dd>
         </div>
       </dl>
     </div>
 
     <div class="card p-6 sm:p-8">
-      <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Change password</h2>
-      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Use a strong password you don't use elsewhere.</p>
+      <h2 class="text-lg font-semibold text-slate-900 dark:text-white">{% trans "Change password" %}</h2>
+      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{% trans "Use a strong password you don't use elsewhere." %}</p>
       <form method="post" novalidate class="mt-5 space-y-5">
         {% csrf_token %}
         <input type="hidden" name="change_password" value="1" />
@@ -34,22 +34,22 @@
           {% include "partials/field.html" with field=password_form.new_password2 %}
         </div>
         <div class="flex justify-end">
-          <button type="submit" class="btn-primary">Update password</button>
+          <button type="submit" class="btn-primary">{% trans "Update password" %}</button>
         </div>
       </form>
     </div>
 
     <div class="card border-rose-200 p-6 dark:border-rose-900/60 sm:p-8" x-data="{ confirmOpen: false }">
-      <h2 class="text-lg font-semibold text-rose-700 dark:text-rose-400">Danger zone</h2>
+      <h2 class="text-lg font-semibold text-rose-700 dark:text-rose-400">{% trans "Danger zone" %}</h2>
       <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
         Permanently delete your account and all recorded skills, languages, experience and education. This can't be undone.
       </p>
-      <button type="button" @click="confirmOpen = true" class="btn-danger mt-4">Delete my account</button>
+      <button type="button" @click="confirmOpen = true" class="btn-danger mt-4">{% trans "Delete my account" %}</button>
 
       <div x-show="confirmOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4" style="display:none;">
         <div class="card w-full max-w-md p-6" @click.outside="confirmOpen = false">
-          <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Delete your account?</h3>
-          <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">This action is permanent and cannot be undone.</p>
+          <h3 class="text-lg font-semibold text-slate-900 dark:text-white">{% trans "Delete your account?" %}</h3>
+          <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">{% trans "This action is permanent and cannot be undone." %}</p>
           <form method="post" novalidate class="mt-4 space-y-4">
             {% csrf_token %}
             <input type="hidden" name="delete_account" value="1" />
@@ -61,8 +61,8 @@
             {% include "partials/field.html" with field=delete_form.password %}
             {% include "partials/field.html" with field=delete_form.confirm %}
             <div class="flex justify-end gap-3">
-              <button type="button" @click="confirmOpen = false" class="btn-secondary">Cancel</button>
-              <button type="submit" class="btn-danger">Yes, delete my account</button>
+              <button type="button" @click="confirmOpen = false" class="btn-secondary">{% trans "Cancel" %}</button>
+              <button type="submit" class="btn-danger">{% trans "Yes, delete my account" %}</button>
             </div>
           </form>
         </div>

@@ -1,15 +1,16 @@
-{% extends "base.html" %}
+{% extends "partials/profile_base.html" %}
+{% load i18n %}
 {% block title %}Skills · {{ SITE_NAME }}{% endblock %}
-{% block content %}
-<div class="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8" x-data="{ tab: '{{ active_tab }}' }">
+{% block profile_title %}Skills{% endblock %}
+{% block profile_content %}
+<div x-data="{ tab: '{{ active_tab }}' }">
   <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
     <div>
-      <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Skills</h1>
-      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Organize your soft and technical skills by category.</p>
+      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{% trans "Organize your soft and technical skills by category." %}</p>
     </div>
     <div class="flex gap-3">
-      <a x-show="tab === 'soft'" href="{% url 'skills:add' kind='soft' %}" class="btn-primary">+ Soft skill</a>
-      <a x-show="tab === 'technical'" href="{% url 'skills:add' kind='technical' %}" class="btn-primary">+ Technical skill</a>
+      <a x-show="tab === 'soft'" href="{% url 'skills:add' kind='soft' %}" class="btn-primary">{% trans "+ Soft skill" %}</a>
+      <a x-show="tab === 'technical'" href="{% url 'skills:add' kind='technical' %}" class="btn-primary">{% trans "+ Technical skill" %}</a>
     </div>
   </div>
 

@@ -1,0 +1,50 @@
+{% extends "base_app.html" %}
+{% load i18n %}
+{% block title %}{% trans "Tailored resumes" %} · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<div class="mx-auto w-full max-w-7xl px-4 pb-12 sm:px-6 lg:px-8">
+  <h1 class="page-title">{% trans "Tailored resumes" %}</h1>
+  <p class="mt-2 text-slate-500 dark:text-slate-400">
+    {% trans "One resume per job post, written for that specific posting." %}
+  </p>
+
+  {% if tailored_resumes %}
+    <div class="mt-6 space-y-4">
+      {% for resume in tailored_resumes %}
+        <article class="card flex flex-col justify-between gap-4 p-5 sm:flex-row sm:items-center sm:p-6">
+          <div class="min-w-0">
+            <h2 class="truncate text-xl font-bold text-slate-900 dark:text-white">
+              {{ resume.job.title|default:_("Untitled role") }}
+            </h2>
+            <p class="mt-1 truncate text-sm text-slate-500 dark:text-slate-400">
+              {{ resume.job.company_name|default:"—" }} ·
+              {% if resume.generated_at %}
+                {% blocktrans with when=resume.generated_at|timesince %}Generated {{ when }} ago{% endblocktrans %}
+              {% else %}{% trans "Not generated yet" %}{% endif %}
+              {% if resume.edited_by_user %} · {% trans "Edited by you" %}{% endif %}
+            </p>
+            {% if resume.state == "failed" %}
+              <p class="mt-2 text-sm text-rose-600 dark:text-rose-400">{{ resume.error_message }}</p>
+            {% endif %}
+          </div>
+          <div class="flex shrink-0 flex-wrap gap-2">
+            <a href="{% url 'resume:tailored' resume.job_id %}" class="btn-primary !px-3 !py-1.5 !text-xs">{% trans "Open" %}</a>
+            {% if resume.is_ready %}
+              <a href="{% url 'resume:tailored_pdf' resume.job_id %}" class="btn-secondary !px-3 !py-1.5 !text-xs">{% trans "PDF" %}</a>
+            {% endif %}
+            <a href="{{ resume.job.get_absolute_url }}" class="btn-ghost !px-3 !py-1.5 !text-xs">{% trans "Job post" %}</a>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="card mt-6 border-dashed py-16 text-center">
+      <h2 class="section-title">{% trans "No tailored resumes yet" %}</h2>
+      <p class="mx-auto mt-2 max-w-md text-slate-500 dark:text-slate-400">
+        {% trans "Analyze a job post, then generate a resume written for it." %}
+      </p>
+      <a href="{% url 'jobs:list' %}" class="btn-primary mt-6">{% trans "Go to my job posts" %}</a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

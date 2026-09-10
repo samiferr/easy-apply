@@ -1,0 +1,30 @@
+{% extends "legal/_legal_base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Cookie Policy" %} · {{ SITE_NAME }}{% endblock %}
+{% block legal_title %}{% trans "Cookie Policy" %}{% endblock %}
+{% block legal_body %}
+<p>{% trans "We use only cookies and local storage that the app needs to work. There is no advertising, analytics or cross-site tracking, so there is no consent banner to dismiss." %}</p>
+
+<h2>{% trans "Cookies we set" %}</h2>
+<table>
+  <thead><tr><th>{% trans "Name" %}</th><th>{% trans "Purpose" %}</th><th>{% trans "Lifetime" %}</th></tr></thead>
+  <tbody>
+    <tr><td><code>sessionid</code></td><td>{% trans "Keeps you logged in." %}</td><td>{% trans "Until you log out or it expires" %}</td></tr>
+    <tr><td><code>csrftoken</code></td><td>{% trans "Protects forms against cross-site request forgery." %}</td><td>{% trans "1 year" %}</td></tr>
+    <tr><td><code>django_language</code></td><td>{% trans "Remembers whether you chose English or French." %}</td><td>{% trans "1 year" %}</td></tr>
+  </tbody>
+</table>
+
+<h2>{% trans "Local storage" %}</h2>
+<p>{% trans "These stay in your browser and are never sent to our server:" %}</p>
+<table>
+  <thead><tr><th>{% trans "Key" %}</th><th>{% trans "Purpose" %}</th></tr></thead>
+  <tbody>
+    <tr><td><code>theme</code></td><td>{% trans "Remembers light or dark mode." %}</td></tr>
+    <tr><td><code>sidebarCollapsed</code></td><td>{% trans "Remembers whether you collapsed the sidebar." %}</td></tr>
+  </tbody>
+</table>
+
+<h2>{% trans "Refusing cookies" %}</h2>
+<p>{% trans "You can clear or block these in your browser settings, but the session and CSRF cookies are required to log in — without them the app cannot work." %}</p>
+{% endblock %}

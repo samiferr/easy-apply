@@ -1,0 +1,23 @@
+{% extends "legal/_legal_base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Contact" %} · {{ SITE_NAME }}{% endblock %}
+{% block legal_title %}{% trans "Contact" %}{% endblock %}
+{% block legal_body %}
+<p>{% trans "We read everything that comes in, and try to reply within a few working days." %}</p>
+
+<h2>{% trans "General enquiries" %}</h2>
+<p><a href="mailto:{{ LEGAL_ENTITY.email }}">{{ LEGAL_ENTITY.email }}</a></p>
+
+<h2>{% trans "Privacy and data requests" %}</h2>
+<p>
+  <a href="mailto:{{ LEGAL_ENTITY.dpo_email }}">{{ LEGAL_ENTITY.dpo_email }}</a><br />
+  {% trans "For access, correction, deletion or portability requests. Most of these you can do yourself:" %}
+</p>
+<ul>
+  <li>{% trans "Export everything as Markdown from the user menu." %}</li>
+  <li>{% trans "Delete your account and its data from the Security page." %}</li>
+</ul>
+
+<h2>{% trans "Postal address" %}</h2>
+<p>{{ LEGAL_ENTITY.name }}<br />{{ LEGAL_ENTITY.address }}</p>
+{% endblock %}

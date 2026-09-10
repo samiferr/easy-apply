@@ -1,13 +1,14 @@
-{% extends "base.html" %}
+{% extends "partials/profile_base.html" %}
+{% load i18n %}
 {% block title %}Languages · {{ SITE_NAME }}{% endblock %}
-{% block content %}
-<div class="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
+{% block profile_title %}Languages{% endblock %}
+{% block profile_content %}
+<div>
   <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
     <div>
-      <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Languages</h1>
-      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Every language you speak, with your proficiency level.</p>
+      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{% trans "Every language you speak, with your proficiency level." %}</p>
     </div>
-    <a href="{% url 'languages:add' %}" class="btn-primary">+ Add language</a>
+    <a href="{% url 'languages:add' %}" class="btn-primary">{% trans "+ Add language" %}</a>
   </div>
 
   {% if user_languages %}
@@ -37,8 +38,8 @@
     </div>
   {% else %}
     <div class="card mt-6 flex flex-col items-center gap-3 p-10 text-center">
-      <p class="text-sm text-slate-500 dark:text-slate-400">You haven't added any languages yet.</p>
-      <a href="{% url 'languages:add' %}" class="btn-primary">Add your first language</a>
+      <p class="text-sm text-slate-500 dark:text-slate-400">{% trans "You haven't added any languages yet." %}</p>
+      <a href="{% url 'languages:add' %}" class="btn-primary">{% trans "Add your first language" %}</a>
     </div>
   {% endif %}
 </div>

@@ -10,6 +10,7 @@ from .models import WorkExperience
 
 
 class ExperienceListView(LoginRequiredMixin, ListView):
+    extra_context = {"active_tab": "experience"}
     model = WorkExperience
     template_name = "experience/experience_list.html"
     context_object_name = "experiences"

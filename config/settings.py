@@ -2,7 +2,9 @@
 Django settings for the easy-apply project.
 """
 
+import sys
 from pathlib import Path
+
 from decouple import Csv, config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -41,12 +43,15 @@ INSTALLED_APPS = [
     "education",
     "jobs",
     "resume",
+    "preferences",
+    "legal",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -78,10 +83,16 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 # Database
 
+# SQLite runs with WAL + a busy timeout because the Celery worker (see
+# config/celery.py) writes to the same file as the web process. Postgres is the
+# recommended production database now that there are two writer processes.
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": BASE_DIR / "db.sqlite3",
+        # WAL itself is set by the connection_created receiver in core/apps.py —
+        # Django 5.0's SQLite backend has no `init_command` option.
+        "OPTIONS": {"timeout": 20},
     }
 }
 
@@ -112,7 +123,12 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Internationalization
 
-LANGUAGE_CODE = "en-us"
+LANGUAGE_CODE = "en"
+LANGUAGES = [
+    ("en", "English"),
+    ("fr", "Français"),
+]
+LOCALE_PATHS = [BASE_DIR / "locale"]
 TIME_ZONE = config("TIME_ZONE", default="UTC")
 USE_I18N = True
 USE_TZ = True
@@ -123,9 +139,18 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
+# The manifest storage needs `collectstatic` to have run, which is right for
+# production but would make `manage.py test` depend on a build step.
+_TESTING = "test" in sys.argv or "pytest" in sys.modules
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+    "staticfiles": {
+        "BACKEND": (
+            "django.contrib.staticfiles.storage.StaticFilesStorage"
+            if _TESTING
+            else "whitenoise.storage.CompressedManifestStaticFilesStorage"
+        )
+    },
 }
 
 # Media files (user uploads: avatars, ...)
@@ -187,3 +212,51 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
+
+
+# Celery — every AI call runs off the request cycle (see config/celery.py and
+# the *_tasks.py modules). CELERY_TASK_ALWAYS_EAGER defaults to True in DEBUG so
+# the app (and the test suite) runs with no broker and no worker.
+CELERY_BROKER_URL = config("CELERY_BROKER_URL", default="redis://localhost:6379/0")
+CELERY_RESULT_BACKEND = config("CELERY_RESULT_BACKEND", default="redis://localhost:6379/1")
+CELERY_TASK_ALWAYS_EAGER = config("CELERY_TASK_ALWAYS_EAGER", default=DEBUG, cast=bool)
+CELERY_TASK_EAGER_PROPAGATES = False
+CELERY_TASK_TIME_LIMIT = config("CELERY_TASK_TIME_LIMIT", default=600, cast=int)
+CELERY_TASK_SOFT_TIME_LIMIT = config("CELERY_TASK_SOFT_TIME_LIMIT", default=540, cast=int)
+CELERY_TASK_ACKS_LATE = True
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+
+# Fail fast when the broker is unreachable rather than retrying for ~20s while
+# a user waits on the page. core.tasks.dispatch turns the resulting error into
+# a failed AITask with a Retry button; see the NoWorkerTests in jobs/tests.py.
+CELERY_BROKER_CONNECTION_MAX_RETRIES = config(
+    "CELERY_BROKER_CONNECTION_MAX_RETRIES", default=1, cast=int
+)
+CELERY_BROKER_TRANSPORT_OPTIONS = {"max_retries": 1, "socket_connect_timeout": 3}
+CELERY_RESULT_BACKEND_ALWAYS_RETRY = False
+CELERY_RESULT_BACKEND_MAX_RETRIES = 1
+CELERY_REDIS_SOCKET_CONNECT_TIMEOUT = 3
+CELERY_REDIS_SOCKET_TIMEOUT = 10
+
+# How long a running AITask may go without an update before the worker's
+# startup sweep marks it failed (seconds).
+AI_TASK_STALE_AFTER = config("AI_TASK_STALE_AFTER", default=3600, cast=int)
+# Terminal AITask rows older than this many days are pruned by
+# `manage.py prune_ai_tasks`.
+AI_TASK_RETENTION_DAYS = config("AI_TASK_RETENTION_DAYS", default=30, cast=int)
+
+
+# Legal entity details rendered into the pages served by the `legal` app.
+# TODO: replace every placeholder below before going to production.
+LEGAL_ENTITY = {
+    "name": config("LEGAL_NAME", default="TODO: Registered company name"),
+    "address": config("LEGAL_ADDRESS", default="TODO: Registered address"),
+    "email": config("LEGAL_EMAIL", default="TODO: contact@example.com"),
+    "jurisdiction": config("LEGAL_JURISDICTION", default="TODO: Québec, Canada"),
+    "registration": config("LEGAL_REGISTRATION", default="TODO: Company registration number"),
+    "director": config("LEGAL_DIRECTOR", default="TODO: Publication director"),
+    "host_name": config("LEGAL_HOST_NAME", default="TODO: Hosting provider"),
+    "host_address": config("LEGAL_HOST_ADDRESS", default="TODO: Hosting provider address"),
+    "dpo_email": config("LEGAL_DPO_EMAIL", default="TODO: privacy@example.com"),
+}

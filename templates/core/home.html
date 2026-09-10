@@ -1,88 +1,159 @@
-{% extends "base.html" %}
-{% block title %}{{ SITE_NAME }} — Track your skills, export your story{% endblock %}
+{% extends "base_public.html" %}
+{% load i18n %}
+{% block title %}{{ SITE_NAME }} — {% trans "Match your resume to any job post" %}{% endblock %}
+
 {% block content %}
+<!-- Hero -->
 <section class="relative overflow-hidden">
-  <div class="absolute inset-x-0 top-0 -z-10 h-[32rem] bg-gradient-to-b from-brand-50 to-transparent dark:from-brand-950/40"></div>
-  <div class="mx-auto max-w-6xl px-4 pb-20 pt-16 sm:px-6 sm:pt-24 lg:px-8">
-    <div class="mx-auto max-w-3xl text-center">
-      <span class="badge bg-brand-50 text-brand-700 ring-1 ring-inset ring-brand-200 dark:bg-brand-950/60 dark:text-brand-300 dark:ring-brand-900">For job seekers &amp; career changers</span>
-      <h1 class="mt-6 text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl dark:text-white">
-        Every skill you have.<br class="hidden sm:block" /> One clean recap, ready to share.
-      </h1>
-      <p class="mt-6 text-lg text-slate-600 dark:text-slate-300">
-        Log your soft skills, technical skills, languages, work experience, degrees and certificates in one
-        place — then export a beautifully formatted Markdown recap in one click. Paste a job posting URL
-        and AI breaks it down into responsibilities, must-haves and nice-to-haves for you.
-      </p>
-      <div class="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-        <a href="{% url 'accounts:register' %}" class="btn-primary px-6 py-3 text-base">Create your free account</a>
-        <a href="{% url 'accounts:login' %}" class="btn-secondary px-6 py-3 text-base">I already have an account</a>
-      </div>
-    </div>
+  <div class="pointer-events-none absolute inset-x-0 -top-40 -z-10 transform-gpu blur-3xl" aria-hidden="true">
+    <div class="relative left-1/2 aspect-[1155/678] w-[36rem] -translate-x-1/2 bg-gradient-to-tr from-brand-300 to-brand-600 opacity-20 dark:opacity-25"
+         style="clip-path: polygon(74% 44%, 100% 62%, 97% 26%, 85% 0%, 80% 10%, 72% 32%, 60% 62%, 52% 68%, 47% 58%, 45% 35%, 27% 76%, 0% 64%, 18% 100%, 27% 76%, 76% 97%, 74% 44%)"></div>
   </div>
-</section>
 
-<section class="mx-auto max-w-6xl px-4 pb-20 sm:px-6 lg:px-8">
-  <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-    <div class="card p-6 sm:col-span-2 lg:col-span-1">
-      <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-100 text-brand-700 dark:bg-brand-900 dark:text-brand-300">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3M11 8v6M8 11h6" /></svg>
-      </div>
-      <h3 class="mt-4 font-semibold text-slate-900 dark:text-white">AI job post analysis</h3>
-      <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Paste a job posting URL and AI structures it into responsibilities, must-haves, nice-to-haves, compensation, location and more.</p>
+  <div class="mx-auto max-w-6xl px-4 py-20 text-center sm:px-6 sm:py-28 lg:px-8">
+    <h1 class="mx-auto max-w-4xl text-4xl font-extrabold tracking-tight text-slate-900 sm:text-6xl lg:text-7xl dark:text-white">
+      {% trans "Stop guessing whether you fit the job." %}
+    </h1>
+    <p class="mx-auto mt-6 max-w-2xl text-lg text-slate-600 sm:text-xl dark:text-slate-300">
+      {% trans "Easy Apply breaks any job posting into its real requirements, checks every single one against your profile, and writes you a resume tailored to that posting." %}
+    </p>
+    <div class="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
+      <a href="{% url 'accounts:register' %}" class="btn-primary !px-6 !py-3 !text-base">{% trans "Create your account" %}</a>
+      <a href="{% url 'accounts:login' %}" class="btn-secondary !px-6 !py-3 !text-base">{% trans "Log in" %}</a>
     </div>
-    <div class="card p-6">
-      <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-100 text-brand-700 dark:bg-brand-900 dark:text-brand-300">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V10" /><path d="M18 20V4" /><path d="M6 20v-4" /></svg>
-      </div>
-      <h3 class="mt-4 font-semibold text-slate-900 dark:text-white">Soft &amp; technical skills, organized</h3>
-      <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Group skills by category with a clear proficiency level, from beginner to expert.</p>
-    </div>
-    <div class="card p-6">
-      <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-100 text-brand-700 dark:bg-brand-900 dark:text-brand-300">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8l6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6" /></svg>
-      </div>
-      <h3 class="mt-4 font-semibold text-slate-900 dark:text-white">Languages you speak</h3>
-      <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Record every language you speak with an honest proficiency rating.</p>
-    </div>
-    <div class="card p-6">
-      <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-100 text-brand-700 dark:bg-brand-900 dark:text-brand-300">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7h-9M14 17H5M6 4v6M18 14v6" /><circle cx="17" cy="7" r="3" /><circle cx="8" cy="17" r="3" /></svg>
-      </div>
-      <h3 class="mt-4 font-semibold text-slate-900 dark:text-white">Work experience timeline</h3>
-      <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Keep an accurate, up-to-date history of every role you've held.</p>
-    </div>
-    <div class="card p-6">
-      <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-100 text-brand-700 dark:bg-brand-900 dark:text-brand-300">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5-10-5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" /></svg>
-      </div>
-      <h3 class="mt-4 font-semibold text-slate-900 dark:text-white">Degrees &amp; certificates</h3>
-      <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Track your education and certifications, including credential links.</p>
-    </div>
-    <div class="card p-6">
-      <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-100 text-brand-700 dark:bg-brand-900 dark:text-brand-300">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h11l5 5v11a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z" /><path d="M14 4v5h5M9 13h6M9 17h6" /></svg>
-      </div>
-      <h3 class="mt-4 font-semibold text-slate-900 dark:text-white">One-click Markdown recap</h3>
-      <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Export everything as a clean, portable .md file — perfect for a portfolio, README or ATS-friendly copy-paste.</p>
-    </div>
-    <div class="card flex flex-col justify-between p-6">
-      <div>
-        <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-100 text-brand-700 dark:bg-brand-900 dark:text-brand-300">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+    <p class="mt-4 text-sm text-slate-500 dark:text-slate-400">{% trans "Free to start · Your data stays yours" %}</p>
+
+    <!-- Product visual -->
+    <div class="mx-auto mt-16 max-w-4xl">
+      <div class="card overflow-hidden p-2 shadow-xl">
+        <div class="rounded-xl bg-slate-50 p-5 text-left dark:bg-slate-950/60">
+          <div class="flex items-center gap-2">
+            <span class="h-2.5 w-2.5 rounded-full bg-rose-400"></span>
+            <span class="h-2.5 w-2.5 rounded-full bg-amber-400"></span>
+            <span class="h-2.5 w-2.5 rounded-full bg-emerald-400"></span>
+          </div>
+          <div class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-[10rem_minmax(0,1fr)]">
+            <ul class="space-y-1 text-sm">
+              <li class="rounded-lg bg-brand-600 px-3 py-1.5 font-medium text-white">{% trans "Required Technical Skills" %}</li>
+              <li class="px-3 py-1.5 text-slate-500 dark:text-slate-400">{% trans "Responsibilities" %}</li>
+              <li class="px-3 py-1.5 text-slate-500 dark:text-slate-400">{% trans "Languages" %}</li>
+              <li class="px-3 py-1.5 text-slate-500 dark:text-slate-400">{% trans "Compensation & benefits" %}</li>
+            </ul>
+            <div class="space-y-2">
+              <div class="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2 shadow-sm dark:bg-slate-900">
+                <span class="truncate text-sm text-slate-700 dark:text-slate-200">5+ years of Python</span>
+                <span class="badge-strong shrink-0">{% trans "Strong match" %}</span>
+              </div>
+              <div class="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2 shadow-sm dark:bg-slate-900">
+                <span class="truncate text-sm text-slate-700 dark:text-slate-200">Kubernetes in production</span>
+                <span class="badge-partial shrink-0">{% trans "Partial match" %}</span>
+              </div>
+              <div class="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2 shadow-sm dark:bg-slate-900">
+                <span class="truncate text-sm text-slate-700 dark:text-slate-200">Terraform</span>
+                <span class="badge-none shrink-0">{% trans "Not covered" %}</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <h3 class="mt-4 font-semibold text-slate-900 dark:text-white">Your data, secured</h3>
-        <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Password reset &amp; recovery, account security controls, and full control to delete your data anytime.</p>
       </div>
     </div>
   </div>
 </section>
 
-<section class="border-t border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-  <div class="mx-auto max-w-4xl px-4 py-16 text-center sm:px-6 lg:px-8">
-    <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Ready to put your skills on paper?</h2>
-    <p class="mt-3 text-slate-500 dark:text-slate-400">It takes less than five minutes to get started.</p>
-    <a href="{% url 'accounts:register' %}" class="btn-primary mt-6 inline-flex px-6 py-3 text-base">Get started for free</a>
+<!-- Steps -->
+<section class="border-t border-slate-200 bg-white py-20 sm:py-24 dark:border-slate-800 dark:bg-slate-900">
+  <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+    <h2 class="text-center text-3xl font-extrabold tracking-tight text-slate-900 sm:text-5xl dark:text-white">
+      {% trans "Three steps to a tailored resume" %}
+    </h2>
+
+    <div class="mt-16 grid grid-cols-1 gap-8 md:grid-cols-3">
+      <div class="relative">
+        <div class="card h-full p-6">
+          <span class="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-600 text-xl font-bold text-white">1</span>
+          <h3 class="mt-5 text-xl font-bold text-slate-900 dark:text-white">{% trans "Upload your resume" %}</h3>
+          <p class="mt-2 text-slate-600 dark:text-slate-300">
+            {% trans "Drop in a PDF or DOCX. We pull out your skills, experience, education and languages — you review every item before anything is saved." %}
+          </p>
+        </div>
+        <span class="absolute -right-4 top-1/2 hidden -translate-y-1/2 text-slate-300 md:block dark:text-slate-700" aria-hidden="true">
+          <svg class="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </span>
+      </div>
+      <div class="relative">
+        <div class="card h-full p-6">
+          <span class="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-600 text-xl font-bold text-white">2</span>
+          <h3 class="mt-5 text-xl font-bold text-slate-900 dark:text-white">{% trans "Paste a job post" %}</h3>
+          <p class="mt-2 text-slate-600 dark:text-slate-300">
+            {% trans "A URL or the raw text. We break it into 13 fixed sections and evaluate every requirement against your profile, one at a time." %}
+          </p>
+        </div>
+        <span class="absolute -right-4 top-1/2 hidden -translate-y-1/2 text-slate-300 md:block dark:text-slate-700" aria-hidden="true">
+          <svg class="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </span>
+      </div>
+      <div>
+        <div class="card h-full p-6">
+          <span class="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-600 text-xl font-bold text-white">3</span>
+          <h3 class="mt-5 text-xl font-bold text-slate-900 dark:text-white">{% trans "Get your tailored resume" %}</h3>
+          <p class="mt-2 text-slate-600 dark:text-slate-300">
+            {% trans "Your experience, rewritten in the posting's own vocabulary. Edit the Markdown, then export a clean PDF." %}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Why -->
+<section class="py-20 sm:py-24">
+  <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+    <h2 class="text-center text-3xl font-extrabold tracking-tight text-slate-900 sm:text-5xl dark:text-white">
+      {% trans "Why Easy Apply" %}
+    </h2>
+    <p class="mx-auto mt-4 max-w-2xl text-center text-lg text-slate-600 dark:text-slate-300">
+      {% trans "Most tools give you one vague score. We show you the reasoning, line by line." %}
+    </p>
+
+    <div class="mt-16 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <div class="card p-6">
+        <h3 class="text-lg font-bold text-slate-900 dark:text-white">{% trans "Per-requirement matching" %}</h3>
+        <p class="mt-2 text-slate-600 dark:text-slate-300">{% trans "Every requirement gets its own verdict and a one-sentence explanation naming the exact skill, role or credential behind it." %}</p>
+      </div>
+      <div class="card p-6">
+        <h3 class="text-lg font-bold text-slate-900 dark:text-white">{% trans "One-click add to profile" %}</h3>
+        <p class="mt-2 text-slate-600 dark:text-slate-300">{% trans "Spot a requirement you actually meet but never recorded? Add it in a click — only that one line is re-evaluated." %}</p>
+      </div>
+      <div class="card p-6">
+        <h3 class="text-lg font-bold text-slate-900 dark:text-white">{% trans "Red-flag detection" %}</h3>
+        <p class="mt-2 text-slate-600 dark:text-slate-300">{% trans "Unrealistic requirement lists, vague responsibilities, pressure tactics — surfaced before you spend an evening on the application." %}</p>
+      </div>
+      <div class="card p-6">
+        <h3 class="text-lg font-bold text-slate-900 dark:text-white">{% trans "Tailored resume + PDF" %}</h3>
+        <p class="mt-2 text-slate-600 dark:text-slate-300">{% trans "A resume written for that specific posting, editable as Markdown and exportable as a print-ready PDF." %}</p>
+      </div>
+      <div class="card p-6">
+        <h3 class="text-lg font-bold text-slate-900 dark:text-white">{% trans "Bilingual" %}</h3>
+        <p class="mt-2 text-slate-600 dark:text-slate-300">{% trans "The whole app works in English and French — including the analysis itself, which answers in the language you're using." %}</p>
+      </div>
+      <div class="card p-6">
+        <h3 class="text-lg font-bold text-slate-900 dark:text-white">{% trans "Your data stays yours" %}</h3>
+        <p class="mt-2 text-slate-600 dark:text-slate-300">{% trans "Export everything as Markdown whenever you like, and delete your account and its data in one step." %}</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Final CTA -->
+<section class="border-t border-slate-200 bg-brand-600 py-16 dark:border-slate-800 dark:bg-brand-700">
+  <div class="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
+    <h2 class="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">{% trans "Ready for your next role?" %}</h2>
+    <p class="mx-auto mt-4 max-w-xl text-lg text-brand-50">
+      {% trans "Set up your profile once, then analyze every posting against it in seconds." %}
+    </p>
+    <a href="{% url 'accounts:register' %}" class="btn mt-8 !bg-white !px-6 !py-3 !text-base !text-brand-700 hover:!bg-brand-50">
+      {% trans "Create your account" %}
+    </a>
   </div>
 </section>
 {% endblock %}

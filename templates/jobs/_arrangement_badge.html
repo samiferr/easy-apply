@@ -1,9 +1,10 @@
+{% load i18n %}
 {% if arrangement == "remote" %}
-  <span class="badge bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">Remote</span>
+  <span class="badge bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">{% trans "Remote" %}</span>
 {% elif arrangement == "hybrid" %}
-  <span class="badge bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300">Hybrid</span>
+  <span class="badge bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300">{% trans "Hybrid" %}</span>
 {% elif arrangement == "onsite" %}
-  <span class="badge bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">On-site</span>
+  <span class="badge bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">{% trans "On-site" %}</span>
 {% else %}
-  <span class="badge bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">Arrangement not specified</span>
+  <span class="badge bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">{% trans "Arrangement not specified" %}</span>
 {% endif %}

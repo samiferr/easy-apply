@@ -5,6 +5,8 @@ from django.urls import include, path
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    # Language switcher (set_language) — cookie-based, so no URL name changes.
+    path("i18n/", include("django.conf.urls.i18n")),
     path("accounts/", include("accounts.urls")),
     path("skills/", include("skills.urls")),
     path("languages/", include("languages.urls")),
@@ -12,6 +14,8 @@ urlpatterns = [
     path("education/", include("education.urls")),
     path("jobs/", include("jobs.urls")),
     path("resume/", include("resume.urls")),
+    path("preferences/", include("preferences.urls")),
+    path("legal/", include("legal.urls")),
     path("", include("core.urls")),
 ]
 

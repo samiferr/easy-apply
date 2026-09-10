@@ -1,16 +1,19 @@
 from django.contrib import admin
 
-from .models import JobPost, Requirement, RequirementCategory
+from .models import JobElement, JobPost, JobSection
 
 
-class RequirementInline(admin.TabularInline):
-    model = Requirement
+class JobElementInline(admin.TabularInline):
+    model = JobElement
     extra = 0
+    fields = ["order", "text", "match_status", "match_evidence", "added_to_profile_at"]
 
 
-class RequirementCategoryInline(admin.TabularInline):
-    model = RequirementCategory
+class JobSectionInline(admin.TabularInline):
+    model = JobSection
     extra = 0
+    fields = ["order", "key", "match_state", "matched_at"]
+    readonly_fields = ["order"]
     show_change_link = True
 
 
@@ -20,11 +23,11 @@ class JobPostAdmin(admin.ModelAdmin):
     list_filter = ["status", "work_arrangement"]
     search_fields = ["title", "company_name", "source_url", "user__email"]
     readonly_fields = ["raw_text", "created_at", "updated_at", "fetched_at", "analyzed_at"]
-    inlines = [RequirementCategoryInline]
+    inlines = [JobSectionInline]
 
 
-@admin.register(RequirementCategory)
-class RequirementCategoryAdmin(admin.ModelAdmin):
-    list_display = ["name", "category_type", "job"]
-    list_filter = ["category_type"]
-    inlines = [RequirementInline]
+@admin.register(JobSection)
+class JobSectionAdmin(admin.ModelAdmin):
+    list_display = ["key", "job", "match_state", "matched_at"]
+    list_filter = ["key", "match_state"]
+    inlines = [JobElementInline]

@@ -1,0 +1,59 @@
+{% load i18n %}
+<header class="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-3 border-b border-slate-200 bg-white/90 px-4 backdrop-blur sm:px-6 dark:border-slate-800 dark:bg-slate-950/90">
+  <!-- Mobile drawer toggle -->
+  <button type="button" @click="mobileOpen = !mobileOpen"
+    class="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 md:hidden dark:text-slate-400 dark:hover:bg-slate-800"
+    aria-label="{% trans 'Toggle navigation' %}">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" /></svg>
+  </button>
+
+  <!-- Brand (mobile only — the sidebar carries it on desktop) -->
+  <a href="{% url 'core:dashboard' %}" class="flex items-center gap-2 md:hidden">
+    <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-white">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" /></svg>
+    </span>
+    <span class="text-base font-extrabold tracking-tight text-slate-900 dark:text-white">{{ SITE_NAME }}</span>
+  </a>
+
+  <div class="flex-1"></div>
+
+  {% include "partials/language_switcher.html" %}
+
+  <!-- User menu -->
+  <div class="relative" x-data="{ open: false }" @keydown.escape="open = false" @click.outside="open = false">
+    <button type="button" @click="open = !open"
+      class="flex items-center gap-2 rounded-lg py-1 pl-1 pr-2 transition hover:bg-slate-100 dark:hover:bg-slate-800"
+      aria-haspopup="true" :aria-expanded="open">
+      {% if user.profile.avatar %}
+        <img src="{{ user.profile.avatar.url }}" alt="" class="h-8 w-8 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700" />
+      {% else %}
+        <span class="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700 dark:bg-brand-900 dark:text-brand-300">{{ user.get_short_name|slice:":1"|upper }}</span>
+      {% endif %}
+      <span class="hidden max-w-[8rem] truncate text-sm font-medium text-slate-700 sm:block dark:text-slate-200">{{ user.get_short_name }}</span>
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+    </button>
+    <div x-show="open" x-transition x-cloak
+      class="absolute right-0 mt-2 w-60 origin-top-right divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white py-1 shadow-lg dark:divide-slate-800 dark:border-slate-800 dark:bg-slate-900">
+      <div class="px-3 py-2">
+        <p class="truncate text-sm font-semibold text-slate-900 dark:text-white">{{ user.get_full_name|default:user.email }}</p>
+        <p class="truncate text-xs text-slate-500 dark:text-slate-400">{{ user.email }}</p>
+      </div>
+      <div class="py-1">
+        <a href="{% url 'accounts:profile' %}" class="menu-item">{% trans "Personal info" %}</a>
+        <a href="{% url 'accounts:security' %}" class="menu-item">{% trans "Security" %}</a>
+        <button type="button" @click="toggleTheme()" class="menu-item flex w-full items-center justify-between">
+          <span>{% trans "Theme" %}</span>
+          <span class="text-xs text-slate-400">
+            <span class="dark:hidden">{% trans "Light" %}</span>
+            <span class="hidden dark:inline">{% trans "Dark" %}</span>
+          </span>
+        </button>
+        <a href="{% url 'core:export_preview' %}" class="menu-item">{% trans "Export recap (.md)" %}</a>
+        {% if user.is_staff %}<a href="{% url 'admin:index' %}" class="menu-item">{% trans "Admin" %}</a>{% endif %}
+      </div>
+      <div class="py-1">
+        <a href="{% url 'accounts:logout_confirm' %}" class="block px-3 py-2 text-sm text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/40">{% trans "Log out" %}</a>
+      </div>
+    </div>
+  </div>
+</header>

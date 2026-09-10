@@ -1,0 +1,92 @@
+{% load i18n %}
+{% comment %}
+Application sidebar. Collapsible on desktop (state persisted in localStorage by
+the `appShell` Alpine component in base_app.html), off-canvas drawer under md.
+{% endcomment %}
+<aside
+  class="fixed inset-y-0 left-0 z-50 flex flex-col border-r border-slate-200 bg-white transition-all duration-200 dark:border-slate-800 dark:bg-slate-900
+    md:translate-x-0"
+  :class="[collapsed ? 'md:w-[4.5rem]' : 'md:w-64', mobileOpen ? 'translate-x-0 w-64' : '-translate-x-full w-64']"
+>
+  <!-- Brand -->
+  <div class="flex h-16 shrink-0 items-center gap-2 border-b border-slate-200 px-4 dark:border-slate-800">
+    <a href="{% url 'core:dashboard' %}" class="flex items-center gap-2 overflow-hidden">
+      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-white">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" /></svg>
+      </span>
+      <span x-show="!collapsed" x-cloak class="truncate text-lg font-extrabold tracking-tight text-slate-900 dark:text-white">{{ SITE_NAME }}</span>
+    </a>
+  </div>
+
+  <nav class="flex-1 space-y-6 overflow-y-auto px-3 py-4" aria-label="{% trans 'Main navigation' %}">
+    <div class="space-y-1">
+      {% url 'core:dashboard' as u %}
+      <a href="{{ u }}" class="nav-side {% if request.resolver_match.view_name == 'core:dashboard' %}nav-side-active{% endif %}" {% if request.resolver_match.view_name == 'core:dashboard' %}aria-current="page"{% endif %}>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+        <span x-show="!collapsed" x-cloak>{% trans "Dashboard" %}</span>
+      </a>
+    </div>
+
+    <div class="space-y-1">
+      <p x-show="!collapsed" x-cloak class="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">{% trans "Jobs" %}</p>
+      <a href="{% url 'jobs:list' %}" class="nav-side {% if request.resolver_match.view_name == 'jobs:list' or request.resolver_match.view_name == 'jobs:detail' %}nav-side-active{% endif %}">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
+        <span x-show="!collapsed" x-cloak>{% trans "Job list" %}</span>
+      </a>
+      <a href="{% url 'jobs:add' %}" class="nav-side {% if request.resolver_match.view_name == 'jobs:add' %}nav-side-active{% endif %}">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35M11 8v6M8 11h6"/></svg>
+        <span x-show="!collapsed" x-cloak>{% trans "Analyze a job post" %}</span>
+      </a>
+    </div>
+
+    <div class="space-y-1">
+      <p x-show="!collapsed" x-cloak class="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">{% trans "Profile" %}</p>
+      <a href="{% url 'preferences:detail' %}" class="nav-side {% if request.resolver_match.app_name == 'preferences' %}nav-side-active{% endif %}">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4z"/></svg>
+        <span x-show="!collapsed" x-cloak>{% trans "Job preferences" %}</span>
+      </a>
+      <a href="{% url 'experience:list' %}" class="nav-side {% if request.resolver_match.app_name == 'experience' %}nav-side-active{% endif %}">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
+        <span x-show="!collapsed" x-cloak>{% trans "Experience" %}</span>
+      </a>
+      <a href="{% url 'education:list' %}" class="nav-side {% if request.resolver_match.app_name == 'education' %}nav-side-active{% endif %}">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c0 1 2.5 3 6 3s6-2 6-3v-5"/></svg>
+        <span x-show="!collapsed" x-cloak>{% trans "Education" %}</span>
+      </a>
+      <a href="{% url 'skills:list' %}?tab=technical" class="nav-side {% if request.resolver_match.app_name == 'skills' %}nav-side-active{% endif %}">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg>
+        <span x-show="!collapsed" x-cloak>{% trans "Technical skills" %}</span>
+      </a>
+      <a href="{% url 'skills:list' %}?tab=soft" class="nav-side">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+        <span x-show="!collapsed" x-cloak>{% trans "Soft skills" %}</span>
+      </a>
+      <a href="{% url 'languages:list' %}" class="nav-side {% if request.resolver_match.app_name == 'languages' %}nav-side-active{% endif %}">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+        <span x-show="!collapsed" x-cloak>{% trans "Languages" %}</span>
+      </a>
+    </div>
+
+    <div class="space-y-1">
+      <p x-show="!collapsed" x-cloak class="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">{% trans "Resume" %}</p>
+      <a href="{% url 'resume:upload' %}" class="nav-side {% if request.resolver_match.view_name == 'resume:upload' or request.resolver_match.view_name == 'resume:review' %}nav-side-active{% endif %}">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+        <span x-show="!collapsed" x-cloak>{% trans "Import from resume" %}</span>
+      </a>
+      <a href="{% url 'resume:tailored_list' %}" class="nav-side {% if request.resolver_match.view_name == 'resume:tailored_list' or request.resolver_match.view_name == 'resume:tailored' %}nav-side-active{% endif %}">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+        <span x-show="!collapsed" x-cloak>{% trans "Tailored resumes" %}</span>
+      </a>
+    </div>
+  </nav>
+
+  <!-- Collapse toggle (desktop only) -->
+  <div class="hidden shrink-0 border-t border-slate-200 p-3 md:block dark:border-slate-800">
+    <button type="button" @click="toggleCollapsed()"
+      class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-500 transition hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+      :aria-label="collapsed ? '{% trans "Expand sidebar" %}' : '{% trans "Collapse sidebar" %}'">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0 transition-transform" :class="collapsed && 'rotate-180'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      <span x-show="!collapsed" x-cloak>{% trans "Collapse" %}</span>
+    </button>
+  </div>
+</aside>

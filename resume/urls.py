@@ -6,6 +6,7 @@ app_name = "resume"
 
 urlpatterns = [
     path("upload/", views.ResumeUploadView.as_view(), name="upload"),
+    path("tailored/", views.TailoredResumeListView.as_view(), name="tailored_list"),
     path("<int:pk>/review/", views.ResumeReviewView.as_view(), name="review"),
     # Job-tailored resumes, always addressed by the job they were written for.
     path(

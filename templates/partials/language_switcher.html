@@ -1,0 +1,15 @@
+{% load i18n %}
+{% get_current_language as CURRENT_LANGUAGE %}
+{% get_available_languages as AVAILABLE_LANGUAGES %}
+<form action="{% url 'set_language' %}" method="post" class="flex items-center rounded-lg bg-slate-100 p-0.5 dark:bg-slate-800">
+  {% csrf_token %}
+  <input type="hidden" name="next" value="{{ request.get_full_path }}" />
+  {% for code, name in AVAILABLE_LANGUAGES %}
+    <button type="submit" name="language" value="{{ code }}"
+      class="rounded-md px-2 py-1 text-xs font-semibold uppercase transition
+        {% if code == CURRENT_LANGUAGE %}bg-white text-brand-700 shadow-sm dark:bg-slate-700 dark:text-brand-300
+        {% else %}text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100{% endif %}"
+      {% if code == CURRENT_LANGUAGE %}aria-current="true"{% endif %}
+      lang="{{ code }}" title="{{ name }}">{{ code }}</button>
+  {% endfor %}
+</form>

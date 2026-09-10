@@ -1,4 +1,5 @@
-{% extends "base.html" %}
+{% extends "base_app.html" %}
+{% load i18n %}
 {% block title %}Import from resume · {{ SITE_NAME }}{% endblock %}
 {% block content %}
 <div class="mx-auto max-w-2xl px-4 py-10 sm:px-6 lg:px-8">
@@ -11,7 +12,7 @@
     <div class="flex h-12 w-12 items-center justify-center rounded-full bg-brand-100 text-brand-700 dark:bg-brand-900 dark:text-brand-300">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h11l5 5v11a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z" /><path d="M14 4v5h5" /><path d="M12 18v-6M9 15l3-3 3 3" /></svg>
     </div>
-    <h1 class="mt-4 text-xl font-bold text-slate-900 dark:text-white">Complete your profile from your resume</h1>
+    <h1 class="mt-4 text-xl font-bold text-slate-900 dark:text-white">{% trans "Complete your profile from your resume" %}</h1>
     <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
       Upload your resume and AI will pull out your skills, languages, work experience and education.
       You'll review everything before anything is added.
@@ -40,7 +41,7 @@
       </div>
 
       <div class="flex justify-end gap-3 border-t border-slate-100 pt-5 dark:border-slate-800">
-        <a href="{% url 'accounts:profile' %}" class="btn-secondary">Cancel</a>
+        <a href="{% url 'accounts:profile' %}" class="btn-secondary">{% trans "Cancel" %}</a>
         <button type="submit" class="btn-primary" :disabled="submitting">
           <svg x-show="submitting" x-cloak class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
           <span x-text="submitting ? 'Reading your resume… this can take up to a minute' : 'Analyze my resume'"></span>

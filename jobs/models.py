@@ -1,14 +1,17 @@
 from django.conf import settings
 from django.db import models
 from django.urls import reverse
+from django.utils.translation import gettext_lazy as _
+
+from .sections import MATCHED_SECTION_KEYS, SECTION_CHOICES, SECTION_ORDER
 
 
 class JobPost(models.Model):
     """The parent record: one row per job posting a user has analyzed.
 
-    Holds every "global" attribute pulled from the posting — everything
-    that isn't an individual, line-by-line requirement (those live on
-    Requirement, grouped under RequirementCategory below).
+    Holds every "global" attribute pulled from the posting. The line-by-line
+    detail lives on JobElement, grouped under the fixed JobSection rows below —
+    see jobs/sections.py for the closed section list.
     """
 
     STATUS_PENDING = "pending"
@@ -80,6 +83,11 @@ class JobPost(models.Model):
     diversity_statement = models.TextField(blank=True)
 
     # Bookkeeping
+    analysis_language = models.CharField(
+        max_length=10,
+        blank=True,
+        help_text="Language the AI was asked to answer in, so a re-render never mixes languages.",
+    )
     raw_text = models.TextField(blank=True)
     manual_text = models.TextField(
         blank=True, help_text="Job description pasted by hand instead of fetched from the URL."
@@ -119,14 +127,19 @@ class JobPost(models.Model):
         amount = self.salary_max or self.salary_min
         return f"{currency}{amount:,}{period}"
 
-    def requirement_match_summary(self):
-        """Aggregate match status across every requirement on this job,
-        for the "Match to my profile" fit score."""
-        requirements = Requirement.objects.filter(category__job=self)
-        total = requirements.count()
-        strong = requirements.filter(match_status=Requirement.STRONG).count()
-        partial = requirements.filter(match_status=Requirement.PARTIAL).count()
-        none_ = requirements.filter(match_status=Requirement.NONE).count()
+    def element_match_summary(self):
+        """Aggregate match status across every element in a *matched* section.
+
+        Rows in prose-only sections (Overview, Company, ...) are never counted —
+        they carry no verdict.
+        """
+        elements = JobElement.objects.filter(
+            section__job=self, section__key__in=MATCHED_SECTION_KEYS
+        )
+        total = elements.count()
+        strong = elements.filter(match_status=JobElement.STRONG).count()
+        partial = elements.filter(match_status=JobElement.PARTIAL).count()
+        none_ = elements.filter(match_status=JobElement.NONE).count()
         analyzed = strong + partial + none_
         score_percent = round(((strong + 0.5 * partial) / total) * 100) if total else 0
         return {
@@ -139,63 +152,134 @@ class JobPost(models.Model):
             "score_percent": score_percent,
         }
 
+    @property
+    def needs_reanalysis(self) -> bool:
+        """True for jobs imported before the fixed-section refactor — their
+        categories were wiped by the 0002 data migration."""
+        return self.status == self.STATUS_COMPLETED and not self.sections.exists()
 
-class RequirementCategory(models.Model):
-    """A named group of requirements within a job post (e.g. "Required
-    Qualifications", "Responsibilities", "Preferred Qualifications")."""
 
-    RESPONSIBILITIES = "responsibilities"
-    REQUIRED = "required"
-    PREFERRED = "preferred"
-    OTHER = "other"
-    TYPE_CHOICES = [
-        (RESPONSIBILITIES, "Responsibilities"),
-        (REQUIRED, "Required qualifications"),
-        (PREFERRED, "Preferred qualifications"),
-        (OTHER, "Other"),
+class JobSection(models.Model):
+    """One of the fixed sections of a job analysis (see jobs/sections.py).
+
+    The set of keys is closed: the AI may not invent sections, and the importer
+    discards anything it does not recognise.
+    """
+
+    IDLE = "idle"
+    RUNNING = "running"
+    DONE = "done"
+    FAILED = "failed"
+    MATCH_STATE_CHOICES = [
+        (IDLE, _("Not matched yet")),
+        (RUNNING, _("Matching…")),
+        (DONE, _("Matched")),
+        (FAILED, _("Matching failed")),
     ]
 
-    job = models.ForeignKey(JobPost, on_delete=models.CASCADE, related_name="categories")
-    category_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default=OTHER)
-    name = models.CharField(max_length=150)
+    job = models.ForeignKey(JobPost, on_delete=models.CASCADE, related_name="sections")
+    key = models.CharField(max_length=40, choices=SECTION_CHOICES)
     order = models.PositiveSmallIntegerField(default=0)
+    body = models.TextField(blank=True, help_text="Prose, for sections without element rows.")
+    match_state = models.CharField(max_length=20, choices=MATCH_STATE_CHOICES, default=IDLE)
+    match_error = models.TextField(blank=True)
+    matched_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["order", "id"]
-        verbose_name_plural = "requirement categories"
+        verbose_name = _("job section")
+        verbose_name_plural = _("job sections")
+        constraints = [
+            models.UniqueConstraint(fields=["job", "key"], name="unique_section_per_job")
+        ]
 
     def __str__(self):
-        return f"{self.name} ({self.job})"
+        return f"{self.key} ({self.job_id})"
+
+    def save(self, *args, **kwargs):
+        if not self.order:
+            self.order = SECTION_ORDER.get(self.key, 0)
+        super().save(*args, **kwargs)
+
+    @property
+    def spec(self):
+        """The Section dataclass from jobs/sections.py describing this row."""
+        from .sections import get_section
+
+        return get_section(self.key)
+
+    @property
+    def label(self):
+        spec = self.spec
+        return spec.label if spec else self.key
+
+    @property
+    def is_matched_section(self) -> bool:
+        return self.key in MATCHED_SECTION_KEYS
+
+    def match_summary(self):
+        elements = self.elements.all()
+        total = len(elements)
+        strong = sum(1 for e in elements if e.match_status == JobElement.STRONG)
+        partial = sum(1 for e in elements if e.match_status == JobElement.PARTIAL)
+        none_ = sum(1 for e in elements if e.match_status == JobElement.NONE)
+        return {
+            "total": total,
+            "strong": strong,
+            "partial": partial,
+            "none": none_,
+            "analyzed": strong + partial + none_,
+            "score_percent": round(((strong + 0.5 * partial) / total) * 100) if total else 0,
+        }
 
 
-class Requirement(models.Model):
-    """A single, atomic requirement / responsibility line within a category."""
+class JobElement(models.Model):
+    """A single, atomic line within a section — a responsibility, a required
+    skill, a benefit, a language requirement."""
 
     STRONG = "strong"
     PARTIAL = "partial"
     NONE = "none"
     MATCH_CHOICES = [
-        (STRONG, "Strong match"),
-        (PARTIAL, "Partial match"),
-        (NONE, "Not covered"),
+        (STRONG, _("Strong match")),
+        (PARTIAL, _("Partial match")),
+        (NONE, _("Not covered")),
     ]
 
-    category = models.ForeignKey(
-        RequirementCategory, on_delete=models.CASCADE, related_name="requirements"
+    section = models.ForeignKey(
+        JobSection, on_delete=models.CASCADE, related_name="elements"
     )
     text = models.TextField()
     order = models.PositiveSmallIntegerField(default=0)
 
-    # Populated by the "Match to my profile" action (jobs/services/matcher.py).
     match_status = models.CharField(max_length=10, choices=MATCH_CHOICES, blank=True)
     match_evidence = models.TextField(blank=True)
+    evaluated_at = models.DateTimeField(null=True, blank=True)
+    is_evaluating = models.BooleanField(
+        default=False, help_text="True while a single-element re-evaluation is in flight."
+    )
+    added_to_profile_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["order", "id"]
+        verbose_name = _("job element")
+        verbose_name_plural = _("job elements")
 
     def __str__(self):
         return self.text[:80]
 
     @property
-    def is_matched(self):
+    def is_matched(self) -> bool:
         return bool(self.match_status)
+
+    @property
+    def was_added_to_profile(self) -> bool:
+        return self.added_to_profile_at is not None
+
+    @property
+    def badge_class(self) -> str:
+        return {
+            self.STRONG: "badge-strong",
+            self.PARTIAL: "badge-partial",
+            self.NONE: "badge-none",
+        }.get(self.match_status, "badge-pending")

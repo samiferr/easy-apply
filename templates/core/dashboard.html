@@ -1,92 +1,142 @@
-{% extends "base.html" %}
-{% block title %}Dashboard · {{ SITE_NAME }}{% endblock %}
+{% extends "base_app.html" %}
+{% load i18n static %}
+{% block title %}{% trans "Dashboard" %} · {{ SITE_NAME }}{% endblock %}
+
 {% block content %}
-<div class="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
-  <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-    <div>
-      <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Welcome back, {{ request.user.get_short_name }} 👋</h1>
-      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Here's where your recap stands today.</p>
-    </div>
-    <div class="flex gap-3">
-      <a href="{% url 'core:export_preview' %}" class="btn-secondary">Preview recap</a>
-      <a href="{% url 'core:export_markdown' %}" class="btn-primary">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V4a1 1 0 011-1zM3 15a1 1 0 011 1v1h12v-1a1 1 0 112 0v1a2 2 0 01-2 2H4a2 2 0 01-2-2v-1a1 1 0 011-1z" clip-rule="evenodd" /></svg>
-        Download .md
-      </a>
-    </div>
+<div class="mx-auto w-full max-w-7xl px-4 pb-12 sm:px-6 lg:px-8">
+  <h1 class="page-title">{% blocktrans with name=user.get_short_name %}Welcome back, {{ name }}{% endblocktrans %}</h1>
+  <p class="mt-2 text-slate-500 dark:text-slate-400">
+    {% trans "Analyze a job post, then see how each requirement lines up with your profile." %}
+  </p>
+
+  <!-- Quick links -->
+  <div class="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <a href="{% url 'jobs:add' %}" class="card group p-5 transition hover:border-brand-300 hover:shadow-md dark:hover:border-brand-700">
+      <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600 transition group-hover:bg-brand-600 group-hover:text-white dark:bg-brand-950/60 dark:text-brand-300">
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35M11 8v6M8 11h6"/></svg>
+      </span>
+      <p class="mt-4 font-semibold text-slate-900 dark:text-white">{% trans "Analyze a job post" %}</p>
+      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{% trans "Paste a URL or the description text." %}</p>
+    </a>
+    <a href="{% url 'resume:upload' %}" class="card group p-5 transition hover:border-brand-300 hover:shadow-md dark:hover:border-brand-700">
+      <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600 transition group-hover:bg-brand-600 group-hover:text-white dark:bg-brand-950/60 dark:text-brand-300">
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+      </span>
+      <p class="mt-4 font-semibold text-slate-900 dark:text-white">{% trans "Import a resume" %}</p>
+      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{% trans "Fill your profile from a PDF or DOCX." %}</p>
+    </a>
+    <a href="{% url 'accounts:profile' %}" class="card group p-5 transition hover:border-brand-300 hover:shadow-md dark:hover:border-brand-700">
+      <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600 transition group-hover:bg-brand-600 group-hover:text-white dark:bg-brand-950/60 dark:text-brand-300">
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </span>
+      <p class="mt-4 font-semibold text-slate-900 dark:text-white">{% trans "Complete my profile" %}</p>
+      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{{ completion_percent }}% {% trans "complete" %}</p>
+    </a>
+    <a href="{% url 'preferences:detail' %}" class="card group p-5 transition hover:border-brand-300 hover:shadow-md dark:hover:border-brand-700">
+      <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600 transition group-hover:bg-brand-600 group-hover:text-white dark:bg-brand-950/60 dark:text-brand-300">
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4z"/></svg>
+      </span>
+      <p class="mt-4 font-semibold text-slate-900 dark:text-white">{% trans "Job preferences" %}</p>
+      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{% trans "Salary, location, benefits." %}</p>
+    </a>
   </div>
 
-  <div class="mt-8 card p-6">
-    <div class="flex items-center justify-between">
-      <h2 class="font-semibold text-slate-900 dark:text-white">Profile completeness</h2>
-      <span class="text-sm font-semibold text-brand-600 dark:text-brand-400">{{ completion_percent }}%</span>
-    </div>
-    <div class="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-      <div class="h-full rounded-full bg-brand-600 transition-all" style="width: {{ completion_percent }}%"></div>
-    </div>
-    <ul class="mt-5 grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-      {% for label, done, url_name in checklist %}
-        <li class="flex items-center gap-2.5 text-sm">
-          {% if done %}
-            <span class="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-900 dark:text-emerald-400">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" /></svg>
-            </span>
-            <span class="text-slate-500 dark:text-slate-400">{{ label }}</span>
-          {% else %}
-            <span class="flex h-5 w-5 items-center justify-center rounded-full border-2 border-dashed border-slate-300 dark:border-slate-600"></span>
-            <a href="{% url url_name %}" class="font-medium text-slate-700 hover:text-brand-600 dark:text-slate-300 dark:hover:text-brand-400">{{ label }}</a>
-          {% endif %}
-        </li>
+  <!-- In-progress strip -->
+  {% if running_tasks %}
+    <div class="mt-8 space-y-3">
+      <h2 class="section-title">{% trans "In progress" %}</h2>
+      {% for task in running_tasks %}
+        {% include "partials/_ai_progress.html" with ai_task=task %}
       {% endfor %}
-    </ul>
-  </div>
-
-  <div class="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-    {% for stat in stats %}
-      <a href="{% url stat.url %}" class="card group flex flex-col gap-1 p-4 transition hover:border-brand-300 hover:shadow-md dark:hover:border-brand-700">
-        <span class="text-2xl font-bold text-slate-900 dark:text-white">{{ stat.value }}</span>
-        <span class="text-xs font-medium text-slate-500 group-hover:text-brand-600 dark:text-slate-400 dark:group-hover:text-brand-400">{{ stat.label }}</span>
-      </a>
-    {% endfor %}
-  </div>
+    </div>
+  {% endif %}
 
   <div class="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
-    <div class="card p-6 lg:col-span-2">
-      <div class="flex items-center justify-between">
-        <h2 class="font-semibold text-slate-900 dark:text-white">Recent experience</h2>
-        <a href="{% url 'experience:list' %}" class="text-sm font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400">View all</a>
+    <!-- Last analyzed jobs -->
+    <div class="lg:col-span-2 space-y-6">
+      <div class="card p-5 sm:p-6">
+        <div class="flex items-center justify-between">
+          <h2 class="section-title">{% trans "Last analyzed jobs" %}</h2>
+          {% if job_post_count %}<a href="{% url 'jobs:list' %}" class="text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400">{% trans "See all" %}</a>{% endif %}
+        </div>
+
+        {% if recent_jobs %}
+          <ul class="mt-4 divide-y divide-slate-100 dark:divide-slate-800">
+            {% for job in recent_jobs %}
+              {% with summary=job.element_match_summary %}
+              <li class="py-4 first:pt-0 last:pb-0">
+                <a href="{{ job.get_absolute_url }}" class="group flex items-start justify-between gap-4">
+                  <div class="min-w-0">
+                    <p class="truncate font-semibold text-slate-900 transition group-hover:text-brand-600 dark:text-white dark:group-hover:text-brand-400">
+                      {{ job.title|default:job.source_url }}
+                    </p>
+                    <p class="mt-0.5 truncate text-sm text-slate-500 dark:text-slate-400">
+                      {{ job.company_name|default:"—" }} · {% blocktrans with when=job.created_at|timesince %}{{ when }} ago{% endblocktrans %}
+                    </p>
+                    {% if summary.total %}
+                      <div class="mt-2 flex items-center gap-2">
+                        <div class="h-1.5 w-28 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                          <div class="h-full rounded-full bg-brand-600" style="width: {{ summary.score_percent }}%"></div>
+                        </div>
+                        <span class="text-xs font-medium text-slate-500 dark:text-slate-400">{{ summary.score_percent }}%</span>
+                      </div>
+                    {% endif %}
+                  </div>
+                  {% include "jobs/_status_badge.html" with status=job.status %}
+                </a>
+              </li>
+              {% endwith %}
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="mt-6 rounded-lg border border-dashed border-slate-200 py-10 text-center dark:border-slate-800">
+            <p class="text-sm text-slate-500 dark:text-slate-400">{% trans "You haven't analyzed any job posts yet." %}</p>
+            <a href="{% url 'jobs:add' %}" class="btn-primary mt-4">{% trans "Analyze your first job post" %}</a>
+          </div>
+        {% endif %}
       </div>
-      {% if recent_experiences %}
-        <ul class="mt-4 divide-y divide-slate-100 dark:divide-slate-800">
-          {% for exp in recent_experiences %}
-            <li class="flex items-center justify-between py-3">
-              <div>
-                <p class="font-medium text-slate-900 dark:text-white">{{ exp.job_title }}</p>
-                <p class="text-sm text-slate-500 dark:text-slate-400">{{ exp.company }}</p>
-              </div>
-              <span class="text-sm text-slate-400">{{ exp.duration_label }}</span>
-            </li>
-          {% endfor %}
-        </ul>
-      {% else %}
-        <p class="mt-4 text-sm text-slate-500 dark:text-slate-400">You haven't added any work experience yet.</p>
-        <a href="{% url 'experience:add' %}" class="btn-secondary mt-4">Add work experience</a>
-      {% endif %}
+
+      {% include "core/_jobs_chart.html" with chart=chart %}
     </div>
 
-    <div class="card p-6">
-      <h2 class="font-semibold text-slate-900 dark:text-white">Quick add</h2>
-      <div class="mt-4 flex flex-col gap-2">
-        <a href="{% url 'jobs:add' %}" class="btn-primary justify-start">+ Analyze a job post</a>
-        <a href="{% url 'resume:upload' %}" class="btn-secondary justify-start">+ Import from resume</a>
-        <a href="{% url 'skills:add' kind='soft' %}" class="btn-secondary justify-start">+ Soft skill</a>
-        <a href="{% url 'skills:add' kind='technical' %}" class="btn-secondary justify-start">+ Technical skill</a>
-        <a href="{% url 'languages:add' %}" class="btn-secondary justify-start">+ Language</a>
-        <a href="{% url 'experience:add' %}" class="btn-secondary justify-start">+ Work experience</a>
-        <a href="{% url 'education:degree_add' %}" class="btn-secondary justify-start">+ Degree</a>
-        <a href="{% url 'education:certificate_add' %}" class="btn-secondary justify-start">+ Certificate</a>
+    <!-- Profile completion -->
+    <div class="card h-fit p-5 sm:p-6">
+      <h2 class="section-title">{% trans "Profile completion" %}</h2>
+      <div class="mt-4 flex items-center gap-3">
+        <div class="h-2 flex-1 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+          <div class="h-full rounded-full bg-brand-600 transition-all" style="width: {{ completion_percent }}%"></div>
+        </div>
+        <span class="text-sm font-bold text-brand-600 dark:text-brand-400">{{ completion_percent }}%</span>
       </div>
+      <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">
+        {% trans "A fuller profile means sharper matching — empty sections are skipped entirely." %}
+      </p>
+      <ul class="mt-5 space-y-2.5">
+        {% for label, done, url_name in checklist %}
+          <li>
+            <a href="{% url url_name %}" class="flex items-start gap-2.5 text-sm transition hover:text-brand-600 dark:hover:text-brand-400 {% if done %}text-slate-400 line-through dark:text-slate-500{% else %}text-slate-700 dark:text-slate-300{% endif %}">
+              {% if done %}
+                <svg class="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              {% else %}
+                <span class="mt-0.5 h-4 w-4 shrink-0 rounded-full border-2 border-slate-300 dark:border-slate-600"></span>
+              {% endif %}
+              <span>{{ label }}</span>
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_body %}
+<script>
+  window.AI_LABELS = {
+    queued: "{% trans 'Queued' %}", running: "{% trans 'Running' %}",
+    done: "{% trans 'Done' %}", failed: "{% trans 'Failed' %}",
+    canceled: "{% trans 'Canceled' %}"
+  };
+</script>
+<script src="{% static 'js/ai-progress.js' %}"></script>
 {% endblock %}

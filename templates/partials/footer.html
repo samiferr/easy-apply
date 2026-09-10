@@ -1,11 +1,43 @@
+{% load i18n %}
 <footer class="border-t border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
-  <div class="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-    <div class="flex flex-col items-center justify-between gap-4 sm:flex-row">
+  <div class="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
+    <div class="grid grid-cols-2 gap-8 md:grid-cols-4">
+      <div class="col-span-2 md:col-span-1">
+        <a href="{% url 'core:home' %}" class="flex items-center gap-2 text-lg font-extrabold tracking-tight text-slate-900 dark:text-white">
+          <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-white">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" /></svg>
+          </span>
+          {{ SITE_NAME }}
+        </a>
+        <p class="mt-3 max-w-xs text-sm text-slate-500 dark:text-slate-400">
+          {% trans "Match any job post to your profile, requirement by requirement." %}
+        </p>
+      </div>
+
+      <div>
+        <h2 class="text-sm font-semibold text-slate-900 dark:text-white">{% trans "Product" %}</h2>
+        <div class="mt-3 flex flex-col gap-2 text-sm">
+          <a href="{% url 'accounts:register' %}" class="footer-link">{% trans "Create account" %}</a>
+          <a href="{% url 'accounts:login' %}" class="footer-link">{% trans "Log in" %}</a>
+        </div>
+      </div>
+
+      <div>
+        <h2 class="text-sm font-semibold text-slate-900 dark:text-white">{% trans "Legal" %}</h2>
+        <div class="mt-3 flex flex-col gap-2 text-sm">
+          {% include "partials/_legal_links.html" %}
+        </div>
+      </div>
+
+      <div>
+        <h2 class="text-sm font-semibold text-slate-900 dark:text-white">{% trans "Language" %}</h2>
+        <div class="mt-3">{% include "partials/language_switcher.html" %}</div>
+      </div>
+    </div>
+
+    <div class="mt-10 border-t border-slate-200 pt-6 dark:border-slate-800">
       <p class="text-sm text-slate-500 dark:text-slate-400">
-        &copy; {% now "Y" %} {{ SITE_NAME }}. Built to help you land your next role.
-      </p>
-      <p class="text-sm text-slate-400 dark:text-slate-500">
-        Track your skills. Export your story.
+        &copy; {% now "Y" %} {{ SITE_NAME }}. {% trans "Built to help you land your next role." %}
       </p>
     </div>
   </div>
