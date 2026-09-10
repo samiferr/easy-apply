@@ -2,7 +2,9 @@
 Django settings for the easy-apply project.
 """
 
+import sys
 from pathlib import Path
+
 from decouple import Csv, config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -137,9 +139,18 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
+# The manifest storage needs `collectstatic` to have run, which is right for
+# production but would make `manage.py test` depend on a build step.
+_TESTING = "test" in sys.argv or "pytest" in sys.modules
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+    "staticfiles": {
+        "BACKEND": (
+            "django.contrib.staticfiles.storage.StaticFilesStorage"
+            if _TESTING
+            else "whitenoise.storage.CompressedManifestStaticFilesStorage"
+        )
+    },
 }
 
 # Media files (user uploads: avatars, ...)

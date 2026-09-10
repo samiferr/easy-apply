@@ -1,0 +1,52 @@
+{% extends "legal/_legal_base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Terms of Service" %} · {{ SITE_NAME }}{% endblock %}
+{% block legal_title %}{% trans "Terms of Service" %}{% endblock %}
+{% block legal_body %}
+<p>{% blocktrans with name=LEGAL_ENTITY.name %}These terms govern your use of {{ SITE_NAME }}, operated by {{ name }}. By creating an account you accept them.{% endblocktrans %}</p>
+
+<h2>{% trans "The service" %}</h2>
+<p>{% trans "Easy Apply lets you record a professional profile, analyze job postings against it, and generate resumes tailored to a specific posting. Parts of it are powered by an AI provider." %}</p>
+
+<h2>{% trans "Your account" %}</h2>
+<ul>
+  <li>{% trans "You must give an accurate email address and keep your password confidential." %}</li>
+  <li>{% trans "You are responsible for what happens under your account." %}</li>
+  <li>{% trans "One account per person. You must be old enough to enter a contract where you live." %}</li>
+</ul>
+
+<h2>{% trans "Acceptable use" %}</h2>
+<p>{% trans "You agree not to:" %}</p>
+<ul>
+  <li>{% trans "Upload content you have no right to, including someone else's resume without their permission." %}</li>
+  <li>{% trans "Use the service to scrape job boards at scale or to circumvent their terms." %}</li>
+  <li>{% trans "Attempt to break, overload or reverse-engineer the service." %}</li>
+  <li>{% trans "Submit unlawful, hateful or deliberately misleading content." %}</li>
+</ul>
+
+<h2>{% trans "AI-generated content — no guarantees" %}</h2>
+<p>{% trans "Job analyses, match verdicts and tailored resumes are produced by an AI model. They can be incomplete, out of date or simply wrong. They are suggestions, not advice." %}</p>
+<ul>
+  <li>{% trans "Always read the original job posting yourself before applying." %}</li>
+  <li>{% trans "Always check a generated resume for accuracy before you send it — you are responsible for anything you submit to an employer." %}</li>
+  <li>{% trans "A match score is not a prediction of whether you will be hired, and a red flag is not an accusation against an employer." %}</li>
+</ul>
+
+<h2>{% trans "Your content" %}</h2>
+<p>{% trans "You keep ownership of everything you upload and record. You grant us only the permission needed to store it, display it back to you, and send the relevant parts to our AI sub-processor so the features you request can run." %}</p>
+
+<h2>{% trans "Availability" %}</h2>
+<p>{% trans "The service is provided as-is, without warranty. We may change or suspend features, and analysis may be unavailable if our AI provider is down or rate-limiting us." %}</p>
+
+<h2>{% trans "Liability" %}</h2>
+<p>{% trans "To the fullest extent the law allows, we are not liable for indirect or consequential loss, for lost job opportunities, or for decisions you make based on an analysis or a generated resume." %}</p>
+
+<h2>{% trans "Ending your use" %}</h2>
+<p>{% trans "You can delete your account at any time from the Security page, which removes your data. We may suspend an account that breaches these terms." %}</p>
+
+<h2>{% trans "Governing law" %}</h2>
+<p>{% blocktrans with jurisdiction=LEGAL_ENTITY.jurisdiction %}These terms are governed by the laws of {{ jurisdiction }}, and its courts have exclusive jurisdiction.{% endblocktrans %}</p>
+
+<h2>{% trans "Contact" %}</h2>
+<p>{{ LEGAL_ENTITY.email }}</p>
+{% endblock %}

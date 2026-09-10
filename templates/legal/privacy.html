@@ -1,0 +1,58 @@
+{% extends "legal/_legal_base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Privacy Policy" %} · {{ SITE_NAME }}{% endblock %}
+{% block legal_title %}{% trans "Privacy Policy" %}{% endblock %}
+{% block legal_body %}
+<p>{% blocktrans with name=LEGAL_ENTITY.name %}This policy explains what {{ name }} collects when you use {{ SITE_NAME }}, why, and what control you have over it.{% endblocktrans %}</p>
+
+<h2>{% trans "Who is responsible for your data" %}</h2>
+<p>{{ LEGAL_ENTITY.name }}, {{ LEGAL_ENTITY.address }}. {% trans "Privacy contact:" %} {{ LEGAL_ENTITY.dpo_email }}</p>
+
+<h2>{% trans "What we collect" %}</h2>
+<ul>
+  <li><strong>{% trans "Account data" %}</strong> — {% trans "your email address, name, and password (stored only as a salted hash)." %}</li>
+  <li><strong>{% trans "Profile data" %}</strong> — {% trans "the headline, bio, avatar, contact links, skills, languages, work experience, education, certificates and job preferences you record." %}</li>
+  <li><strong>{% trans "Resume files" %}</strong> — {% trans "any PDF, DOCX or TXT resume you upload, plus the text extracted from it." %}</li>
+  <li><strong>{% trans "Job posts" %}</strong> — {% trans "the URLs and job description text you submit, and the structured analysis produced from them." %}</li>
+  <li><strong>{% trans "Technical data" %}</strong> — {% trans "server logs containing IP address, browser type and timestamps, kept for security and debugging." %}</li>
+</ul>
+
+<h2>{% trans "Resume files: what happens to them" %}</h2>
+<p>{% trans "Uploaded resumes are stored on our server under a per-user directory and are readable only by your account. We keep the file and its extracted text so you can re-run an import without re-uploading. Deleting a resume import, or deleting your account, removes the file and its text." %}</p>
+
+<h2>{% trans "AI processing — an important disclosure" %}</h2>
+<p>{% blocktrans %}To analyze a job post, read a resume, match requirements against your profile or write a tailored resume, we send the relevant text to <strong>DeepSeek</strong>, a third-party AI provider acting as our sub-processor. This means:{% endblocktrans %}</p>
+<ul>
+  <li>{% trans "Job description text, resume text and the relevant parts of your profile leave our servers and are processed by DeepSeek." %}</li>
+  <li>{% trans "This processing may take place outside your country or region, including outside the EEA and Canada." %}</li>
+  <li>{% trans "We send only the part of your profile that a given analysis needs — a skills check receives your skills, not your salary expectations." %}</li>
+  <li>{% trans "We do not send your email address, password, avatar or contact details to the AI provider." %}</li>
+</ul>
+<p>{% trans "If you would rather no data reached a third-party AI provider, do not upload a resume or analyze a job post — the rest of the app works without it." %}</p>
+
+<h2>{% trans "Legal basis" %}</h2>
+<ul>
+  <li>{% trans "Performing our contract with you — running the account and the analysis features you ask for." %}</li>
+  <li>{% trans "Your consent — uploading a resume or submitting a job post for AI analysis is an explicit, per-action choice." %}</li>
+  <li>{% trans "Our legitimate interest — keeping the service secure and functioning." %}</li>
+</ul>
+
+<h2>{% trans "How long we keep it" %}</h2>
+<p>{% trans "Your account data and profile stay until you delete them. Resume files and job analyses stay until you delete them or close your account. Records of background analysis runs are pruned after 30 days. Server logs are kept for a short operational period." %}</p>
+
+<h2>{% trans "Your rights" %}</h2>
+<p>{% trans "You can exercise all of these yourself, in the app:" %}</p>
+<ul>
+  <li><strong>{% trans "Access and portability" %}</strong> — {% trans "export everything you have recorded as a Markdown file from the user menu." %}</li>
+  <li><strong>{% trans "Rectification" %}</strong> — {% trans "edit any profile item at any time." %}</li>
+  <li><strong>{% trans "Erasure" %}</strong> — {% trans "delete individual items, or delete your entire account and its data from the Security page." %}</li>
+  <li><strong>{% trans "Objection and restriction" %}</strong> — {% blocktrans with email=LEGAL_ENTITY.dpo_email %}write to {{ email }}.{% endblocktrans %}</li>
+</ul>
+<p>{% blocktrans with jurisdiction=LEGAL_ENTITY.jurisdiction %}You also have the right to lodge a complaint with the supervisory authority in {{ jurisdiction }}.{% endblocktrans %}</p>
+
+<h2>{% trans "Cookies" %}</h2>
+<p>{% blocktrans %}We use only what the app needs to function — see the <a href="/legal/cookies/">Cookie Policy</a>. No advertising or tracking cookies.{% endblocktrans %}</p>
+
+<h2>{% trans "Changes" %}</h2>
+<p>{% trans "If this policy changes materially, we will say so in the app before the change takes effect." %}</p>
+{% endblock %}

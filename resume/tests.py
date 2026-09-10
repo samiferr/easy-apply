@@ -179,7 +179,8 @@ class BuildJobPayloadTests(TailoredResumeTestMixin, TestCase):
         requirement = payload["requirements"][0]
         self.assertEqual(requirement["text"], "5+ years of Python")
         self.assertEqual(requirement["profile_match"], "strong")
-        self.assertEqual(requirement["category"], "Required qualifications")
+        # Categories now come from the fixed section enum, not free-form AI names.
+        self.assertEqual(requirement["category"], "Required Technical Skills")
 
 
 class GenerateTailoredResumeTests(TailoredResumeTestMixin, TestCase):

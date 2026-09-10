@@ -1,3 +1,114 @@
-from django.test import TestCase
+"""Smoke tests: every route renders under the new layout, in both languages."""
 
-# Create your tests here.
+from django.contrib.auth import get_user_model
+from django.test import TestCase
+from django.urls import reverse
+
+from jobs.models import JobPost
+from jobs.services.importer import apply_analysis
+
+User = get_user_model()
+
+
+class PublicPagesTests(TestCase):
+    def test_marketing_and_legal_pages_render(self):
+        for name in [
+            "core:home",
+            "legal:privacy",
+            "legal:terms",
+            "legal:cookies",
+            "legal:notice",
+            "legal:contact",
+        ]:
+            with self.subTest(name=name):
+                response = self.client.get(reverse(name))
+                self.assertEqual(response.status_code, 200)
+
+    def test_pages_render_in_french(self):
+        self.client.cookies["django_language"] = "fr"
+        for name in ["core:home", "legal:privacy"]:
+            with self.subTest(name=name):
+                self.assertEqual(self.client.get(reverse(name)).status_code, 200)
+
+    def test_language_switcher_sets_the_cookie(self):
+        response = self.client.post(
+            reverse("set_language"), {"language": "fr", "next": reverse("core:home")}
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self.client.cookies["django_language"].value, "fr")
+
+
+class AuthenticatedPagesTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(email="s@example.com", password="pw12345678")
+        self.client.force_login(self.user)
+
+    def test_every_app_screen_renders(self):
+        for name in [
+            "core:dashboard",
+            "jobs:list",
+            "jobs:add",
+            "preferences:detail",
+            "experience:list",
+            "education:list",
+            "skills:list",
+            "languages:list",
+            "resume:upload",
+            "resume:tailored_list",
+            "accounts:profile",
+            "accounts:security",
+            "core:export_preview",
+        ]:
+            with self.subTest(name=name):
+                response = self.client.get(reverse(name))
+                self.assertEqual(response.status_code, 200, f"{name} did not render")
+
+    def test_dashboard_renders_in_french(self):
+        self.client.cookies["django_language"] = "fr"
+        self.assertEqual(self.client.get(reverse("core:dashboard")).status_code, 200)
+
+    def test_job_detail_renders_all_thirteen_sections(self):
+        job = JobPost.objects.create(user=self.user, source_url="https://x.test/j")
+        apply_analysis(
+            job,
+            {
+                "title": "Engineer",
+                "summary": "Build things.",
+                "sections": [
+                    {"key": "overview", "body": "Build things.", "elements": []},
+                    {"key": "required_technical_skills", "body": "", "elements": ["Python"]},
+                ],
+            },
+            "raw",
+        )
+        response = self.client.get(job.get_absolute_url())
+        self.assertEqual(response.status_code, 200)
+        # The rail always shows the full canonical list, even for absent sections.
+        content = response.content.decode()
+        for label in ["Overview", "Possible red flags", "Worth noting", "How to Apply"]:
+            self.assertIn(label, content, f"rail is missing {label}")
+
+    def test_preferences_seeds_a_starter_benefit_list(self):
+        self.client.get(reverse("preferences:detail"))
+        self.assertTrue(self.user.job_preference.benefits.exists())
+
+
+class DashboardChartTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(email="t@example.com", password="pw12345678")
+        self.client.force_login(self.user)
+
+    def test_chart_handles_an_empty_month(self):
+        response = self.client.get(reverse("core:dashboard"))
+        chart = response.context["chart"]
+        self.assertFalse(chart["has_data"])
+        self.assertEqual(chart["total"], 0)
+        self.assertTrue(all(bar["percent"] == 0 for bar in chart["bars"]))
+
+    def test_chart_counts_jobs_for_the_current_month(self):
+        JobPost.objects.create(user=self.user, source_url="https://x.test/a")
+        JobPost.objects.create(user=self.user, source_url="https://x.test/b")
+        chart = self.client.get(reverse("core:dashboard")).context["chart"]
+        self.assertTrue(chart["has_data"])
+        self.assertEqual(chart["total"], 2)
+        self.assertEqual(chart["peak"], 2)

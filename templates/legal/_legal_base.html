@@ -1,0 +1,15 @@
+{% extends "base_public.html" %}
+{% load i18n %}
+{% block content %}
+<article class="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
+  <h1 class="page-title">{% block legal_title %}{% endblock %}</h1>
+  <p class="mt-3 text-sm text-slate-500 dark:text-slate-400">
+    {% blocktrans with updated="2026-09-10" %}Last updated: {{ updated }}{% endblocktrans %}
+  </p>
+  <div class="legal-prose mt-10">{% block legal_body %}{% endblock %}</div>
+
+  <div class="mt-16 border-t border-slate-200 pt-8 dark:border-slate-800">
+    <div class="flex flex-wrap gap-x-4 gap-y-2 text-sm">{% include "partials/_legal_links.html" %}</div>
+  </div>
+</article>
+{% endblock %}

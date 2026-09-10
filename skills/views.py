@@ -29,6 +29,7 @@ class SkillListView(LoginRequiredMixin, TemplateView):
             base_qs.filter(category__kind=SkillCategory.TECHNICAL)
         )
         ctx["active_tab"] = self.request.GET.get("tab", "soft")
+        ctx["rail_tab"] = ctx["active_tab"]
         return ctx
 
 

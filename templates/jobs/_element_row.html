@@ -1,0 +1,35 @@
+{% load i18n %}
+<tr id="element-{{ element.pk }}" class="group">
+  <td class="pr-4">
+    <p class="font-medium text-slate-900 dark:text-white">{{ element.text }}</p>
+    {% if element.was_added_to_profile %}
+      <p class="mt-1 inline-flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+        <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+        {% trans "Added to your profile" %}
+      </p>
+    {% endif %}
+  </td>
+  <td class="w-36 pr-4">{% include "jobs/_match_badge.html" with element=element %}</td>
+  <td class="pr-4 text-slate-600 dark:text-slate-400">
+    {{ element.match_evidence|default:"—" }}
+  </td>
+  <td class="w-44 text-right">
+    <div class="flex justify-end gap-1">
+      {% if can_add and not element.was_added_to_profile %}
+        <button type="button"
+          @click="openAdd({{ element.pk }})"
+          class="btn-secondary !px-2.5 !py-1.5 !text-xs"
+          :disabled="pendingElements.includes({{ element.pk }})">
+          {% trans "Add to my profile" %}
+        </button>
+      {% endif %}
+      <button type="button"
+        @click="rematchElement({{ element.pk }})"
+        class="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+        title="{% trans 'Re-evaluate this item' %}"
+        :disabled="pendingElements.includes({{ element.pk }})">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+      </button>
+    </div>
+  </td>
+</tr>

@@ -1,0 +1,104 @@
+{% extends "partials/profile_base.html" %}
+{% load i18n widget_tweaks %}
+{% block title %}{% trans "Job preferences" %} · {{ SITE_NAME }}{% endblock %}
+{% block profile_title %}{% trans "Job preferences" %}{% endblock %}
+{% block profile_intro %}
+  <p class="mt-2 max-w-3xl text-slate-500 dark:text-slate-400">
+    {% trans "These are compared against every job post's Location & work arrangement and Compensation & benefits sections." %}
+  </p>
+{% endblock %}
+
+{% block profile_content %}
+  <form method="post" class="card p-5 sm:p-6">
+    {% csrf_token %}
+    <h2 class="section-title">{% trans "Compensation" %}</h2>
+    <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {% include "partials/field.html" with field=form.desired_salary_min %}
+      {% include "partials/field.html" with field=form.desired_salary_max %}
+      {% include "partials/field.html" with field=form.salary_currency %}
+      {% include "partials/field.html" with field=form.salary_period %}
+    </div>
+
+    <h2 class="section-title mt-8">{% trans "Location & work arrangement" %}</h2>
+    <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+      {% include "partials/field.html" with field=form.preferred_locations %}
+      <div>
+        <p class="field-label">{% trans "Acceptable arrangements" %}</p>
+        <div class="space-y-2">
+          <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">{{ form.remote_ok }} {{ form.remote_ok.label }}</label>
+          <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">{{ form.hybrid_ok }} {{ form.hybrid_ok.label }}</label>
+          <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">{{ form.onsite_ok }} {{ form.onsite_ok.label }}</label>
+          <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">{{ form.willing_to_relocate }} {{ form.willing_to_relocate.label }}</label>
+        </div>
+      </div>
+    </div>
+    <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {% include "partials/field.html" with field=form.max_onsite_days_per_week %}
+      {% include "partials/field.html" with field=form.max_travel_percentage %}
+      {% include "partials/field.html" with field=form.timezone_preference %}
+      {% include "partials/field.html" with field=form.employment_types %}
+    </div>
+    <div class="mt-4">{% include "partials/field.html" with field=form.availability_notes %}</div>
+
+    <div class="mt-6 flex justify-end">
+      <button type="submit" class="btn-primary">{% trans "Save preferences" %}</button>
+    </div>
+  </form>
+
+  <div class="card p-5 sm:p-6" id="benefits">
+    <h2 class="section-title">{% trans "Benefits that matter to you" %}</h2>
+    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+      {% trans "A job's benefits are matched against this list." %}
+    </p>
+
+    <div class="mt-5 overflow-x-auto">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th scope="col" class="pr-4">{% trans "Benefit" %}</th>
+            <th scope="col" class="w-56 pr-4">{% trans "Importance" %}</th>
+            <th scope="col" class="pr-4">{% trans "Notes" %}</th>
+            <th scope="col" class="w-24 text-right">{% trans "Remove" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for benefit in benefits %}
+            <tr>
+              <td class="pr-4 font-medium text-slate-900 dark:text-white">{{ benefit.name }}</td>
+              <td class="pr-4">
+                <form method="post" action="{% url 'preferences:benefit_update' benefit.pk %}">
+                  {% csrf_token %}
+                  <select name="importance" onchange="this.form.submit()"
+                    class="w-full rounded-lg border-slate-300 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+                    {% for value, label in benefit.IMPORTANCE_CHOICES %}
+                      <option value="{{ value }}" {% if benefit.importance == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                  </select>
+                </form>
+              </td>
+              <td class="pr-4 text-slate-600 dark:text-slate-400">{{ benefit.notes|default:"—" }}</td>
+              <td class="text-right">
+                <form method="post" action="{% url 'preferences:benefit_delete' benefit.pk %}">
+                  {% csrf_token %}
+                  <button type="submit" class="rounded-lg p-1.5 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40" aria-label="{% trans 'Remove' %}">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                  </button>
+                </form>
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="4" class="py-6 text-center text-sm text-slate-500 dark:text-slate-400">{% trans "No benefits recorded yet." %}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <form method="post" action="{% url 'preferences:benefit_add' %}" class="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_12rem_minmax(0,1fr)_auto]">
+      {% csrf_token %}
+      {% render_field benefit_form.name placeholder=benefit_form.name.label class="rounded-lg border-slate-300 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white" %}
+      {% render_field benefit_form.importance class="rounded-lg border-slate-300 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white" %}
+      {% render_field benefit_form.notes placeholder=benefit_form.notes.label class="rounded-lg border-slate-300 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white" %}
+      <button type="submit" class="btn-secondary">{% trans "Add benefit" %}</button>
+    </form>
+  </div>
+{% endblock %}

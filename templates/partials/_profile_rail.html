@@ -1,0 +1,17 @@
+{% load i18n %}
+{% comment %}Shared left tab rail for every profile screen. Expects `active_tab`.{% endcomment %}
+<nav class="card h-fit p-3 lg:sticky lg:top-24" aria-label="{% trans 'Profile sections' %}">
+  <ul class="space-y-0.5">
+    <li><a href="{% url 'preferences:detail' %}" class="tab-rail-item {% if active_tab == 'preferences' %}tab-rail-item-active{% endif %}">{% trans "Job preferences" %}</a></li>
+    <li><a href="{% url 'experience:list' %}" class="tab-rail-item {% if active_tab == 'experience' %}tab-rail-item-active{% endif %}">{% trans "Experience" %}</a></li>
+    <li><a href="{% url 'education:list' %}" class="tab-rail-item {% if active_tab == 'education' %}tab-rail-item-active{% endif %}">{% trans "Education & Certifications" %}</a></li>
+    <li><a href="{% url 'skills:list' %}?tab=technical" class="tab-rail-item {% if active_tab == 'technical' %}tab-rail-item-active{% endif %}">{% trans "Technical Skills" %}</a></li>
+    <li><a href="{% url 'skills:list' %}?tab=soft" class="tab-rail-item {% if active_tab == 'soft' %}tab-rail-item-active{% endif %}">{% trans "Soft Skills" %}</a></li>
+    <li><a href="{% url 'languages:list' %}" class="tab-rail-item {% if active_tab == 'languages' %}tab-rail-item-active{% endif %}">{% trans "Languages" %}</a></li>
+  </ul>
+  <div class="my-2 border-t border-slate-200 dark:border-slate-800"></div>
+  <ul class="space-y-0.5">
+    <li><a href="{% url 'accounts:profile' %}" class="tab-rail-item {% if active_tab == 'personal' %}tab-rail-item-active{% endif %}">{% trans "Personal info" %}</a></li>
+    <li><a href="{% url 'accounts:security' %}" class="tab-rail-item {% if active_tab == 'security' %}tab-rail-item-active{% endif %}">{% trans "Security" %}</a></li>
+  </ul>
+</nav>

@@ -1,0 +1,78 @@
+{% load i18n %}
+{% comment %}
+Shared progress widget for every AI path (spec §7.6).
+Expects `ai_task` (an AITask) and optionally `retry_url` / `retry_label`.
+Polls /tasks/<id>/status/ every 2s, backing off to 5s after 30s, stops on
+is_terminal, and pauses while the tab is hidden.
+{% endcomment %}
+{% if ai_task %}
+<div
+  x-data="aiProgress({{ ai_task.pk }}, {{ ai_task.is_terminal|yesno:'true,false' }}, {
+    state: '{{ ai_task.state }}',
+    percent: {{ ai_task.percent }},
+    indeterminate: {{ ai_task.is_indeterminate|yesno:'true,false' }},
+    current_step: '{{ ai_task.current_step|escapejs }}',
+    steps_done: {{ ai_task.steps_done }},
+    steps_total: {{ ai_task.steps_total }},
+    error_message: '{{ ai_task.error_message|escapejs }}'
+  })"
+  x-init="start()"
+  class="card p-4 sm:p-5"
+  x-show="visible"
+  x-cloak
+>
+  <div class="flex items-start justify-between gap-3">
+    <div class="min-w-0">
+      <p class="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
+        <template x-if="data.state === 'running' || data.state === 'queued'">
+          <svg class="h-4 w-4 animate-spin text-brand-600" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+        </template>
+        <template x-if="data.state === 'done'">
+          <svg class="h-4 w-4 text-emerald-600" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+        </template>
+        <template x-if="data.state === 'failed'">
+          <svg class="h-4 w-4 text-rose-600" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10A8 8 0 112 10a8 8 0 0116 0zm-9 3a1 1 0 112 0 1 1 0 01-2 0zm.25-7.25a.75.75 0 011.5 0v4.5a.75.75 0 01-1.5 0v-4.5z" clip-rule="evenodd"/></svg>
+        </template>
+        <span x-text="label()"></span>
+      </p>
+      <p class="mt-0.5 truncate text-sm text-slate-500 dark:text-slate-400" x-text="data.current_step"></p>
+    </div>
+    <p class="shrink-0 text-sm font-semibold tabular-nums text-slate-500 dark:text-slate-400"
+       x-show="!data.indeterminate && data.state !== 'failed'"
+       x-text="data.percent + '%'"></p>
+  </div>
+
+  <div class="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800"
+       role="progressbar" aria-live="polite"
+       :aria-valuenow="data.indeterminate ? null : data.percent"
+       aria-valuemin="0" aria-valuemax="100"
+       :aria-label="label()">
+    <div class="h-full rounded-full transition-all duration-500"
+         :class="{
+           'bg-rose-500': data.state === 'failed',
+           'bg-emerald-500': data.state === 'done',
+           'bg-brand-600': data.state !== 'failed' && data.state !== 'done',
+           'w-1/3 animate-pulse': data.indeterminate && !isTerminal
+         }"
+         :style="(data.indeterminate && !isTerminal) ? '' : ('width: ' + data.percent + '%')"></div>
+  </div>
+
+  <div class="mt-2 flex items-center justify-between gap-3" x-show="!data.indeterminate">
+    <p class="text-xs text-slate-500 dark:text-slate-400">
+      <span x-text="data.steps_done"></span> / <span x-text="data.steps_total"></span>
+    </p>
+  </div>
+
+  <template x-if="data.state === 'failed'">
+    <div class="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 dark:border-rose-900/60 dark:bg-rose-950/40">
+      <p class="text-sm text-rose-800 dark:text-rose-300" x-text="data.error_message"></p>
+      {% if retry_url %}
+        <form method="post" action="{{ retry_url }}" class="mt-2">
+          {% csrf_token %}
+          <button type="submit" class="btn-secondary !py-1.5 !text-xs">{{ retry_label|default:_("Try again") }}</button>
+        </form>
+      {% endif %}
+    </div>
+  </template>
+</div>
+{% endif %}

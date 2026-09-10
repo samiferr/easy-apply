@@ -1,53 +1,140 @@
-{% extends "base.html" %}
-{% block title %}Job posts · {{ SITE_NAME }}{% endblock %}
+{% extends "base_app.html" %}
+{% load i18n %}
+{% block title %}{% trans "Job posts" %} · {{ SITE_NAME }}{% endblock %}
+
 {% block content %}
-<div class="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
-  <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+<div class="mx-auto w-full max-w-7xl px-4 pb-12 sm:px-6 lg:px-8">
+  <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
     <div>
-      <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Job posts</h1>
-      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-        Paste a job posting URL and let AI break it down into responsibilities, must-haves and nice-to-haves.
+      <h1 class="page-title">{% trans "Job posts" %}</h1>
+      <p class="mt-2 text-slate-500 dark:text-slate-400">
+        {% blocktrans count counter=total_count %}{{ counter }} job analyzed{% plural %}{{ counter }} jobs analyzed{% endblocktrans %}
       </p>
     </div>
-    <a href="{% url 'jobs:add' %}" class="btn-primary">+ Analyze a job post</a>
+    <a href="{% url 'jobs:add' %}" class="btn-primary shrink-0">{% trans "Analyze a job post" %}</a>
   </div>
 
+  <!-- Search + filter -->
+  <form method="get" class="mt-6 flex flex-col gap-3 sm:flex-row">
+    <div class="relative flex-1">
+      <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      </span>
+      <input type="search" name="q" value="{{ q }}" placeholder="{% trans 'Search by title, company or location' %}"
+        class="w-full rounded-lg border-slate-300 pl-10 text-sm shadow-sm focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+    </div>
+    <select name="status" class="rounded-lg border-slate-300 text-sm shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:w-52 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+      <option value="">{% trans "Any status" %}</option>
+      {% for value, label in status_choices %}
+        <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn-secondary">{% trans "Filter" %}</button>
+    {% if q or status %}<a href="{% url 'jobs:list' %}" class="btn-ghost">{% trans "Clear" %}</a>{% endif %}
+  </form>
+
+  <!-- Card list -->
   {% if job_posts %}
-    <div class="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <div class="mt-6 space-y-4">
       {% for job in job_posts %}
-        <a href="{{ job.get_absolute_url }}" class="card flex flex-col gap-3 p-5 transition hover:border-brand-300 hover:shadow-md dark:hover:border-brand-700">
-          <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0">
-              <p class="truncate font-semibold text-slate-900 dark:text-white">{{ job.title|default:"Untitled role" }}</p>
-              <p class="truncate text-sm text-slate-500 dark:text-slate-400">{{ job.company_name|default:job.source_url }}</p>
+        {% with summary=job.element_match_summary %}
+        <article class="card p-5 transition hover:border-brand-300 hover:shadow-md sm:p-6 dark:hover:border-brand-700">
+          <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div class="min-w-0 flex-1">
+              <div class="flex flex-wrap items-center gap-2">
+                <h2 class="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl dark:text-white">
+                  <a href="{{ job.get_absolute_url }}" class="transition hover:text-brand-600 dark:hover:text-brand-400">
+                    {{ job.title|default:_("Untitled role") }}
+                  </a>
+                </h2>
+                {% include "jobs/_status_badge.html" with status=job.status %}
+              </div>
+
+              <p class="mt-1.5 text-slate-500 dark:text-slate-400">
+                {{ job.company_name|default:"—" }}{% if job.seniority_level %} · {{ job.seniority_level }}{% endif %}
+              </p>
+
+              <div class="mt-3 flex flex-wrap items-center gap-2 text-sm">
+                {% if job.work_arrangement %}{% include "jobs/_arrangement_badge.html" with arrangement=job.work_arrangement %}{% endif %}
+                {% if job.location %}
+                  <span class="badge bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ job.location }}</span>
+                {% endif %}
+                {% if job.salary_range_display %}
+                  <span class="badge bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ job.salary_range_display }}</span>
+                {% endif %}
+              </div>
+
+              {% if summary.total %}
+                <div class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+                  <div class="flex items-center gap-2">
+                    <div class="h-2 w-32 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                      <div class="h-full rounded-full bg-brand-600" style="width: {{ summary.score_percent }}%"></div>
+                    </div>
+                    <span class="text-sm font-bold text-brand-600 dark:text-brand-400">{{ summary.score_percent }}%</span>
+                  </div>
+                  <div class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+                    <span class="flex items-center gap-1.5"><span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>{{ summary.strong }} {% trans "strong" %}</span>
+                    <span class="flex items-center gap-1.5"><span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>{{ summary.partial }} {% trans "partial" %}</span>
+                    <span class="flex items-center gap-1.5"><span class="h-1.5 w-1.5 rounded-full bg-slate-300 dark:bg-slate-600"></span>{{ summary.none }} {% trans "not covered" %}</span>
+                  </div>
+                </div>
+              {% endif %}
+
+              <p class="mt-3 text-xs text-slate-400 dark:text-slate-500">
+                {% if job.analyzed_at %}
+                  {% blocktrans with when=job.analyzed_at|timesince %}Analyzed {{ when }} ago{% endblocktrans %}
+                {% else %}
+                  {% blocktrans with when=job.created_at|timesince %}Added {{ when }} ago{% endblocktrans %}
+                {% endif %}
+              </p>
             </div>
-            {% include "jobs/_status_badge.html" with status=job.status %}
+
+            <div class="flex shrink-0 flex-wrap gap-2">
+              <a href="{{ job.get_absolute_url }}" class="btn-primary !px-3 !py-1.5 !text-xs">{% trans "Open" %}</a>
+              {% if job.tailored_resume %}
+                <a href="{% url 'resume:tailored' job.pk %}" class="btn-secondary !px-3 !py-1.5 !text-xs">{% trans "Resume" %}</a>
+              {% endif %}
+              <form method="post" action="{% url 'jobs:reanalyze' job.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn-secondary !px-3 !py-1.5 !text-xs">{% trans "Re-analyze" %}</button>
+              </form>
+              <form method="post" action="{% url 'jobs:delete' job.pk %}" onsubmit="return confirm('{% trans "Delete this job post analysis?" %}');">
+                {% csrf_token %}
+                <button type="submit" class="btn-danger !px-3 !py-1.5 !text-xs">{% trans "Delete" %}</button>
+              </form>
+            </div>
           </div>
-          <div class="flex flex-wrap gap-2">
-            {% if job.work_arrangement %}
-              {% include "jobs/_arrangement_badge.html" with arrangement=job.work_arrangement %}
-            {% endif %}
-            {% if job.location %}
-              <span class="badge bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ job.location }}</span>
-            {% endif %}
-            {% if job.salary_range_display %}
-              <span class="badge bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ job.salary_range_display }}</span>
-            {% endif %}
-          </div>
-          <p class="mt-auto text-xs text-slate-400">Analyzed {{ job.created_at|date:"M j, Y" }}</p>
-        </a>
+        </article>
+        {% endwith %}
       {% endfor %}
     </div>
+
+    {% if is_paginated %}
+      <nav class="mt-8 flex items-center justify-center gap-2" aria-label="{% trans 'Pagination' %}">
+        {% if page_obj.has_previous %}
+          <a href="?{% if q %}q={{ q }}&{% endif %}{% if status %}status={{ status }}&{% endif %}page={{ page_obj.previous_page_number }}" class="btn-secondary !px-3 !py-1.5 !text-xs">{% trans "Previous" %}</a>
+        {% endif %}
+        <span class="text-sm text-slate-500 dark:text-slate-400">
+          {% blocktrans with current=page_obj.number total=page_obj.paginator.num_pages %}Page {{ current }} of {{ total }}{% endblocktrans %}
+        </span>
+        {% if page_obj.has_next %}
+          <a href="?{% if q %}q={{ q }}&{% endif %}{% if status %}status={{ status }}&{% endif %}page={{ page_obj.next_page_number }}" class="btn-secondary !px-3 !py-1.5 !text-xs">{% trans "Next" %}</a>
+        {% endif %}
+      </nav>
+    {% endif %}
+
   {% else %}
-    <div class="card mt-8 flex flex-col items-center gap-3 p-12 text-center">
-      <div class="flex h-12 w-12 items-center justify-center rounded-full bg-brand-100 text-brand-700 dark:bg-brand-900 dark:text-brand-300">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h11l5 5v11a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z" /><path d="M14 4v5h5M9 13h6M9 17h6" /></svg>
-      </div>
-      <p class="font-medium text-slate-700 dark:text-slate-200">No job posts analyzed yet</p>
-      <p class="max-w-sm text-sm text-slate-500 dark:text-slate-400">
-        Paste a link to a job posting and we'll extract the responsibilities, requirements and everything else worth knowing before you apply.
-      </p>
-      <a href="{% url 'jobs:add' %}" class="btn-primary mt-2">Analyze your first job post</a>
+    <div class="card mt-6 border-dashed py-16 text-center">
+      {% if q or status %}
+        <p class="text-slate-500 dark:text-slate-400">{% trans "No job posts match that search." %}</p>
+        <a href="{% url 'jobs:list' %}" class="btn-secondary mt-4">{% trans "Clear filters" %}</a>
+      {% else %}
+        <h2 class="section-title">{% trans "No job posts yet" %}</h2>
+        <p class="mx-auto mt-2 max-w-md text-slate-500 dark:text-slate-400">
+          {% trans "Paste a job posting URL and we'll break it into sections and check each requirement against your profile." %}
+        </p>
+        <a href="{% url 'jobs:add' %}" class="btn-primary mt-6">{% trans "Analyze your first job post" %}</a>
+      {% endif %}
     </div>
   {% endif %}
 </div>

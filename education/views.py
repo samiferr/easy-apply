@@ -8,6 +8,8 @@ from .models import Certificate, Degree
 
 
 class EducationListView(LoginRequiredMixin, TemplateView):
+    # Tells the shared profile rail which tab is active.
+    extra_context = {"active_tab": "education"}
     template_name = "education/education_list.html"
 
     def get_context_data(self, **kwargs):

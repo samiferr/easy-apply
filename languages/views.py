@@ -8,6 +8,7 @@ from .models import UserLanguage
 
 
 class LanguageListView(LoginRequiredMixin, ListView):
+    extra_context = {"active_tab": "languages"}
     model = UserLanguage
     template_name = "languages/language_list.html"
     context_object_name = "user_languages"

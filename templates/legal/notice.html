@@ -1,0 +1,30 @@
+{% extends "legal/_legal_base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Legal notice" %} · {{ SITE_NAME }}{% endblock %}
+{% block legal_title %}{% trans "Legal notice" %}{% endblock %}
+{% block legal_body %}
+<h2>{% trans "Publisher" %}</h2>
+<table>
+  <tbody>
+    <tr><th>{% trans "Legal name" %}</th><td>{{ LEGAL_ENTITY.name }}</td></tr>
+    <tr><th>{% trans "Registered address" %}</th><td>{{ LEGAL_ENTITY.address }}</td></tr>
+    <tr><th>{% trans "Registration number" %}</th><td>{{ LEGAL_ENTITY.registration }}</td></tr>
+    <tr><th>{% trans "Publication director" %}</th><td>{{ LEGAL_ENTITY.director }}</td></tr>
+    <tr><th>{% trans "Contact" %}</th><td>{{ LEGAL_ENTITY.email }}</td></tr>
+  </tbody>
+</table>
+
+<h2>{% trans "Hosting provider" %}</h2>
+<table>
+  <tbody>
+    <tr><th>{% trans "Name" %}</th><td>{{ LEGAL_ENTITY.host_name }}</td></tr>
+    <tr><th>{% trans "Address" %}</th><td>{{ LEGAL_ENTITY.host_address }}</td></tr>
+  </tbody>
+</table>
+
+<h2>{% trans "AI sub-processor" %}</h2>
+<p>{% trans "Job and resume analysis is performed by DeepSeek. See the Privacy Policy for what is sent and where it is processed." %}</p>
+
+<h2>{% trans "Intellectual property" %}</h2>
+<p>{% blocktrans with name=LEGAL_ENTITY.name %}The site's design, code and branding belong to {{ name }}. Content you record remains yours.{% endblocktrans %}</p>
+{% endblock %}
