@@ -267,3 +267,183 @@ def _date_range(start, end, is_current=False) -> str:
     if start_label and end_label:
         return f"{start_label} – {end_label}"
     return start_label or end_label
+
+
+# ---------------------------------------------------------------------------
+# Scoped profile slices
+#
+# The AI optimization in the refactor spec §6.1: a section's match call is sent
+# ONLY the part of the profile it maps to. `build_profile_snapshot` above stays
+# for the tailored-resume path, which legitimately needs everything.
+# ---------------------------------------------------------------------------
+
+def _preferences_for(user):
+    from preferences.models import JobPreference
+
+    return JobPreference.objects.filter(user=user).prefetch_related("benefits").first()
+
+
+def _slice_preferences_location(user) -> dict:
+    preference = _preferences_for(user)
+    if preference is None:
+        return {}
+    return {
+        "preferred_locations": preference.preferred_locations_list,
+        "acceptable_work_arrangements": preference.arrangements_list,
+        "max_onsite_days_per_week": preference.max_onsite_days_per_week,
+        "willing_to_relocate": preference.willing_to_relocate,
+        "max_travel_percentage": preference.max_travel_percentage,
+        "timezone_preference": preference.timezone_preference,
+        "employment_types": preference.employment_types,
+        "availability_notes": preference.availability_notes,
+    }
+
+
+def _slice_preferences_compensation(user) -> dict:
+    preference = _preferences_for(user)
+    if preference is None:
+        return {}
+    from preferences.models import BenefitPreference
+
+    return {
+        "desired_salary_min": preference.desired_salary_min,
+        "desired_salary_max": preference.desired_salary_max,
+        "salary_currency": preference.salary_currency,
+        "salary_period": preference.salary_period,
+        "benefits_wanted": [
+            {"name": b.name, "importance": b.get_importance_display(), "notes": b.notes}
+            for b in preference.benefits.all()
+            if b.importance != BenefitPreference.NOT_IMPORTANT
+        ],
+    }
+
+
+def _slice_experience(user) -> dict:
+    return {
+        "experience": [
+            {
+                "job_title": exp.job_title,
+                "company": exp.company,
+                "duration": exp.duration_label,
+                "employment_type": exp.get_employment_type_display() if exp.employment_type else "",
+                "highlights": [h.text for h in exp.highlights.all()],
+            }
+            for exp in user.experiences.prefetch_related("highlights")
+        ]
+    }
+
+
+def _slice_technical_skills(user) -> dict:
+    return {
+        "technical_skills": [
+            {"name": s.name, "category": s.category.name, "level": s.get_level_display()}
+            for s in user.skills.filter(category__kind="technical").select_related("category")
+        ]
+    }
+
+
+def _slice_soft_skills(user) -> dict:
+    return {
+        "soft_skills": [
+            {"name": s.name, "category": s.category.name, "level": s.get_level_display()}
+            for s in user.skills.filter(category__kind="soft").select_related("category")
+        ]
+    }
+
+
+def _slice_languages(user) -> dict:
+    return {
+        "languages": [
+            {"name": ul.language.name, "proficiency": ul.get_proficiency_display()}
+            for ul in user.languages.select_related("language")
+        ]
+    }
+
+
+def _slice_education(user) -> dict:
+    return {
+        "degrees": [
+            {
+                "degree": d.degree,
+                "school": d.school,
+                "field_of_study": d.field_of_study,
+                "dates": _date_range(d.start_date, d.end_date, d.is_current),
+            }
+            for d in user.degrees.all()
+        ],
+        "certificates": [
+            {
+                "name": c.name,
+                "issuing_organization": c.issuing_organization,
+                "issue_date": _format_date(c.issue_date),
+            }
+            for c in user.certificates.all()
+        ],
+    }
+
+
+#: slice key -> builder. Keys come from jobs/sections.py.
+SLICE_BUILDERS = {
+    "preferences_location": _slice_preferences_location,
+    "preferences_compensation": _slice_preferences_compensation,
+    "experience": _slice_experience,
+    "technical_skills": _slice_technical_skills,
+    "soft_skills": _slice_soft_skills,
+    "languages": _slice_languages,
+    "education": _slice_education,
+}
+
+
+def build_profile_slice(user, section_key: str) -> dict:
+    """Return ONLY the part of `user`'s profile that `section_key` maps to.
+
+    Returns {} for a section that is never matched, and for a matched section
+    whose slice is empty — callers use `profile_slice_is_empty` to skip the AI
+    call entirely in that case (spec §6.2).
+    """
+    from jobs.sections import get_section
+
+    section = get_section(section_key)
+    if section is None or not section.profile_slices:
+        return {}
+
+    slice_data: dict = {}
+    for slice_key in section.profile_slices:
+        builder = SLICE_BUILDERS.get(slice_key)
+        if builder:
+            slice_data.update(builder(user))
+    return slice_data
+
+
+def profile_slice_is_empty(slice_data: dict) -> bool:
+    """True when there is nothing in the slice worth asking the AI about."""
+    if not slice_data:
+        return True
+    for value in slice_data.values():
+        if isinstance(value, (list, tuple, dict)):
+            if value:
+                return False
+        elif isinstance(value, str):
+            if value.strip():
+                return False
+        elif value not in (None, False):
+            return False
+    return True
+
+
+def empty_slice_hint(section_key: str) -> str:
+    """The evidence line written onto every element of a section whose profile
+    slice is empty, instead of calling the AI."""
+    from django.utils.translation import gettext as _
+
+    hints = {
+        "location_arrangement": _("No location or work-arrangement preferences recorded yet."),
+        "compensation_benefits": _("No salary or benefit preferences recorded yet."),
+        "responsibilities": _("No work experience or technical skills recorded yet."),
+        "required_technical_skills": _("No technical skills recorded in your profile yet."),
+        "desirable_technical_skills": _("No technical skills recorded in your profile yet."),
+        "desirable_soft_skills": _("No soft skills recorded in your profile yet."),
+        "languages": _("No languages recorded in your profile yet."),
+        "education_certifications": _("No degrees or certificates recorded in your profile yet."),
+    }
+    return hints.get(section_key, _("Nothing in your profile covers this yet."))

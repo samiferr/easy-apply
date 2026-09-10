@@ -164,12 +164,15 @@ def build_job_payload(job) -> dict:
     matched it (when "Match to my profile" has already been run)."""
 
     requirements = []
-    for category in job.categories.all():
-        for requirement in category.requirements.all():
-            entry = {"category": category.name, "text": requirement.text}
-            if requirement.match_status:
-                entry["profile_match"] = requirement.match_status
-                entry["match_evidence"] = requirement.match_evidence
+    for section in job.sections.prefetch_related("elements"):
+        if not section.is_matched_section:
+            continue
+        label = str(section.label)
+        for element in section.elements.all():
+            entry = {"category": label, "text": element.text}
+            if element.match_status:
+                entry["profile_match"] = element.match_status
+                entry["match_evidence"] = element.match_evidence
             requirements.append(entry)
 
     return {
@@ -320,6 +323,10 @@ def generate_tailored_resume(job, user) -> dict:
 
     profile_snapshot = build_resume_snapshot(user)
     if profile_snapshot_is_empty(profile_snapshot):
+        TailoredResume.objects.filter(job=job).update(
+            state=TailoredResume.STATE_FAILED,
+            error_message="Add some experience or skills to your profile first.",
+        )
         return {"skipped": "empty_profile"}
 
     user_content = json.dumps(
@@ -342,6 +349,8 @@ def generate_tailored_resume(job, user) -> dict:
             "markdown": markdown,
             "ai_model": _clean_str(data.get("_model"), 100),
             "edited_by_user": False,
+            "state": TailoredResume.STATE_COMPLETED,
+            "error_message": "",
             "generated_at": timezone.now(),
         },
     )

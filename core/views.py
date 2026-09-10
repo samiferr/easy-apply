@@ -1,8 +1,11 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import HttpResponse
+from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import redirect
+from django.urls import reverse
+from django.views import View
 from django.views.generic import TemplateView
 
+from .models import AITask
 from .utils import generate_markdown_recap, recap_filename
 
 
@@ -70,3 +73,44 @@ class ExportPreviewView(LoginRequiredMixin, TemplateView):
         ctx = super().get_context_data(**kwargs)
         ctx["markdown_content"] = generate_markdown_recap(self.request.user)
         return ctx
+
+
+class AITaskStatusView(LoginRequiredMixin, View):
+    """The polling contract from spec §7.5 — owner-scoped, 404 for anyone else.
+
+    Alpine polls this every 2s (backing off to 5s) and stops on `is_terminal`.
+    """
+
+    def get(self, request, pk):
+        task = AITask.objects.filter(pk=pk, user=request.user).first()
+        if task is None:
+            raise Http404
+
+        return JsonResponse(
+            {
+                "id": task.pk,
+                "kind": task.kind,
+                "state": task.state,
+                "percent": task.percent,
+                "indeterminate": task.is_indeterminate,
+                "current_step": task.current_step,
+                "steps_done": task.steps_done,
+                "steps_total": task.steps_total,
+                "error_message": task.error_message,
+                "is_terminal": task.is_terminal,
+                "redirect_url": self._redirect_url(task),
+            }
+        )
+
+    def _redirect_url(self, task):
+        """Where the browser should go once a terminal task finishes."""
+        if task.state != AITask.DONE:
+            return None
+        target = task.target
+        if target is None:
+            return None
+        if task.kind == AITask.RESUME_IMPORT:
+            return reverse("resume:review", args=[target.pk])
+        if task.kind == AITask.TAILORED_RESUME:
+            return reverse("resume:tailored", args=[target.job_id])
+        return None

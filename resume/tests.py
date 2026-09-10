@@ -8,7 +8,7 @@ from django.urls import reverse
 
 from accounts.models import Profile
 from experience.models import ExperienceHighlight, WorkExperience
-from jobs.models import JobPost, Requirement, RequirementCategory
+from jobs.models import JobElement, JobPost, JobSection
 from skills.models import SkillCategory, UserSkill
 
 from .models import TailoredResume
@@ -79,13 +79,13 @@ class TailoredResumeTestMixin:
             title="Senior Backend Engineer",
             company_name="Globex",
         )
-        category = RequirementCategory.objects.create(
-            job=self.job, name="Required qualifications", category_type=RequirementCategory.REQUIRED
+        section = JobSection.objects.create(
+            job=self.job, key="required_technical_skills"
         )
-        Requirement.objects.create(
-            category=category,
+        JobElement.objects.create(
+            section=section,
             text="5+ years of Python",
-            match_status=Requirement.STRONG,
+            match_status=JobElement.STRONG,
             match_evidence="5 years as Backend Engineer at Acme Corp.",
         )
 

@@ -58,6 +58,21 @@ class TailoredResume(models.Model):
     job = models.OneToOneField(
         "jobs.JobPost", on_delete=models.CASCADE, related_name="tailored_resume"
     )
+    # TailoredResume was the only AI path with no status of its own — added so
+    # generation can be tracked like the other three (spec §7.2).
+    STATE_PENDING = "pending"
+    STATE_PROCESSING = "processing"
+    STATE_COMPLETED = "completed"
+    STATE_FAILED = "failed"
+    STATE_CHOICES = [
+        (STATE_PENDING, "Pending"),
+        (STATE_PROCESSING, "Generating"),
+        (STATE_COMPLETED, "Ready"),
+        (STATE_FAILED, "Failed"),
+    ]
+
+    state = models.CharField(max_length=20, choices=STATE_CHOICES, default=STATE_PENDING)
+    error_message = models.TextField(blank=True)
     markdown = models.TextField(blank=True)
     ai_model = models.CharField(max_length=100, blank=True)
     edited_by_user = models.BooleanField(
@@ -75,6 +90,10 @@ class TailoredResume(models.Model):
 
     def get_absolute_url(self):
         return reverse("resume:tailored", args=[self.job_id])
+
+    @property
+    def is_ready(self) -> bool:
+        return self.state == self.STATE_COMPLETED and bool(self.markdown)
 
     @property
     def pdf_filename(self) -> str:
