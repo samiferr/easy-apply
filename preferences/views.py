@@ -21,7 +21,6 @@ class JobPreferenceView(LoginRequiredMixin, View):
             "form": form or JobPreferenceForm(instance=preference),
             "benefit_form": benefit_form or BenefitPreferenceForm(preference=preference),
             "benefits": preference.benefits.all(),
-            "active_tab": "preferences",
         }
 
     def get(self, request):

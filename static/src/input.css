@@ -80,17 +80,6 @@
     @apply text-slate-500 transition hover:text-slate-900 dark:text-slate-400 dark:hover:text-white;
   }
 
-  /* --- Vertical tab rail (job analysis + profile) ----------------------- */
-  .tab-rail-item {
-    @apply flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm
-      font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900
-      dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white;
-  }
-  .tab-rail-item-active {
-    @apply bg-brand-50 text-brand-700 hover:bg-brand-50 hover:text-brand-700
-      dark:bg-brand-950/60 dark:text-brand-300 dark:hover:bg-brand-950/60 dark:hover:text-brand-300;
-  }
-
   /* --- Data tables ------------------------------------------------------ */
   .data-table {
     @apply w-full border-collapse text-left text-sm;
