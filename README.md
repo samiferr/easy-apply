@@ -74,6 +74,9 @@ call made inside it.
   with a custom email-based user model.
 - **Responsive, accessible UI** built with Tailwind CSS and Alpine.js
   (light/dark mode, mobile navigation, accessible forms, toast messages).
+  The shell is borderless — sidebar, top bar and content share one canvas —
+  capped at 96rem and centred, and every foreground/background pair in it is
+  measured against WCAG 2.2 rather than eyeballed. See **Design system** below.
 
 ## Tech stack
 
@@ -251,6 +254,62 @@ Because the source is the profile and not `get_language()`, re-running an
 analysis months later in a different browser language produces the same
 language it did the first time. Switching profiles also switches the interface
 language to match, so a French workspace is never read through an English UI.
+
+## Design system
+
+Tokens live in `static/src/input.css` as CSS variables and are exposed to
+Tailwind through `tailwind.config.js`, so a component is declared once and both
+themes follow it — no `bg-white dark:bg-slate-900` pair on every element.
+
+| Token | Light | Dark | Used for |
+| --- | --- | --- | --- |
+| `canvas` | slate-100 | slate-950 | the app background — sidebar, top bar and content all sit on it |
+| `surface` | white | slate-900 | cards, menus, inputs |
+| `surface-sunken` | slate-100 | slate-800 | wells, progress tracks, code |
+| `line` | slate-200 | slate-800 | decorative rules and dividers |
+| `line-strong` | `#7f8fa5` | `#59687c` | the boundary that *identifies* a form control |
+
+### The shell has no dividing rules
+
+The sidebar, the top bar and the content are one continuous surface. Structure
+comes from spacing, from the cards the content sits in, and from the active
+nav row's tinted pill. The one place a line would still be doing work — a
+sticky top bar with content sliding under it — gets a shadow instead, and only
+once something has actually scrolled (`scrolled` on the `appShell` component).
+
+Layout is a flex row inside a centred `max-w-shell` container, so the sidebar
+is `sticky` rather than `fixed` and the content column needs no matching
+padding. Under `md` the sidebar leaves the flow, becomes a `surface` drawer
+over a scrim, and rejoins the canvas at `md` and up.
+
+### Contrast is measured, not estimated
+
+Every pair the app actually renders was computed against WCAG 2.2: 4.5:1 for
+body text (1.4.3) and 3:1 for the boundaries that identify controls (1.4.11).
+That moved several defaults:
+
+- `text-slate-400`, the old muted colour, is **2.56:1 on white** — it was never
+  readable in light mode. Muted text is now slate-600 (7.58:1 on a card,
+  6.92:1 on the canvas), one value that is safe on every app surface.
+- Input borders were slate-300, **1.48:1**. `line-strong` is the lightest grey
+  that still clears 3:1 on both surfaces (3.30:1 on white, 3.14:1 on slate-900).
+- Body copy is slate-700 rather than slate-900: 10.4:1 is far past the floor
+  without the halation of maximum contrast.
+
+After a palette edit, re-check by rendering each screen and asserting that no
+sub-4.5:1 foreground is emitted — the values above are all reproducible from
+the sRGB relative-luminance formula in WCAG 2.2.
+
+### Other readability choices
+
+- Long-form copy (`.measure`, `.page-lead`, `.legal-prose`) is capped at 65
+  characters a line.
+- `text-wrap: balance` on headings, `text-wrap: pretty` on paragraphs.
+- Hover-only row controls stay reachable: they reveal on focus as well as
+  hover, and are always visible below `md`, where there is no hover.
+- Collapsing the sidebar keeps every link's accessible name — the labels become
+  `sr-only` rather than `display: none`, which would have left ten unnamed
+  icon links.
 
 ## AI job post analysis
 

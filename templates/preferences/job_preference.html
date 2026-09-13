@@ -3,7 +3,7 @@
 {% block title %}{% trans "Job preferences" %} · {{ SITE_NAME }}{% endblock %}
 {% block profile_title %}{% trans "Job preferences" %}{% endblock %}
 {% block profile_intro %}
-  <p class="mt-2 max-w-3xl text-slate-500 dark:text-slate-400">
+  <p class="page-lead">
     {% trans "These are compared against every job post's Location & work arrangement and Compensation & benefits sections." %}
   </p>
 {% endblock %}
@@ -47,7 +47,7 @@
 
   <div class="card p-5 sm:p-6" id="benefits">
     <h2 class="section-title">{% trans "Benefits that matter to you" %}</h2>
-    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+    <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
       {% trans "A job's benefits are matched against this list." %}
     </p>
 
@@ -80,14 +80,14 @@
               <td class="text-right">
                 <form method="post" action="{% url 'preferences:benefit_delete' benefit.pk %}">
                   {% csrf_token %}
-                  <button type="submit" class="rounded-lg p-1.5 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40" aria-label="{% trans 'Remove' %}">
+                  <button type="submit" class="rounded-lg p-1.5 text-slate-600 dark:text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40" aria-label="{% trans 'Remove' %}">
                     <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
                   </button>
                 </form>
               </td>
             </tr>
           {% empty %}
-            <tr><td colspan="4" class="py-6 text-center text-sm text-slate-500 dark:text-slate-400">{% trans "No benefits recorded yet." %}</td></tr>
+            <tr><td colspan="4" class="py-6 text-center text-sm text-slate-600 dark:text-slate-400">{% trans "No benefits recorded yet." %}</td></tr>
           {% endfor %}
         </tbody>
       </table>

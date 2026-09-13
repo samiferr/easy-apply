@@ -19,6 +19,8 @@ from django.utils.translation import gettext as _
 from django.views import View
 from django.views.generic import CreateView, ListView, TemplateView, UpdateView
 
+from core.forms import TEXT_INPUT_CLASSES
+
 from .forms import (
     AccountDeleteForm,
     EmailAuthenticationForm,
@@ -112,14 +114,10 @@ class SecurityView(LoginRequiredMixin, TemplateView):
 
     def _handle_password_change(self, request):
         form = PasswordChangeForm(request.user, request.POST)
+        # Django's own form, so it gets the shared widget styling here rather
+        # than a second copy of the class list that can drift out of step.
         for field in form.fields.values():
-            field.widget.attrs.setdefault(
-                "class",
-                "block w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 "
-                "text-sm text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none "
-                "focus:ring-2 focus:ring-brand-500/30 dark:border-slate-700 dark:bg-slate-900 "
-                "dark:text-slate-100",
-            )
+            field.widget.attrs.setdefault("class", TEXT_INPUT_CLASSES)
         if form.is_valid():
             user = form.save()
             update_session_auth_hash(request, user)

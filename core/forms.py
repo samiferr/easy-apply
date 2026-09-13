@@ -1,13 +1,20 @@
 from django import forms
 
+#: `line-strong` rather than a light grey: an input's outline is the only thing
+#: identifying it as a control, so WCAG 1.4.11 wants it at 3:1 against the
+#: surface. slate-300 managed 1.48:1. Placeholders clear 4.5:1 for the same
+#: reason real text does — they often carry the format hint.
 TEXT_INPUT_CLASSES = (
-    "block w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm "
-    "text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-brand-500 "
-    "focus:outline-none focus:ring-2 focus:ring-brand-500/30 dark:border-slate-700 "
-    "dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
+    "block w-full rounded-lg border border-line-strong bg-surface px-3.5 py-2.5 text-sm "
+    "text-slate-900 placeholder:text-slate-500 shadow-sm transition focus:border-brand-600 "
+    "focus:outline-none focus:ring-2 focus:ring-brand-500/40 "
+    "dark:text-slate-100 dark:placeholder:text-slate-400"
 )
 
-CHECKBOX_CLASSES = "h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+CHECKBOX_CLASSES = (
+    "h-4 w-4 rounded border-line-strong bg-surface text-brand-600 "
+    "focus:ring-2 focus:ring-brand-500/40"
+)
 
 
 class StyledFormMixin:

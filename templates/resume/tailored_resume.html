@@ -2,8 +2,8 @@
 {% load i18n %}
 {% block title %}Tailored resume · {{ job.title|default:"Job post" }} · {{ SITE_NAME }}{% endblock %}
 {% block content %}
-<div class="max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
-  <a href="{% url 'jobs:detail' job.pk %}" class="inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
+<div class="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
+  <a href="{% url 'jobs:detail' job.pk %}" class="inline-flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200">
     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
     Back to {{ job.title|default:"the job post" }}
   </a>
@@ -11,7 +11,7 @@
   <div class="mt-4 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
     <div class="min-w-0">
       <h1 class="text-2xl font-bold text-slate-900 dark:text-white">{% trans "Your tailored resume" %}</h1>
-      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+      <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
         Written for {{ job.title|default:"this role" }}{% if job.company_name %} at {{ job.company_name }}{% endif %} from what you've recorded, and laid out like
         <code class="rounded bg-slate-100 px-1 py-0.5 font-mono text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300">resume_template.md</code>.
         Edit anything below, then export it as a PDF.
@@ -23,7 +23,7 @@
     </div>
   </div>
 
-  <p class="mt-3 text-xs text-slate-400 dark:text-slate-500">
+  <p class="mt-3 text-xs text-slate-600 dark:text-slate-400">
     {% if tailored_resume.generated_at %}Drafted {{ tailored_resume.generated_at|date:"M j, Y, g:i a" }}{% endif %}
     {% if tailored_resume.edited_by_user %} · edited by you {{ tailored_resume.updated_at|date:"M j, Y, g:i a" }}{% endif %}
   </p>

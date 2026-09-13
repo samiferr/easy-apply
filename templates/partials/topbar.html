@@ -1,9 +1,15 @@
 {% load i18n %}
-<header class="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-3 border-b border-slate-200 bg-white/90 px-4 backdrop-blur sm:px-6 dark:border-slate-800 dark:bg-slate-950/90">
+{% comment %}
+No bottom border: the bar shares the canvas with the content below it, and only
+casts a shadow once something has actually scrolled underneath (`scrolled` on
+the appShell component). At rest the shell reads as one uninterrupted surface.
+{% endcomment %}
+<header class="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-3 bg-canvas px-4 transition-shadow duration-200 sm:px-6 lg:px-8"
+        :class="scrolled && 'shadow-bar'">
   <!-- Mobile drawer toggle -->
   <button type="button" @click="mobileOpen = !mobileOpen"
-    class="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 md:hidden dark:text-slate-400 dark:hover:bg-slate-800"
-    aria-label="{% trans 'Toggle navigation' %}">
+    class="rounded-lg p-2 text-slate-600 transition hover:bg-slate-900/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 md:hidden dark:text-slate-300 dark:hover:bg-white/10"
+    aria-label="{% trans 'Toggle navigation' %}" :aria-expanded="mobileOpen">
     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" /></svg>
   </button>
 
@@ -12,7 +18,7 @@
     <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-white">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" /></svg>
     </span>
-    <span class="text-base font-extrabold tracking-tight text-slate-900 dark:text-white">{{ SITE_NAME }}</span>
+    <span class="hidden whitespace-nowrap text-base font-bold tracking-tight text-slate-900 xs:inline dark:text-white">{{ SITE_NAME }}</span>
   </a>
 
   <div class="flex-1"></div>
@@ -24,29 +30,28 @@
   <!-- User menu -->
   <div class="relative" x-data="{ open: false }" @keydown.escape="open = false" @click.outside="open = false">
     <button type="button" @click="open = !open"
-      class="flex items-center gap-2 rounded-lg py-1 pl-1 pr-2 transition hover:bg-slate-100 dark:hover:bg-slate-800"
+      class="flex items-center gap-2 rounded-lg py-1 pl-1 pr-2 transition hover:bg-slate-900/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:hover:bg-white/10"
       aria-haspopup="true" :aria-expanded="open">
       {% if active_profile.avatar %}
-        <img src="{{ active_profile.avatar.url }}" alt="" class="h-8 w-8 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700" />
+        <img src="{{ active_profile.avatar.url }}" alt="" class="h-8 w-8 rounded-full object-cover" />
       {% else %}
-        <span class="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700 dark:bg-brand-900 dark:text-brand-300">{{ user.get_short_name|slice:":1"|upper }}</span>
+        <span class="flex h-8 w-8 items-center justify-center rounded-full bg-brand-600 text-sm font-semibold text-white">{{ user.get_short_name|slice:":1"|upper }}</span>
       {% endif %}
       <span class="hidden max-w-[8rem] truncate text-sm font-medium text-slate-700 sm:block dark:text-slate-200">{{ user.get_short_name }}</span>
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-600 dark:text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
     </button>
     <div x-show="open" x-transition x-cloak
-      class="absolute right-0 mt-2 w-60 origin-top-right divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white py-1 shadow-lg dark:divide-slate-800 dark:border-slate-800 dark:bg-slate-900">
+      class="surface-menu absolute right-0 mt-2 w-60 origin-top-right divide-y divide-line py-1">
       <div class="px-3 py-2">
         <p class="truncate text-sm font-semibold text-slate-900 dark:text-white">{{ user.get_full_name|default:user.email }}</p>
-        <p class="truncate text-xs text-slate-500 dark:text-slate-400">{{ user.email }}</p>
+        <p class="truncate text-xs text-muted">{{ user.email }}</p>
       </div>
       <div class="py-1">
         <a href="{% url 'accounts:profile' %}" class="menu-item">{% trans "Personal info" %}</a>
         <a href="{% url 'accounts:profile_list' %}" class="menu-item">{% trans "Profiles" %}</a>
-        <a href="{% url 'accounts:security' %}" class="menu-item">{% trans "Security" %}</a>
         <button type="button" @click="toggleTheme()" class="menu-item flex w-full items-center justify-between">
           <span>{% trans "Theme" %}</span>
-          <span class="text-xs text-slate-400">
+          <span class="text-xs text-muted">
             <span class="dark:hidden">{% trans "Light" %}</span>
             <span class="hidden dark:inline">{% trans "Dark" %}</span>
           </span>
@@ -55,7 +60,7 @@
         {% if user.is_staff %}<a href="{% url 'admin:index' %}" class="menu-item">{% trans "Admin" %}</a>{% endif %}
       </div>
       <div class="py-1">
-        <a href="{% url 'accounts:logout_confirm' %}" class="block px-3 py-2 text-sm text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/40">{% trans "Log out" %}</a>
+        <a href="{% url 'accounts:logout_confirm' %}" class="block px-3 py-2 text-sm font-medium text-rose-700 transition hover:bg-rose-500/10 dark:text-rose-300">{% trans "Log out" %}</a>
       </div>
     </div>
   </div>

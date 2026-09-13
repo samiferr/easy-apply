@@ -6,7 +6,7 @@
     <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
       {% if object %}{% trans "Rename profile" %}{% else %}{% trans "New profile" %}{% endif %}
     </h2>
-    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+    <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
       {% if object %}
         {% blocktrans trimmed with language=object.get_language_display %}
           This profile is written in {{ language }}. A profile's language is fixed
@@ -32,7 +32,7 @@
       {% for field in form %}
         {% include "partials/field.html" with field=field %}
       {% endfor %}
-      <div class="flex justify-end gap-2 border-t border-slate-100 pt-5 dark:border-slate-800">
+      <div class="flex justify-end gap-2 border-t border-line pt-5">
         <a href="{% url 'accounts:profile_list' %}" class="btn-secondary">{% trans "Cancel" %}</a>
         <button type="submit" class="btn-primary">
           {% if object %}{% trans "Save" %}{% else %}{% trans "Create profile" %}{% endif %}

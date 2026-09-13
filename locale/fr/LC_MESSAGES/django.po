@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Easy Apply\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-13 20:07+0000\n"
+"POT-Creation-Date: 2026-09-13 20:53+0000\n"
 "PO-Revision-Date: 2026-09-10 01:20+0000\n"
 "Last-Translator: Easy Apply <noreply@easy-apply.app>\n"
 "Language-Team: French <fr@easy-apply.app>\n"
@@ -108,25 +108,25 @@ msgstr "profils"
 msgid "My profile"
 msgstr "Mon profil"
 
-#: accounts/views.py:176
+#: accounts/views.py:174
 #, python-format
 msgid "Created “%(name)s” (%(language)s). You're now working in it."
 msgstr "« %(name)s » (%(language)s) a été créé. Vous y travaillez maintenant."
 
-#: accounts/views.py:201
+#: accounts/views.py:199
 msgid "Profile renamed."
 msgstr "Profil renommé."
 
-#: accounts/views.py:212
+#: accounts/views.py:210
 #, python-format
 msgid "Switched to “%(name)s”."
 msgstr "Vous travaillez maintenant dans « %(name)s »."
 
-#: accounts/views.py:251
+#: accounts/views.py:249
 msgid "You can't delete your only profile — create another one first."
 msgstr "Vous ne pouvez pas supprimer votre seul profil — créez-en un autre d’abord."
 
-#: accounts/views.py:261
+#: accounts/views.py:259
 #, python-format
 msgid "Deleted “%(name)s” and everything in it."
 msgstr "« %(name)s » et tout son contenu ont été supprimés."
@@ -202,7 +202,7 @@ msgid "Technical Skills"
 msgstr "Compétences techniques"
 
 #: core/utils.py:85 jobs/sections.py:125 templates/core/home.html:39
-#: templates/partials/sidebar.html:66 templates/resume/resume_review.html:94
+#: templates/partials/sidebar.html:70 templates/resume/resume_review.html:94
 msgid "Languages"
 msgstr "Langues"
 
@@ -210,7 +210,7 @@ msgstr "Langues"
 msgid "Work Experience"
 msgstr "Expérience professionnelle"
 
-#: core/utils.py:109 templates/partials/sidebar.html:54
+#: core/utils.py:109 templates/partials/sidebar.html:58
 #: templates/resume/resume_review.html:130
 msgid "Education"
 msgstr "Formation"
@@ -1054,12 +1054,12 @@ msgstr "Compétence comportementale"
 msgid "Technical skill"
 msgstr "Compétence technique"
 
-#: skills/models.py:14 templates/partials/sidebar.html:62
+#: skills/models.py:14 templates/partials/sidebar.html:66
 #: templates/resume/resume_review.html:74
 msgid "Soft skills"
 msgstr "Compétences comportementales"
 
-#: skills/models.py:15 templates/partials/sidebar.html:58
+#: skills/models.py:15 templates/partials/sidebar.html:62
 #: templates/resume/resume_review.html:82
 msgid "Technical skills"
 msgstr "Compétences techniques"
@@ -1117,7 +1117,7 @@ msgstr "Vous pourrez toujours vous reconnecter avec votre adresse e-mail et votr
 msgid "Cancel"
 msgstr "Annuler"
 
-#: templates/accounts/logout_confirm.html:11 templates/partials/topbar.html:58
+#: templates/accounts/logout_confirm.html:11 templates/partials/topbar.html:63
 msgid "Log out"
 msgstr "Se déconnecter"
 
@@ -1191,7 +1191,7 @@ msgstr "Vous avez déjà un CV ?"
 msgid "Upload it and AI will fill in your skills, experience and education."
 msgstr "Importez-le et l’IA remplira vos compétences, votre expérience et votre formation."
 
-#: templates/accounts/profile.html:15 templates/partials/sidebar.html:74
+#: templates/accounts/profile.html:15 templates/partials/sidebar.html:78
 msgid "Import from resume"
 msgstr "Importer depuis un CV"
 
@@ -1240,7 +1240,7 @@ msgstr "Créer le profil"
 #: templates/accounts/profile_list.html:3
 #: templates/accounts/settings_base.html:11
 #: templates/partials/profile_switcher.html:23
-#: templates/partials/topbar.html:45
+#: templates/partials/topbar.html:51
 msgid "Profiles"
 msgstr "Profils"
 
@@ -1344,11 +1344,11 @@ msgstr "Paramètres du compte"
 msgid "Manage your profiles, their personal info and your account security."
 msgstr "Gérez vos profils, leurs informations personnelles et la sécurité de votre compte."
 
-#: templates/accounts/settings_base.html:10 templates/partials/topbar.html:44
+#: templates/accounts/settings_base.html:10 templates/partials/topbar.html:50
 msgid "Personal info"
 msgstr "Informations personnelles"
 
-#: templates/accounts/settings_base.html:12 templates/partials/topbar.html:46
+#: templates/accounts/settings_base.html:12
 msgid "Security"
 msgstr "Sécurité"
 
@@ -1356,7 +1356,7 @@ msgstr "Sécurité"
 msgid "Export recap"
 msgstr "Exporter le récapitulatif"
 
-#: templates/base_app.html:8 templates/base_public.html:8
+#: templates/base_app.html:19 templates/base_public.html:8
 msgid "Skip to content"
 msgstr "Aller au contenu"
 
@@ -1381,7 +1381,7 @@ msgstr "Aucune offre analysée ce mois-ci pour l’instant."
 
 #: templates/core/_jobs_chart.html:44 templates/core/dashboard.html:18
 #: templates/jobs/job_form.html:12 templates/jobs/job_list.html:14
-#: templates/partials/sidebar.html:38
+#: templates/partials/sidebar.html:42
 msgid "Analyze a job post"
 msgstr "Analyser une offre"
 
@@ -1394,7 +1394,7 @@ msgstr "Offres analysées chaque jour en %(month)s"
 msgid "Day"
 msgstr "Jour"
 
-#: templates/core/dashboard.html:3 templates/partials/sidebar.html:26
+#: templates/core/dashboard.html:3 templates/partials/sidebar.html:30
 msgid "Dashboard"
 msgstr "Tableau de bord"
 
@@ -1431,7 +1431,7 @@ msgstr "Compléter mon profil"
 msgid "complete"
 msgstr "complété"
 
-#: templates/core/dashboard.html:44 templates/partials/sidebar.html:46
+#: templates/core/dashboard.html:44 templates/partials/sidebar.html:50
 #: templates/preferences/job_preference.html:3
 #: templates/preferences/job_preference.html:4
 msgid "Job preferences"
@@ -1897,7 +1897,7 @@ msgstr "Ajoutée il y a %(when)s"
 msgid "Open"
 msgstr "Ouvrir"
 
-#: templates/jobs/job_list.html:95 templates/partials/sidebar.html:71
+#: templates/jobs/job_list.html:95 templates/partials/sidebar.html:75
 msgid "Resume"
 msgstr "CV"
 
@@ -2431,7 +2431,7 @@ msgstr "Conçu pour vous aider à décrocher votre prochain poste."
 msgid "Dismiss"
 msgstr "Fermer"
 
-#: templates/partials/profile_base.html:11 templates/partials/sidebar.html:43
+#: templates/partials/profile_base.html:11 templates/partials/sidebar.html:47
 #: templates/resume/resume_review.html:55
 msgid "Profile"
 msgstr "Profil"
@@ -2460,60 +2460,60 @@ msgstr "Basculer le mode sombre"
 msgid "Go to dashboard"
 msgstr "Aller au tableau de bord"
 
-#: templates/partials/sidebar.html:21
+#: templates/partials/sidebar.html:26
 msgid "Main navigation"
 msgstr "Navigation principale"
 
-#: templates/partials/sidebar.html:31
+#: templates/partials/sidebar.html:35
 msgid "Jobs"
 msgstr "Offres"
 
-#: templates/partials/sidebar.html:34
+#: templates/partials/sidebar.html:38
 msgid "Job list"
 msgstr "Liste des offres"
 
-#: templates/partials/sidebar.html:50
+#: templates/partials/sidebar.html:54
 msgid "Experience"
 msgstr "Expérience"
 
-#: templates/partials/sidebar.html:78 templates/resume/tailored_list.html:3
+#: templates/partials/sidebar.html:82 templates/resume/tailored_list.html:3
 #: templates/resume/tailored_list.html:6
 msgid "Tailored resumes"
 msgstr "CV personnalisés"
 
-#: templates/partials/sidebar.html:87
+#: templates/partials/sidebar.html:90
 msgid "Expand sidebar"
 msgstr "Déployer le menu"
 
-#: templates/partials/sidebar.html:87
+#: templates/partials/sidebar.html:90
 msgid "Collapse sidebar"
 msgstr "Réduire le menu"
 
-#: templates/partials/sidebar.html:89
+#: templates/partials/sidebar.html:93
 msgid "Collapse"
 msgstr "Réduire"
 
-#: templates/partials/topbar.html:6
+#: templates/partials/topbar.html:12
 msgid "Toggle navigation"
 msgstr "Afficher ou masquer la navigation"
 
-#: templates/partials/topbar.html:48
+#: templates/partials/topbar.html:53
 msgid "Theme"
 msgstr "Thème"
 
-#: templates/partials/topbar.html:50
+#: templates/partials/topbar.html:55
 msgid "Light"
 msgstr "Clair"
 
-#: templates/partials/topbar.html:51
+#: templates/partials/topbar.html:56
 msgid "Dark"
 msgstr "Sombre"
 
-#: templates/partials/topbar.html:54
+#: templates/partials/topbar.html:59
 msgid "Export recap (.md)"
 msgstr "Exporter le récapitulatif (.md)"
 
-#: templates/partials/topbar.html:55
+#: templates/partials/topbar.html:60
 msgid "Admin"
 msgstr "Administration"
 
