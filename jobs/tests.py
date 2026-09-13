@@ -11,6 +11,7 @@ from django.test import TestCase, override_settings
 from django.utils import translation
 from django.urls import reverse
 
+from accounts.models import Profile
 from core.models import AITask
 from core.utils import build_profile_slice, profile_slice_is_empty
 from jobs.models import JobElement, JobPost, JobSection
@@ -20,6 +21,16 @@ from preferences.models import get_or_create_preference
 from skills.models import SkillCategory, UserSkill
 
 User = get_user_model()
+
+
+def make_profile(email, *, language="en", name="Main"):
+    """A user with one profile — the shape every screen assumes."""
+    user = User.objects.create_user(email=email, password="pw12345678")
+    profile = Profile.objects.filter(user=user).first()
+    profile.name = name
+    profile.language = language
+    profile.save(update_fields=["name", "language"])
+    return profile
 
 
 def ai_payload(**overrides):
@@ -84,8 +95,8 @@ class NormalizeSectionsTests(TestCase):
 
 class ApplyAnalysisTests(TestCase):
     def setUp(self):
-        self.user = User.objects.create_user(email="a@example.com", password="pw12345678")
-        self.job = JobPost.objects.create(user=self.user, source_url="https://x.test/j")
+        self.profile = make_profile("a@example.com")
+        self.job = JobPost.objects.create(profile=self.profile, source_url="https://x.test/j")
 
     def test_only_valid_sections_are_created(self):
         data = ai_payload(sections=[
@@ -118,38 +129,38 @@ class ApplyAnalysisTests(TestCase):
 
 class ProfileSliceTests(TestCase):
     def setUp(self):
-        self.user = User.objects.create_user(email="b@example.com", password="pw12345678")
+        self.profile = make_profile("b@example.com")
         category = SkillCategory.objects.create(name="Programming", kind=SkillCategory.TECHNICAL)
-        UserSkill.objects.create(user=self.user, category=category, name="Python", level=4)
+        UserSkill.objects.create(profile=self.profile, category=category, name="Python", level=4)
 
     def test_technical_section_gets_only_technical_skills(self):
-        data = build_profile_slice(self.user, "required_technical_skills")
+        data = build_profile_slice(self.profile, "required_technical_skills")
         self.assertIn("technical_skills", data)
         for forbidden in ("soft_skills", "languages", "degrees", "experience", "benefits_wanted"):
             self.assertNotIn(forbidden, data, f"{forbidden} leaked into the technical slice")
 
     def test_languages_section_gets_only_languages(self):
-        data = build_profile_slice(self.user, "languages")
+        data = build_profile_slice(self.profile, "languages")
         self.assertEqual(set(data.keys()), {"languages"})
 
     def test_responsibilities_gets_experience_and_technical_skills(self):
-        data = build_profile_slice(self.user, "responsibilities")
+        data = build_profile_slice(self.profile, "responsibilities")
         self.assertEqual(set(data.keys()), {"experience", "technical_skills"})
 
     def test_prose_section_gets_nothing(self):
-        self.assertEqual(build_profile_slice(self.user, "overview"), {})
+        self.assertEqual(build_profile_slice(self.profile, "overview"), {})
 
     def test_compensation_slice_has_no_skills(self):
-        get_or_create_preference(self.user)
-        data = build_profile_slice(self.user, "compensation_benefits")
+        get_or_create_preference(self.profile)
+        data = build_profile_slice(self.profile, "compensation_benefits")
         self.assertNotIn("technical_skills", data)
         self.assertIn("benefits_wanted", data)
 
 
 class EmptySliceShortCircuitTests(TestCase):
     def setUp(self):
-        self.user = User.objects.create_user(email="c@example.com", password="pw12345678")
-        self.job = JobPost.objects.create(user=self.user, source_url="https://x.test/j")
+        self.profile = make_profile("c@example.com")
+        self.job = JobPost.objects.create(profile=self.profile, source_url="https://x.test/j")
         apply_analysis(self.job, ai_payload(), "raw")
 
     def test_empty_slice_never_calls_the_api(self):
@@ -168,7 +179,7 @@ class EmptySliceShortCircuitTests(TestCase):
         from jobs.services.matcher import match_section_to_profile
 
         category = SkillCategory.objects.create(name="Programming", kind=SkillCategory.TECHNICAL)
-        UserSkill.objects.create(user=self.user, category=category, name="Python", level=4)
+        UserSkill.objects.create(profile=self.profile, category=category, name="Python", level=4)
         section = self.job.sections.get(key="required_technical_skills")
 
         captured = {}
@@ -196,8 +207,8 @@ class EmptySliceShortCircuitTests(TestCase):
 @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
 class ViewsNeverCallAITests(TestCase):
     def setUp(self):
-        self.user = User.objects.create_user(email="d@example.com", password="pw12345678")
-        self.client.force_login(self.user)
+        self.profile = make_profile("d@example.com")
+        self.client.force_login(self.profile.user)
 
     def test_submitting_a_job_enqueues_and_redirects(self):
         with patch("jobs.tasks.fetch_job_text.apply_async") as _fetch, \
@@ -214,8 +225,8 @@ class ViewsNeverCallAITests(TestCase):
         self.assertEqual(task.state, AITask.QUEUED)
 
     def test_task_status_endpoint_is_owner_scoped(self):
-        job = JobPost.objects.create(user=self.user, source_url="https://x.test/j")
-        task = AITask.start_for(self.user, AITask.JOB_ANALYSIS, job, steps_total=3)
+        job = JobPost.objects.create(profile=self.profile, source_url="https://x.test/j")
+        task = AITask.start_for(self.profile, AITask.JOB_ANALYSIS, job, steps_total=3)
         response = self.client.get(reverse("core:task_status", args=[task.pk]))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["steps_total"], 3)
@@ -229,16 +240,16 @@ class ViewsNeverCallAITests(TestCase):
 
 class AITaskProgressTests(TestCase):
     def setUp(self):
-        self.user = User.objects.create_user(email="f@example.com", password="pw12345678")
-        self.job = JobPost.objects.create(user=self.user, source_url="https://x.test/j")
+        self.profile = make_profile("f@example.com")
+        self.job = JobPost.objects.create(profile=self.profile, source_url="https://x.test/j")
 
     def test_single_step_task_is_indeterminate(self):
-        task = AITask.start_for(self.user, AITask.TAILORED_RESUME, self.job, steps_total=1)
+        task = AITask.start_for(self.profile, AITask.TAILORED_RESUME, self.job, steps_total=1)
         self.assertTrue(task.is_indeterminate)
         self.assertEqual(task.percent, 0)
 
     def test_percent_tracks_steps(self):
-        task = AITask.start_for(self.user, AITask.JOB_ANALYSIS, self.job, steps_total=4)
+        task = AITask.start_for(self.profile, AITask.JOB_ANALYSIS, self.job, steps_total=4)
         task.advance("one")
         task.advance("two")
         self.assertEqual(task.percent, 50)
@@ -247,8 +258,8 @@ class AITaskProgressTests(TestCase):
         self.assertTrue(task.is_terminal)
 
     def test_starting_a_new_task_cancels_the_previous_one(self):
-        first = AITask.start_for(self.user, AITask.JOB_ANALYSIS, self.job)
-        AITask.start_for(self.user, AITask.JOB_ANALYSIS, self.job)
+        first = AITask.start_for(self.profile, AITask.JOB_ANALYSIS, self.job)
+        AITask.start_for(self.profile, AITask.JOB_ANALYSIS, self.job)
         first.refresh_from_db()
         self.assertEqual(first.state, AITask.CANCELED)
 
@@ -263,8 +274,8 @@ class BrokerDownTests(TestCase):
     """
 
     def setUp(self):
-        self.user = User.objects.create_user(email="nw@example.com", password="pw12345678")
-        self.client.force_login(self.user)
+        self.profile = make_profile("nw@example.com")
+        self.client.force_login(self.profile.user)
 
     @staticmethod
     def _broker_down():
@@ -278,7 +289,7 @@ class BrokerDownTests(TestCase):
     def test_enqueue_does_not_raise_when_the_broker_is_down(self):
         from jobs.tasks import enqueue_job_analysis
 
-        job = JobPost.objects.create(user=self.user, source_url="https://x.test/j")
+        job = JobPost.objects.create(profile=self.profile, source_url="https://x.test/j")
         # The message is stored already translated, so pin the language rather
         # than depending on whatever a previous test left active.
         with translation.override("en"), self._broker_down():
@@ -303,3 +314,95 @@ class BrokerDownTests(TestCase):
         for name in ["core:dashboard", "jobs:list"]:
             with self.subTest(name=name):
                 self.assertEqual(self.client.get(reverse(name)).status_code, 200)
+
+
+class ProfileLanguageTests(TestCase):
+    """The profile's language — not the browser's — drives every AI call."""
+
+    def setUp(self):
+        self.profile = make_profile("lang@example.com", language="fr", name="Analyste")
+        self.job = JobPost.objects.create(profile=self.profile, source_url="https://x.test/j")
+        apply_analysis(self.job, ai_payload(), "raw", language="fr")
+
+    def test_extraction_asks_for_the_profile_language(self):
+        from jobs.services.deepseek_client import analyze_job_text
+
+        captured = {}
+
+        def fake_call(system_prompt, user_content, **kwargs):
+            captured["payload"] = user_content
+            return {}
+
+        with patch("core.ai.call_deepseek_json", side_effect=fake_call), \
+             patch("jobs.services.deepseek_client.call_deepseek_json", side_effect=fake_call):
+            analyze_job_text("raw posting", language=self.profile.language)
+
+        self.assertIn("in French", captured["payload"])
+        self.assertNotIn("in English", captured["payload"])
+
+    def test_matching_uses_the_profile_language_even_under_an_english_ui(self):
+        from jobs.services.matcher import match_section_to_profile
+
+        category = SkillCategory.objects.create(name="Programming", kind=SkillCategory.TECHNICAL)
+        UserSkill.objects.create(profile=self.profile, category=category, name="Python", level=4)
+        section = self.job.sections.get(key="required_technical_skills")
+
+        captured = {}
+
+        def fake_call(system_prompt, user_content, **kwargs):
+            captured["payload"] = user_content
+            return {"matches": [
+                {"element_id": e.id, "status": "strong", "evidence": "Python."}
+                for e in section.elements.all()
+            ]}
+
+        with translation.override("en"), \
+             patch("core.ai.call_deepseek_json", side_effect=fake_call), \
+             patch("jobs.services.deepseek_client.call_deepseek_json", side_effect=fake_call):
+            match_section_to_profile(section)
+
+        payload = captured["payload"]
+        self.assertIn("in French", payload)
+        # The section label and the profile's own display strings travel in the
+        # same payload, so they have to be French too.
+        self.assertIn("Compétences techniques requises", payload)
+        self.assertIn("Expert", payload)
+
+    def test_an_empty_slice_writes_its_hint_in_the_profile_language(self):
+        from jobs.services.matcher import match_section_to_profile
+
+        section = self.job.sections.get(key="languages")
+        with translation.override("en"):
+            match_section_to_profile(section)
+
+        evidence = section.elements.first().match_evidence
+        self.assertIn("Aucune langue", evidence)
+
+    def test_two_profiles_analyze_the_same_job_in_their_own_languages(self):
+        english = Profile.objects.create(
+            user=self.profile.user, name="Backend", language="en"
+        )
+        english_job = JobPost.objects.create(profile=english, source_url="https://x.test/j2")
+        apply_analysis(english_job, ai_payload(), "raw", language="en")
+
+        seen = []
+
+        def fake_call(system_prompt, user_content, **kwargs):
+            seen.append(user_content)
+            return {"matches": []}
+
+        from jobs.services.matcher import match_section_to_profile
+
+        category = SkillCategory.objects.create(name="Programming", kind=SkillCategory.TECHNICAL)
+        UserSkill.objects.create(profile=self.profile, category=category, name="Python", level=4)
+        UserSkill.objects.create(profile=english, category=category, name="Python", level=4)
+
+        with patch("core.ai.call_deepseek_json", side_effect=fake_call), \
+             patch("jobs.services.deepseek_client.call_deepseek_json", side_effect=fake_call):
+            match_section_to_profile(self.job.sections.get(key="required_technical_skills"))
+            match_section_to_profile(
+                english_job.sections.get(key="required_technical_skills")
+            )
+
+        self.assertIn("in French", seen[0])
+        self.assertIn("in English", seen[1])

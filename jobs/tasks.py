@@ -75,15 +75,19 @@ def fetch_job_text(self, job_id: int, task_id: int) -> dict:
 # ---------------------------------------------------------------------------
 @shared_task(bind=True, soft_time_limit=300)
 @guard
-def extract_job_sections(self, payload: dict, language: str = "en") -> dict:
+def extract_job_sections(self, payload: dict) -> dict:
     if payload.get("failed"):
         return payload
 
     job_id, task_id = payload["job_id"], payload["task_id"]
     task = get_task(task_id)
-    job = JobPost.objects.filter(pk=job_id).first()
+    job = JobPost.objects.filter(pk=job_id).select_related("profile").first()
     if job is None:
         return {"job_id": job_id, "task_id": task_id, "failed": True}
+
+    # The workspace decides the language, so a re-run months later still
+    # produces the same one.
+    language = job.profile.language
 
     if task:
         task.set_step(_("Extracting the job's sections"))
@@ -193,10 +197,10 @@ def finalize_job_analysis(self, results, job_id: int, task_id: int) -> dict:
 # ---------------------------------------------------------------------------
 # Public entry points — the only things views call
 # ---------------------------------------------------------------------------
-def enqueue_job_analysis(job: JobPost, language: str = "en") -> AITask:
+def enqueue_job_analysis(job: JobPost) -> AITask:
     """Kick off the full pipeline: fetch -> extract -> match every section."""
     task = AITask.start_for(
-        job.user,
+        job.profile,
         AITask.JOB_ANALYSIS,
         job,
         steps_total=2,
@@ -208,7 +212,7 @@ def enqueue_job_analysis(job: JobPost, language: str = "en") -> AITask:
 
     workflow = chain(
         fetch_job_text.s(job.pk, task.pk),
-        extract_job_sections.s(language),
+        extract_job_sections.s(),
         _dispatch_section_matches.s(),
     )
     if dispatch(task, workflow) is None:
@@ -244,7 +248,7 @@ def enqueue_section_match(section: JobSection) -> AITask:
     """Re-run matching for a single section (the per-tab Retry button)."""
     job = section.job
     task = AITask.start_for(
-        job.user,
+        job.profile,
         AITask.JOB_MATCH,
         job,
         steps_total=1,
@@ -262,7 +266,7 @@ def enqueue_full_match(job: JobPost) -> AITask:
     """Re-match every section of an already-extracted job."""
     sections = matched_sections_for(job)
     task = AITask.start_for(
-        job.user,
+        job.profile,
         AITask.JOB_MATCH,
         job,
         steps_total=max(1, len(sections)),
@@ -319,7 +323,7 @@ def match_job_element(self, element_id: int, task_id: int) -> dict:
 def enqueue_element_match(element: JobElement) -> AITask:
     job = element.section.job
     task = AITask.start_for(
-        job.user,
+        job.profile,
         AITask.JOB_MATCH,
         job,
         steps_total=1,

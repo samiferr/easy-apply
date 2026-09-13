@@ -17,6 +17,8 @@
 
   <div class="flex-1"></div>
 
+  {% include "partials/profile_switcher.html" %}
+
   {% include "partials/language_switcher.html" %}
 
   <!-- User menu -->
@@ -24,8 +26,8 @@
     <button type="button" @click="open = !open"
       class="flex items-center gap-2 rounded-lg py-1 pl-1 pr-2 transition hover:bg-slate-100 dark:hover:bg-slate-800"
       aria-haspopup="true" :aria-expanded="open">
-      {% if user.profile.avatar %}
-        <img src="{{ user.profile.avatar.url }}" alt="" class="h-8 w-8 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700" />
+      {% if active_profile.avatar %}
+        <img src="{{ active_profile.avatar.url }}" alt="" class="h-8 w-8 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700" />
       {% else %}
         <span class="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700 dark:bg-brand-900 dark:text-brand-300">{{ user.get_short_name|slice:":1"|upper }}</span>
       {% endif %}
@@ -40,6 +42,7 @@
       </div>
       <div class="py-1">
         <a href="{% url 'accounts:profile' %}" class="menu-item">{% trans "Personal info" %}</a>
+        <a href="{% url 'accounts:profile_list' %}" class="menu-item">{% trans "Profiles" %}</a>
         <a href="{% url 'accounts:security' %}" class="menu-item">{% trans "Security" %}</a>
         <button type="button" @click="toggleTheme()" class="menu-item flex w-full items-center justify-between">
           <span>{% trans "Theme" %}</span>

@@ -41,6 +41,16 @@ class AITask(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="ai_tasks"
     )
+    # The workspace the task belongs to. Kept alongside `user` because the
+    # polling endpoint authorizes by account, while the dashboard only ever
+    # shows what is running in the profile you are looking at.
+    profile = models.ForeignKey(
+        "accounts.Profile",
+        on_delete=models.CASCADE,
+        related_name="ai_tasks",
+        null=True,
+        blank=True,
+    )
     kind = models.CharField(max_length=30, choices=KIND_CHOICES)
     state = models.CharField(max_length=20, choices=STATE_CHOICES, default=QUEUED)
 
@@ -66,6 +76,7 @@ class AITask(models.Model):
         indexes = [
             models.Index(fields=["content_type", "object_id"]),
             models.Index(fields=["user", "state"]),
+            models.Index(fields=["profile", "state"]),
         ]
         verbose_name = _("AI task")
         verbose_name_plural = _("AI tasks")
@@ -143,8 +154,8 @@ class AITask(models.Model):
 
     # --- Construction ----------------------------------------------------
     @classmethod
-    def start_for(cls, user, kind: str, target, *, steps_total: int = 1, step: str = ""):
-        """Create a queued task pointing at `target`.
+    def start_for(cls, profile, kind: str, target, *, steps_total: int = 1, step: str = ""):
+        """Create a queued task pointing at `target`, owned by `profile`.
 
         Any earlier non-terminal task for the same target and kind is canceled,
         so a re-run never leaves two live progress bars on one object.
@@ -157,7 +168,8 @@ class AITask(models.Model):
             state__in=[cls.QUEUED, cls.RUNNING],
         ).update(state=cls.CANCELED, finished_at=timezone.now())
         return cls.objects.create(
-            user=user,
+            user=profile.user,
+            profile=profile,
             kind=kind,
             target=target,
             steps_total=max(1, steps_total),

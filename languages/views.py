@@ -14,7 +14,7 @@ class LanguageListView(LoginRequiredMixin, ListView):
     context_object_name = "user_languages"
 
     def get_queryset(self):
-        return UserLanguage.objects.filter(user=self.request.user).select_related("language")
+        return UserLanguage.objects.filter(profile=self.request.profile).select_related("language")
 
 
 class LanguageFormMixin(LoginRequiredMixin):
@@ -24,11 +24,11 @@ class LanguageFormMixin(LoginRequiredMixin):
     success_url = reverse_lazy("languages:list")
 
     def get_queryset(self):
-        return UserLanguage.objects.filter(user=self.request.user)
+        return UserLanguage.objects.filter(profile=self.request.profile)
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs["user"] = self.request.user
+        kwargs["profile"] = self.request.profile
         return kwargs
 
 
@@ -49,7 +49,7 @@ class LanguageDeleteView(LoginRequiredMixin, DeleteView):
     success_url = reverse_lazy("languages:list")
 
     def get_queryset(self):
-        return UserLanguage.objects.filter(user=self.request.user)
+        return UserLanguage.objects.filter(profile=self.request.profile)
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()

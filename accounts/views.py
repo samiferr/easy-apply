@@ -11,12 +11,24 @@ from django.contrib.auth.views import (
     PasswordResetDoneView,
     PasswordResetView,
 )
-from django.shortcuts import redirect, render
-from django.urls import reverse_lazy
-from django.views.generic import CreateView, TemplateView, UpdateView
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse, reverse_lazy
+from django.utils import translation
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.utils.translation import gettext as _
+from django.views import View
+from django.views.generic import CreateView, ListView, TemplateView, UpdateView
 
-from .forms import AccountDeleteForm, EmailAuthenticationForm, ProfileForm, RegisterForm
+from .forms import (
+    AccountDeleteForm,
+    EmailAuthenticationForm,
+    ProfileCreateForm,
+    ProfileForm,
+    ProfileRenameForm,
+    RegisterForm,
+)
 from .models import Profile
+from .services import set_active_profile
 
 
 class RegisterView(CreateView):
@@ -31,6 +43,10 @@ class RegisterView(CreateView):
 
     def form_valid(self, form):
         response = super().form_valid(form)
+        # The signal already made this account's first profile; the form asked
+        # which language it should speak, so stamp it before anything is written.
+        language = form.cleaned_data["profile_language"]
+        Profile.objects.filter(user=self.object).update(language=language)
         login(self.request, self.object)
         messages.success(
             self.request,
@@ -58,14 +74,15 @@ def logout_confirm_view(request):
 
 
 class ProfileView(LoginRequiredMixin, UpdateView):
+    """Personal info — of the *active* profile, not of the account."""
+
     model = Profile
     form_class = ProfileForm
     template_name = "accounts/profile.html"
     success_url = reverse_lazy("accounts:profile")
 
     def get_object(self, queryset=None):
-        profile, _ = Profile.objects.get_or_create(user=self.request.user)
-        return profile
+        return self.request.profile
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -121,6 +138,129 @@ class SecurityView(LoginRequiredMixin, TemplateView):
             messages.info(request, "Your account and all associated data have been deleted.")
             return redirect("core:home")
         return render(request, self.template_name, self.get_context_data(delete_form=form))
+
+
+# --- Profiles (workspaces) ----------------------------------------------------
+# A profile owns everything: skills, experience, education, preferences, the
+# jobs analyzed under it and the resumes written from it. Switching profiles
+# switches the whole app; deleting one takes its content with it.
+
+class ProfileListView(LoginRequiredMixin, ListView):
+    """Manage workspaces: see them all, switch, rename, add, delete."""
+
+    template_name = "accounts/profile_list.html"
+    context_object_name = "profiles"
+    extra_context = {"active_tab": "profiles"}
+
+    def get_queryset(self):
+        return Profile.objects.filter(user=self.request.user)
+
+
+class ProfileCreateView(LoginRequiredMixin, CreateView):
+    model = Profile
+    form_class = ProfileCreateForm
+    template_name = "accounts/profile_form.html"
+    extra_context = {"active_tab": "profiles"}
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        # A profile you just created is the one you meant to work in.
+        set_active_profile(self.request, self.object)
+        messages.success(
+            self.request,
+            _("Created “%(name)s” (%(language)s). You're now working in it.")
+            % {"name": self.object.name, "language": self.object.language_label},
+        )
+        return response
+
+    def get_success_url(self):
+        return reverse("accounts:profile")
+
+
+class ProfileRenameView(LoginRequiredMixin, UpdateView):
+    model = Profile
+    form_class = ProfileRenameForm
+    template_name = "accounts/profile_form.html"
+    extra_context = {"active_tab": "profiles"}
+    success_url = reverse_lazy("accounts:profile_list")
+
+    def get_queryset(self):
+        return Profile.objects.filter(user=self.request.user)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
+
+    def form_valid(self, form):
+        messages.success(self.request, _("Profile renamed."))
+        return super().form_valid(form)
+
+
+class ProfileSwitchView(LoginRequiredMixin, View):
+    """Make another profile the active one, and follow it into its language."""
+
+    def post(self, request, pk):
+        profile = get_object_or_404(Profile, pk=pk, user=request.user)
+        set_active_profile(request, profile)
+        messages.info(
+            request, _("Switched to “%(name)s”.") % {"name": profile.name}
+        )
+
+        next_url = request.POST.get("next") or reverse("core:dashboard")
+        if not url_has_allowed_host_and_scheme(
+            next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+        ):
+            next_url = reverse("core:dashboard")
+
+        response = redirect(next_url)
+        # The interface follows the workspace: reading a French profile in an
+        # English UI would show its content and its labels in two languages.
+        translation.activate(profile.language)
+        response.set_cookie(
+            settings.LANGUAGE_COOKIE_NAME,
+            profile.language,
+            max_age=settings.LANGUAGE_COOKIE_AGE,
+            path=settings.LANGUAGE_COOKIE_PATH,
+            domain=settings.LANGUAGE_COOKIE_DOMAIN,
+            secure=settings.LANGUAGE_COOKIE_SECURE,
+            httponly=settings.LANGUAGE_COOKIE_HTTPONLY,
+            samesite=settings.LANGUAGE_COOKIE_SAMESITE,
+        )
+        return response
+
+
+class ProfileDeleteView(LoginRequiredMixin, View):
+    """Delete a profile and everything recorded in it.
+
+    Refused for the last one: with no profile there is nowhere to put anything,
+    and the account-level "delete my account" button is the real way out.
+    """
+
+    def post(self, request, pk):
+        profile = get_object_or_404(Profile, pk=pk, user=request.user)
+        remaining = Profile.objects.filter(user=request.user).exclude(pk=profile.pk)
+        if not remaining.exists():
+            messages.error(
+                request,
+                _("You can't delete your only profile — create another one first."),
+            )
+            return redirect("accounts:profile_list")
+
+        name = profile.name
+        was_active = request.profile and request.profile.pk == profile.pk
+        profile.delete()
+        if was_active:
+            set_active_profile(request, remaining.first())
+        messages.info(
+            request, _("Deleted “%(name)s” and everything in it.") % {"name": name}
+        )
+        return redirect("accounts:profile_list")
 
 
 # --- Password reset / recovery flow -------------------------------------------------

@@ -1,10 +1,19 @@
-"""Utilities to render a Markdown recap of everything a user has recorded."""
+"""Utilities to render a Markdown recap of everything a profile has recorded.
+
+Every string this module emits — headings, "Present", month names — is
+translatable and rendered under the profile's own language, so a recap (and the
+resume snapshot built from the same helpers) never mixes two languages.
+"""
 
 from django.utils import timezone
+from django.utils.formats import date_format
+from django.utils.translation import gettext as _
+
+from .language import use_language
 
 
-def _format_date(value, fmt="%B %Y"):
-    return value.strftime(fmt) if value else ""
+def _format_date(value, fmt="F Y"):
+    return date_format(value, fmt) if value else ""
 
 
 def _section(lines, title, level=2):
@@ -12,44 +21,53 @@ def _section(lines, title, level=2):
     lines.append(f"{'#' * level} {title}")
 
 
-def generate_markdown_recap(user) -> str:
-    """Build a single Markdown document summarizing a user's profile, skills,
-    languages, work experience, degrees and certificates."""
+def generate_markdown_recap(profile) -> str:
+    """Build a single Markdown document summarizing one profile's info, skills,
+    languages, work experience, degrees and certificates.
 
+    Rendered under the profile's own language, so its labels, month names and
+    "Present" markers match the content recorded in it.
+    """
+
+    with use_language(profile.language):
+        return _recap_lines(profile)
+
+
+def _recap_lines(profile) -> str:
+    """The recap body. Always called inside the profile's language."""
     lines: list[str] = []
 
+    user = profile.user
     full_name = user.get_full_name() or user.get_short_name()
-    profile = getattr(user, "profile", None)
 
     lines.append(f"# {full_name}")
-    if profile and profile.headline:
+    if profile.headline:
         lines.append(f"*{profile.headline}*")
 
     lines.append("")
-    contact_bits = [f"- **Email:** {user.email}"]
-    if profile:
-        if profile.phone:
-            contact_bits.append(f"- **Phone:** {profile.phone}")
-        if profile.location:
-            contact_bits.append(f"- **Location:** {profile.location}")
-        if profile.linkedin_url:
-            contact_bits.append(f"- **LinkedIn:** {profile.linkedin_url}")
-        if profile.portfolio_url:
-            contact_bits.append(f"- **Portfolio:** {profile.portfolio_url}")
-        if profile.github_url:
-            contact_bits.append(f"- **GitHub:** {profile.github_url}")
+    contact_bits = [f"- **{_('Email')}:** {user.email}"]
+    if profile.phone:
+        contact_bits.append(f"- **{_('Phone')}:** {profile.phone}")
+    if profile.location:
+        contact_bits.append(f"- **{_('Location')}:** {profile.location}")
+    if profile.linkedin_url:
+        contact_bits.append(f"- **{_('LinkedIn')}:** {profile.linkedin_url}")
+    if profile.portfolio_url:
+        contact_bits.append(f"- **{_('Portfolio')}:** {profile.portfolio_url}")
+    if profile.github_url:
+        contact_bits.append(f"- **{_('GitHub')}:** {profile.github_url}")
     lines.extend(contact_bits)
 
-    if profile and profile.bio:
-        _section(lines, "About")
+    if profile.bio:
+        _section(lines, _("About"))
         lines.append("")
         lines.append(profile.bio.strip())
 
     # --- Skills ---------------------------------------------------------------
-    soft_skills = user.skills.filter(category__kind="soft").select_related("category")
-    technical_skills = user.skills.filter(category__kind="technical").select_related("category")
+    soft_skills = profile.skills.filter(category__kind="soft").select_related("category")
+    technical_skills = profile.skills.filter(category__kind="technical").select_related("category")
 
-    for title, qs in (("Soft Skills", soft_skills), ("Technical Skills", technical_skills)):
+    for title, qs in ((_("Soft Skills"), soft_skills), (_("Technical Skills"), technical_skills)):
         if not qs.exists():
             continue
         _section(lines, title)
@@ -62,17 +80,17 @@ def generate_markdown_recap(user) -> str:
             lines.append(f"- **{skill.name}** — {skill.get_level_display()}")
 
     # --- Languages --------------------------------------------------------------
-    user_languages = user.languages.select_related("language").order_by("language__name")
+    user_languages = profile.languages.select_related("language").order_by("language__name")
     if user_languages.exists():
-        _section(lines, "Languages")
+        _section(lines, _("Languages"))
         lines.append("")
         for ul in user_languages:
             lines.append(f"- **{ul.language.name}** — {ul.get_proficiency_display()}")
 
     # --- Work experience ----------------------------------------------------
-    experiences = user.experiences.order_by("-is_current", "-start_date")
+    experiences = profile.experiences.order_by("-is_current", "-start_date")
     if experiences.exists():
-        _section(lines, "Work Experience")
+        _section(lines, _("Work Experience"))
         for exp in experiences.prefetch_related("highlights"):
             lines.append("")
             lines.append(f"### {exp.job_title} — {exp.company}")
@@ -86,9 +104,9 @@ def generate_markdown_recap(user) -> str:
                 lines.append(f"- {highlight.text}")
 
     # --- Education: degrees --------------------------------------------------
-    degrees = user.degrees.order_by("-is_current", "-end_date", "-start_date")
+    degrees = profile.degrees.order_by("-is_current", "-end_date", "-start_date")
     if degrees.exists():
-        _section(lines, "Education")
+        _section(lines, _("Education"))
         for degree in degrees:
             lines.append("")
             lines.append(f"### {degree.degree} — {degree.school}")
@@ -96,11 +114,11 @@ def generate_markdown_recap(user) -> str:
             if degree.field_of_study:
                 meta_bits.append(degree.field_of_study)
             start = _format_date(degree.start_date)
-            end = "Present" if degree.is_current else _format_date(degree.end_date)
+            end = _("Present") if degree.is_current else _format_date(degree.end_date)
             if start or end:
                 meta_bits.append(f"{start} – {end}".strip(" –"))
             if degree.grade:
-                meta_bits.append(f"Grade: {degree.grade}")
+                meta_bits.append(f"{_('Grade')}: {degree.grade}")
             if meta_bits:
                 lines.append(f"*{' · '.join(meta_bits)}*")
             if degree.description:
@@ -108,62 +126,62 @@ def generate_markdown_recap(user) -> str:
                 lines.append(degree.description.strip())
 
     # --- Certificates ---------------------------------------------------------
-    certificates = user.certificates.order_by("-issue_date")
+    certificates = profile.certificates.order_by("-issue_date")
     if certificates.exists():
-        _section(lines, "Certificates")
+        _section(lines, _("Certificates"))
         for cert in certificates:
             lines.append("")
             lines.append(f"### {cert.name}")
             meta_bits = [cert.issuing_organization]
             if cert.issue_date:
-                meta_bits.append(f"Issued {_format_date(cert.issue_date)}")
+                meta_bits.append(_("Issued %(date)s") % {"date": _format_date(cert.issue_date)})
             if cert.does_not_expire:
-                meta_bits.append("No expiration")
+                meta_bits.append(_("No expiration"))
             elif cert.expiry_date:
-                meta_bits.append(f"Expires {_format_date(cert.expiry_date)}")
+                meta_bits.append(_("Expires %(date)s") % {"date": _format_date(cert.expiry_date)})
             lines.append(f"*{' · '.join(meta_bits)}*")
             if cert.credential_id:
                 lines.append("")
-                lines.append(f"Credential ID: {cert.credential_id}")
+                lines.append(f"{_('Credential ID')}: {cert.credential_id}")
             if cert.credential_url:
-                lines.append(f"[View credential]({cert.credential_url})")
+                lines.append(f"[{_('View credential')}]({cert.credential_url})")
 
     lines.append("")
     lines.append("---")
-    lines.append(
-        f"_Generated with Easy Apply on {timezone.localdate().strftime('%B %d, %Y')}._"
-    )
+    generated_on = _("Generated with Easy Apply on %(date)s.") % {
+        "date": date_format(timezone.localdate(), "DATE_FORMAT")
+    }
+    lines.append(f"_{generated_on}_")
 
     return "\n".join(lines) + "\n"
 
 
-def recap_filename(user) -> str:
-    slug = (user.get_full_name() or user.email.split("@")[0]).strip().lower()
-    slug = "-".join(slug.split()) or "recap"
+def recap_filename(profile) -> str:
+    user = profile.user
+    bits = [user.get_full_name() or user.email.split("@")[0], profile.name]
+    slug = "-".join(" ".join(bits).strip().lower().split()) or "recap"
     return f"{slug}-easy-apply-recap.md"
 
 
-def build_profile_snapshot(user) -> dict:
-    """Gather everything a user has recorded into plain structured data —
+def build_profile_snapshot(profile) -> dict:
+    """Gather everything recorded in one profile into plain structured data —
     used to hand the AI a candidate's profile (e.g. to match it against a
     job's requirements) without formatting it as Markdown."""
 
-    profile = getattr(user, "profile", None)
-
     snapshot = {
-        "headline": profile.headline if profile else "",
-        "bio": profile.bio if profile else "",
+        "headline": profile.headline,
+        "bio": profile.bio,
         "soft_skills": [
             {"name": s.name, "category": s.category.name, "level": s.get_level_display()}
-            for s in user.skills.filter(category__kind="soft").select_related("category")
+            for s in profile.skills.filter(category__kind="soft").select_related("category")
         ],
         "technical_skills": [
             {"name": s.name, "category": s.category.name, "level": s.get_level_display()}
-            for s in user.skills.filter(category__kind="technical").select_related("category")
+            for s in profile.skills.filter(category__kind="technical").select_related("category")
         ],
         "languages": [
             {"name": ul.language.name, "proficiency": ul.get_proficiency_display()}
-            for ul in user.languages.select_related("language")
+            for ul in profile.languages.select_related("language")
         ],
         "experience": [
             {
@@ -173,7 +191,7 @@ def build_profile_snapshot(user) -> dict:
                 "employment_type": exp.get_employment_type_display() if exp.employment_type else "",
                 "highlights": [h.text for h in exp.highlights.all()],
             }
-            for exp in user.experiences.prefetch_related("highlights")
+            for exp in profile.experiences.prefetch_related("highlights")
         ],
         "degrees": [
             {
@@ -181,11 +199,11 @@ def build_profile_snapshot(user) -> dict:
                 "school": degree.school,
                 "field_of_study": degree.field_of_study,
             }
-            for degree in user.degrees.all()
+            for degree in profile.degrees.all()
         ],
         "certificates": [
             {"name": cert.name, "issuing_organization": cert.issuing_organization}
-            for cert in user.certificates.all()
+            for cert in profile.certificates.all()
         ],
     }
     return snapshot
@@ -204,24 +222,24 @@ def profile_snapshot_is_empty(snapshot: dict) -> bool:
     )
 
 
-def build_resume_snapshot(user) -> dict:
+def build_resume_snapshot(profile) -> dict:
     """Everything `build_profile_snapshot` gathers, plus the contact
     details, locations and dates a resume needs — used when the AI has to
     draft a full document rather than just judge requirement coverage."""
 
-    profile = getattr(user, "profile", None)
-    snapshot = build_profile_snapshot(user)
+    user = profile.user
+    snapshot = build_profile_snapshot(profile)
 
     snapshot["contact"] = {
         "full_name": user.get_full_name(),
         "first_name": user.first_name,
         "last_name": user.last_name,
         "email": user.email,
-        "phone": profile.phone if profile else "",
-        "location": profile.location if profile else "",
-        "linkedin_url": profile.linkedin_url if profile else "",
-        "portfolio_url": profile.portfolio_url if profile else "",
-        "github_url": profile.github_url if profile else "",
+        "phone": profile.phone,
+        "location": profile.location,
+        "linkedin_url": profile.linkedin_url,
+        "portfolio_url": profile.portfolio_url,
+        "github_url": profile.github_url,
     }
     snapshot["experience"] = [
         {
@@ -233,7 +251,7 @@ def build_resume_snapshot(user) -> dict:
             "is_current": exp.is_current,
             "highlights": [h.text for h in exp.highlights.all()],
         }
-        for exp in user.experiences.prefetch_related("highlights").order_by(
+        for exp in profile.experiences.prefetch_related("highlights").order_by(
             "-is_current", "-start_date"
         )
     ]
@@ -246,7 +264,7 @@ def build_resume_snapshot(user) -> dict:
             "grade": degree.grade,
             "description": degree.description,
         }
-        for degree in user.degrees.all()
+        for degree in profile.degrees.all()
     ]
     snapshot["certificates"] = [
         {
@@ -256,14 +274,14 @@ def build_resume_snapshot(user) -> dict:
             "credential_id": cert.credential_id,
             "credential_url": cert.credential_url,
         }
-        for cert in user.certificates.all()
+        for cert in profile.certificates.all()
     ]
     return snapshot
 
 
 def _date_range(start, end, is_current=False) -> str:
     start_label = _format_date(start)
-    end_label = "Present" if is_current else _format_date(end)
+    end_label = _("Present") if is_current else _format_date(end)
     if start_label and end_label:
         return f"{start_label} – {end_label}"
     return start_label or end_label
@@ -277,14 +295,14 @@ def _date_range(start, end, is_current=False) -> str:
 # for the tailored-resume path, which legitimately needs everything.
 # ---------------------------------------------------------------------------
 
-def _preferences_for(user):
+def _preferences_for(profile):
     from preferences.models import JobPreference
 
-    return JobPreference.objects.filter(user=user).prefetch_related("benefits").first()
+    return JobPreference.objects.filter(profile=profile).prefetch_related("benefits").first()
 
 
-def _slice_preferences_location(user) -> dict:
-    preference = _preferences_for(user)
+def _slice_preferences_location(profile) -> dict:
+    preference = _preferences_for(profile)
     if preference is None:
         return {}
     return {
@@ -299,8 +317,8 @@ def _slice_preferences_location(user) -> dict:
     }
 
 
-def _slice_preferences_compensation(user) -> dict:
-    preference = _preferences_for(user)
+def _slice_preferences_compensation(profile) -> dict:
+    preference = _preferences_for(profile)
     if preference is None:
         return {}
     from preferences.models import BenefitPreference
@@ -318,7 +336,7 @@ def _slice_preferences_compensation(user) -> dict:
     }
 
 
-def _slice_experience(user) -> dict:
+def _slice_experience(profile) -> dict:
     return {
         "experience": [
             {
@@ -328,39 +346,39 @@ def _slice_experience(user) -> dict:
                 "employment_type": exp.get_employment_type_display() if exp.employment_type else "",
                 "highlights": [h.text for h in exp.highlights.all()],
             }
-            for exp in user.experiences.prefetch_related("highlights")
+            for exp in profile.experiences.prefetch_related("highlights")
         ]
     }
 
 
-def _slice_technical_skills(user) -> dict:
+def _slice_technical_skills(profile) -> dict:
     return {
         "technical_skills": [
             {"name": s.name, "category": s.category.name, "level": s.get_level_display()}
-            for s in user.skills.filter(category__kind="technical").select_related("category")
+            for s in profile.skills.filter(category__kind="technical").select_related("category")
         ]
     }
 
 
-def _slice_soft_skills(user) -> dict:
+def _slice_soft_skills(profile) -> dict:
     return {
         "soft_skills": [
             {"name": s.name, "category": s.category.name, "level": s.get_level_display()}
-            for s in user.skills.filter(category__kind="soft").select_related("category")
+            for s in profile.skills.filter(category__kind="soft").select_related("category")
         ]
     }
 
 
-def _slice_languages(user) -> dict:
+def _slice_languages(profile) -> dict:
     return {
         "languages": [
             {"name": ul.language.name, "proficiency": ul.get_proficiency_display()}
-            for ul in user.languages.select_related("language")
+            for ul in profile.languages.select_related("language")
         ]
     }
 
 
-def _slice_education(user) -> dict:
+def _slice_education(profile) -> dict:
     return {
         "degrees": [
             {
@@ -369,7 +387,7 @@ def _slice_education(user) -> dict:
                 "field_of_study": d.field_of_study,
                 "dates": _date_range(d.start_date, d.end_date, d.is_current),
             }
-            for d in user.degrees.all()
+            for d in profile.degrees.all()
         ],
         "certificates": [
             {
@@ -377,7 +395,7 @@ def _slice_education(user) -> dict:
                 "issuing_organization": c.issuing_organization,
                 "issue_date": _format_date(c.issue_date),
             }
-            for c in user.certificates.all()
+            for c in profile.certificates.all()
         ],
     }
 
@@ -394,12 +412,16 @@ SLICE_BUILDERS = {
 }
 
 
-def build_profile_slice(user, section_key: str) -> dict:
-    """Return ONLY the part of `user`'s profile that `section_key` maps to.
+def build_profile_slice(profile, section_key: str) -> dict:
+    """Return ONLY the part of `profile` that `section_key` maps to.
 
     Returns {} for a section that is never matched, and for a matched section
     whose slice is empty — callers use `profile_slice_is_empty` to skip the AI
     call entirely in that case (spec §6.2).
+
+    Built under the profile's language, because the slice carries display
+    strings ("Advanced", "Native / bilingual", "Jan 2020 – Present") straight
+    into the prompt.
     """
     from jobs.sections import get_section
 
@@ -408,10 +430,11 @@ def build_profile_slice(user, section_key: str) -> dict:
         return {}
 
     slice_data: dict = {}
-    for slice_key in section.profile_slices:
-        builder = SLICE_BUILDERS.get(slice_key)
-        if builder:
-            slice_data.update(builder(user))
+    with use_language(profile.language):
+        for slice_key in section.profile_slices:
+            builder = SLICE_BUILDERS.get(slice_key)
+            if builder:
+                slice_data.update(builder(profile))
     return slice_data
 
 

@@ -10,6 +10,6 @@ class BenefitPreferenceInline(admin.TabularInline):
 
 @admin.register(JobPreference)
 class JobPreferenceAdmin(admin.ModelAdmin):
-    list_display = ("user", "salary_range_display", "timezone_preference", "updated_at")
-    search_fields = ("user__email",)
+    list_display = ("profile", "salary_range_display", "timezone_preference", "updated_at")
+    search_fields = ("profile__name", "profile__user__email")
     inlines = [BenefitPreferenceInline]

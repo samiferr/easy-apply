@@ -25,14 +25,14 @@ from skills.models import SkillCategory, UserSkill
 # Forms — each pre-filled from the element text, then reviewed by the user.
 # ---------------------------------------------------------------------------
 class BaseAddForm(StyledFormMixin, forms.Form):
-    """Every add-to-profile form gets the user and the source element.
+    """Every add-to-profile form gets the target profile and the source element.
 
     StyledFormMixin gives the modal's widgets the same classes as the rest of
     the app — without it they render unstyled and overflow on narrow screens.
     """
 
-    def __init__(self, *args, user=None, element=None, **kwargs):
-        self.user = user
+    def __init__(self, *args, profile=None, element=None, **kwargs):
+        self.profile = profile
         self.element = element
         super().__init__(*args, **kwargs)
 
@@ -62,7 +62,7 @@ class SkillAddForm(BaseAddForm):
         name, category = cleaned.get("name"), cleaned.get("category")
         if name and category:
             exists = UserSkill.objects.filter(
-                user=self.user, category=category, name__iexact=name.strip()
+                profile=self.profile, category=category, name__iexact=name.strip()
             ).exists()
             if exists:
                 raise forms.ValidationError(
@@ -73,7 +73,7 @@ class SkillAddForm(BaseAddForm):
 
     def save(self):
         return UserSkill.objects.create(
-            user=self.user,
+            profile=self.profile,
             category=self.cleaned_data["category"],
             name=self.cleaned_data["name"].strip(),
             level=self.cleaned_data["level"],
@@ -95,7 +95,9 @@ class LanguageAddForm(BaseAddForm):
     def clean_name(self):
         name = self.cleaned_data["name"].strip()
         existing = Language.objects.filter(name__iexact=name).first()
-        if existing and UserLanguage.objects.filter(user=self.user, language=existing).exists():
+        if existing and UserLanguage.objects.filter(
+            profile=self.profile, language=existing
+        ).exists():
             raise forms.ValidationError(
                 _("%(name)s is already on your profile.") % {"name": existing.name}
             )
@@ -107,7 +109,9 @@ class LanguageAddForm(BaseAddForm):
             defaults={"name": self.cleaned_data["name"]},
         )
         return UserLanguage.objects.create(
-            user=self.user, language=language, proficiency=self.cleaned_data["proficiency"]
+            profile=self.profile,
+            language=language,
+            proficiency=self.cleaned_data["proficiency"],
         )
 
 
@@ -119,7 +123,7 @@ class ExperienceHighlightAddForm(BaseAddForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        experiences = WorkExperience.objects.filter(user=self.user)
+        experiences = WorkExperience.objects.filter(profile=self.profile)
         self.fields["experience"].queryset = experiences
         if experiences.exists() and not self.initial.get("experience"):
             self.fields["experience"].initial = experiences.first().pk
@@ -163,12 +167,12 @@ class EducationAddForm(BaseAddForm):
     def save(self):
         if self.cleaned_data["record_type"] == self.RECORD_CERTIFICATE:
             return Certificate.objects.create(
-                user=self.user,
+                profile=self.profile,
                 name=self.cleaned_data["title"].strip(),
                 issuing_organization=self.cleaned_data["organization"].strip(),
             )
         return Degree.objects.create(
-            user=self.user,
+            profile=self.profile,
             degree=self.cleaned_data["title"].strip(),
             school=self.cleaned_data["organization"].strip() or "—",
             field_of_study=self.cleaned_data["field_of_study"].strip(),
@@ -186,7 +190,7 @@ class BenefitAddForm(BaseAddForm):
 
     def clean_name(self):
         name = self.cleaned_data["name"].strip()
-        preference = get_or_create_preference(self.user)
+        preference = get_or_create_preference(self.profile)
         if preference.benefits.filter(name__iexact=name).exists():
             raise forms.ValidationError(
                 _("“%(name)s” is already in your preferences.") % {"name": name}
@@ -194,7 +198,7 @@ class BenefitAddForm(BaseAddForm):
         return name
 
     def save(self):
-        preference = get_or_create_preference(self.user)
+        preference = get_or_create_preference(self.profile)
         return BenefitPreference.objects.create(
             preference=preference,
             name=self.cleaned_data["name"],
@@ -241,7 +245,7 @@ class LocationPreferenceAddForm(BaseAddForm):
         return cleaned
 
     def save(self):
-        preference = get_or_create_preference(self.user)
+        preference = get_or_create_preference(self.profile)
         apply_to = self.cleaned_data["apply_to"]
         value = self.cleaned_data["value"].strip()
 

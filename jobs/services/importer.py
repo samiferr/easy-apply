@@ -131,11 +131,14 @@ def _fallback_sections(job: JobPost) -> list[dict]:
     return list(out.values())
 
 
-def apply_analysis(job: JobPost, data: dict, raw_text: str, language: str = "en") -> None:
+def apply_analysis(job: JobPost, data: dict, raw_text: str, language: str = "") -> None:
     """Populate `job` and its sections/elements from the AI's dict.
 
     Pure database work — no network calls — so the transaction below is short.
     Replaces any previously-imported sections, so this doubles as re-analysis.
+
+    `language` records what the stored text is written in; it defaults to the
+    job's profile, which is what the analysis was asked for in the first place.
     """
     job.title = _clean_str(data.get("title"), 200)
     job.seniority_level = _clean_str(data.get("seniority_level"), 100)
@@ -171,7 +174,7 @@ def apply_analysis(job: JobPost, data: dict, raw_text: str, language: str = "en"
 
     job.raw_text = raw_text
     job.ai_model = _clean_str(data.get("_model"), 100)
-    job.analysis_language = (language or "en")[:10]
+    job.analysis_language = (language or job.profile.language)[:10]
     job.analyzed_at = timezone.now()
     job.profile_matched_at = None
     job.status = JobPost.STATUS_COMPLETED

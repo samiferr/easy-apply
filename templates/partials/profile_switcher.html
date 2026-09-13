@@ -1,0 +1,46 @@
+{% load i18n %}
+{% comment %}
+The workspace switcher. A profile owns every job post, skill and resume in the
+app, so this control changes what the whole interface is showing — it sits next
+to the user menu, not buried in settings.
+{% endcomment %}
+{% if active_profile %}
+<div class="relative" x-data="{ open: false }" @keydown.escape="open = false" @click.outside="open = false">
+  <button type="button" @click="open = !open"
+    class="flex max-w-[14rem] items-center gap-2 rounded-lg border border-slate-200 py-1.5 pl-2.5 pr-2 text-left transition hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+    aria-haspopup="true" :aria-expanded="open" title="{% trans 'Switch profile' %}">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M3 12h18M3 17h18"/></svg>
+    <span class="hidden min-w-0 flex-col sm:flex">
+      <span class="truncate text-sm font-medium leading-tight text-slate-700 dark:text-slate-200">{{ active_profile.name }}</span>
+      <span class="truncate text-[0.65rem] font-semibold uppercase leading-tight tracking-wide text-slate-400">{{ active_profile.language }}</span>
+    </span>
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+  </button>
+
+  <div x-show="open" x-transition x-cloak
+    class="absolute right-0 z-50 mt-2 w-72 origin-top-right divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white py-1 shadow-lg dark:divide-slate-800 dark:border-slate-800 dark:bg-slate-900">
+    <div class="px-3 py-2">
+      <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">{% trans "Profiles" %}</p>
+      <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{% trans "Each profile keeps its own jobs, skills and resumes." %}</p>
+    </div>
+    <div class="max-h-72 overflow-y-auto py-1">
+      {% for profile in user_profiles %}
+        <form method="post" action="{% url 'accounts:profile_switch' profile.pk %}">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.get_full_path }}" />
+          <button type="submit"
+            class="menu-item flex w-full items-center justify-between gap-2 {% if profile.pk == active_profile.pk %}font-semibold text-brand-700 dark:text-brand-300{% endif %}"
+            {% if profile.pk == active_profile.pk %}aria-current="true"{% endif %}>
+            <span class="min-w-0 truncate">{{ profile.name }}</span>
+            <span class="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[0.65rem] font-semibold uppercase text-slate-500 dark:bg-slate-800 dark:text-slate-400">{{ profile.language }}</span>
+          </button>
+        </form>
+      {% endfor %}
+    </div>
+    <div class="py-1">
+      <a href="{% url 'accounts:profile_create' %}" class="menu-item">{% trans "New profile…" %}</a>
+      <a href="{% url 'accounts:profile_list' %}" class="menu-item">{% trans "Manage profiles" %}</a>
+    </div>
+  </div>
+</div>
+{% endif %}

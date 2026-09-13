@@ -64,16 +64,20 @@ AI_RESPONSE = {
 
 
 class TailoredResumeTestMixin:
+    LANGUAGE = "en"
+
     def setUp(self):
         self.user = User.objects.create_user(
             email="jane@example.com", password="pw-for-tests-123", first_name="Jane", last_name="Doe"
         )
-        Profile.objects.update_or_create(
-            user=self.user, defaults={"phone": "+1 555 0100", "location": "Montreal, QC"}
-        )
-        self.user.refresh_from_db()
+        self.profile = Profile.objects.get(user=self.user)
+        self.profile.name = "Main"
+        self.profile.language = self.LANGUAGE
+        self.profile.phone = "+1 555 0100"
+        self.profile.location = "Montreal, QC"
+        self.profile.save()
         self.job = JobPost.objects.create(
-            user=self.user,
+            profile=self.profile,
             source_url="https://example.com/job",
             status=JobPost.STATUS_COMPLETED,
             title="Senior Backend Engineer",
@@ -94,10 +98,10 @@ class TailoredResumeTestMixin:
             name="Programming Languages", kind=SkillCategory.TECHNICAL
         )
         UserSkill.objects.create(
-            user=self.user, category=skill_category, name="Python", level=UserSkill.EXPERT
+            profile=self.profile, category=skill_category, name="Python", level=UserSkill.EXPERT
         )
         experience = WorkExperience.objects.create(
-            user=self.user,
+            profile=self.profile,
             job_title="Backend Engineer",
             company="Acme Corp",
             location="Montreal, QC",
@@ -123,7 +127,7 @@ class TemplateSectionTests(TestCase):
 
 class RenderMarkdownTests(TailoredResumeTestMixin, TestCase):
     def test_header_and_sections_follow_the_template(self):
-        markdown = render_markdown(self.user, AI_RESPONSE)
+        markdown = render_markdown(self.profile, AI_RESPONSE)
 
         self.assertTrue(markdown.startswith("**Jane Doe**"))
         self.assertIn("Montreal, QC  |  +1 555 0100  |  jane@example.com", markdown)
@@ -147,7 +151,7 @@ class RenderMarkdownTests(TailoredResumeTestMixin, TestCase):
         self.assertIn("- English — Native", markdown)
 
     def test_sections_without_content_are_dropped(self):
-        markdown = render_markdown(self.user, {"professional_summary": "Just a summary."})
+        markdown = render_markdown(self.profile, {"professional_summary": "Just a summary."})
 
         self.assertIn("## **PROFESSIONAL SUMMARY**", markdown)
         self.assertNotIn("## **SKILLS**", markdown)
@@ -155,7 +159,7 @@ class RenderMarkdownTests(TailoredResumeTestMixin, TestCase):
 
     def test_malformed_ai_content_is_ignored_rather_than_rendered(self):
         markdown = render_markdown(
-            self.user,
+            self.profile,
             {
                 "professional_summary": 42,
                 "skills": "not a list",
@@ -186,7 +190,7 @@ class BuildJobPayloadTests(TailoredResumeTestMixin, TestCase):
 class GenerateTailoredResumeTests(TailoredResumeTestMixin, TestCase):
     def test_empty_profile_is_skipped_before_calling_the_ai(self):
         with patch("resume.services.tailored.call_deepseek_json") as call:
-            result = generate_tailored_resume(self.job, self.user)
+            result = generate_tailored_resume(self.job)
 
         call.assert_not_called()
         self.assertEqual(result, {"skipped": "empty_profile"})
@@ -197,7 +201,7 @@ class GenerateTailoredResumeTests(TailoredResumeTestMixin, TestCase):
         with patch(
             "resume.services.tailored.call_deepseek_json", return_value=dict(AI_RESPONSE)
         ) as call:
-            result = generate_tailored_resume(self.job, self.user)
+            result = generate_tailored_resume(self.job)
 
         call.assert_called_once()
         tailored_resume = result["tailored_resume"]
@@ -210,11 +214,11 @@ class GenerateTailoredResumeTests(TailoredResumeTestMixin, TestCase):
     def test_regenerating_replaces_the_existing_draft(self):
         self.add_profile_content()
         TailoredResume.objects.create(
-            user=self.user, job=self.job, markdown="old draft", edited_by_user=True
+            profile=self.profile, job=self.job, markdown="old draft", edited_by_user=True
         )
 
         with patch("resume.services.tailored.call_deepseek_json", return_value=dict(AI_RESPONSE)):
-            generate_tailored_resume(self.job, self.user)
+            generate_tailored_resume(self.job)
 
         self.assertEqual(TailoredResume.objects.count(), 1)
         tailored_resume = TailoredResume.objects.get()
@@ -373,3 +377,63 @@ class TailoredResumeViewTests(TailoredResumeTestMixin, TestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertIn(reverse("accounts:login"), response["Location"])
+
+
+class FrenchProfileResumeTests(TailoredResumeTestMixin, TestCase):
+    """A French profile produces a French resume, whatever the UI is set to."""
+
+    LANGUAGE = "fr"
+
+    def test_the_prompt_asks_for_french_and_the_headings_are_french(self):
+        from django.utils import translation
+
+        self.add_profile_content()
+        captured = {}
+
+        def fake_call(system_prompt, user_content, **kwargs):
+            captured["payload"] = user_content
+            return dict(AI_RESPONSE)
+
+        with translation.override("en"), patch(
+            "resume.services.tailored.call_deepseek_json", side_effect=fake_call
+        ):
+            result = generate_tailored_resume(self.job)
+
+        self.assertIn("in French", captured["payload"])
+        markdown = result["tailored_resume"].markdown
+        self.assertIn("## **RÉSUMÉ PROFESSIONNEL**", markdown)
+        self.assertNotIn("## **PROFESSIONAL SUMMARY**", markdown)
+
+    def test_the_profile_snapshot_reaches_the_model_in_french(self):
+        self.add_profile_content()
+        captured = {}
+
+        def fake_call(system_prompt, user_content, **kwargs):
+            captured["payload"] = user_content
+            return dict(AI_RESPONSE)
+
+        with patch("resume.services.tailored.call_deepseek_json", side_effect=fake_call):
+            generate_tailored_resume(self.job)
+
+        # The current role's end marker is the giveaway: the snapshot carries
+        # display strings, and they must already be French when the model sees
+        # them.
+        self.assertIn("Aujourd’hui", captured["payload"])
+        self.assertNotIn("Jan 2020 – Present", captured["payload"])
+
+    def test_the_resume_is_parsed_in_the_profile_language(self):
+        from resume.models import ResumeImport
+        from resume.services import importer
+
+        upload = ResumeImport.objects.create(profile=self.profile, file="resumes/x.txt")
+        captured = {}
+
+        def fake_analyze(raw_text, soft, technical, language="en"):
+            captured["language"] = language
+            return {"profile": {}}
+
+        with patch.object(importer, "extract_resume_text", return_value="CV text"), \
+             patch.object(importer, "analyze_resume_text", side_effect=fake_analyze):
+            importer.run_analysis(upload)
+
+        self.assertEqual(captured["language"], "fr")

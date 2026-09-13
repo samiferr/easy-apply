@@ -26,7 +26,11 @@
       {% endif %}
       <div>
         <p class="font-semibold text-slate-900 dark:text-white">{{ request.user.get_full_name|default:request.user.email }}</p>
-        <p class="text-sm text-slate-500 dark:text-slate-400">Profile {{ object.completion_percent }}% complete</p>
+        <p class="text-sm text-slate-500 dark:text-slate-400">
+          {% blocktrans trimmed with name=object.name language=object.get_language_display percent=object.completion_percent %}
+            {{ name }} ({{ language }}) — {{ percent }}% complete
+          {% endblocktrans %}
+        </p>
       </div>
     </div>
 

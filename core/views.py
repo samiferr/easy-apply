@@ -33,18 +33,18 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        user = self.request.user
+        profile = self.request.profile
 
-        soft_count = user.skills.filter(category__kind="soft").count()
-        technical_count = user.skills.filter(category__kind="technical").count()
-        language_count = user.languages.count()
-        experience_count = user.experiences.count()
-        degree_count = user.degrees.count()
-        certificate_count = user.certificates.count()
+        soft_count = profile.skills.filter(category__kind="soft").count()
+        technical_count = profile.skills.filter(category__kind="technical").count()
+        language_count = profile.languages.count()
+        experience_count = profile.experiences.count()
+        degree_count = profile.degrees.count()
+        certificate_count = profile.certificates.count()
 
         checklist = [
-            (_("Complete your profile"), getattr(user, "profile", None) and user.profile.completion_percent >= 60, "accounts:profile"),
-            (_("Set your job preferences"), self._has_preferences(user), "preferences:detail"),
+            (_("Complete your profile"), profile.completion_percent >= 60, "accounts:profile"),
+            (_("Set your job preferences"), self._has_preferences(profile), "preferences:detail"),
             (_("Add a technical skill"), technical_count > 0, "skills:list"),
             (_("Add a soft skill"), soft_count > 0, "skills:list"),
             (_("Add a language"), language_count > 0, "languages:list"),
@@ -56,25 +56,25 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         ctx["completion_percent"] = round((done_count / len(checklist)) * 100)
 
         ctx["recent_jobs"] = (
-            JobPost.objects.filter(user=user)
+            JobPost.objects.filter(profile=profile)
             .prefetch_related("sections__elements")
             .order_by("-created_at")[:5]
         )
-        ctx["chart"] = self._jobs_per_day_chart(user)
+        ctx["chart"] = self._jobs_per_day_chart(profile)
         ctx["running_tasks"] = (
-            AITask.objects.filter(user=user, state__in=[AITask.QUEUED, AITask.RUNNING])
+            AITask.objects.filter(profile=profile, state__in=[AITask.QUEUED, AITask.RUNNING])
             .order_by("-queued_at")[:4]
         )
-        ctx["job_post_count"] = JobPost.objects.filter(user=user).count()
+        ctx["job_post_count"] = JobPost.objects.filter(profile=profile).count()
         return ctx
 
     @staticmethod
-    def _has_preferences(user):
-        preference = getattr(user, "job_preference", None)
+    def _has_preferences(profile):
+        preference = getattr(profile, "job_preference", None)
         return bool(preference) and not preference.is_empty
 
     @staticmethod
-    def _jobs_per_day_chart(user):
+    def _jobs_per_day_chart(profile):
         """Jobs analyzed per day this month, aggregated in the database and
         rendered as a server-side SVG/CSS chart — no JS charting library."""
         today = timezone.localdate()
@@ -82,7 +82,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         days_in_month = monthrange(today.year, today.month)[1]
 
         rows = (
-            JobPost.objects.filter(user=user, created_at__date__gte=first)
+            JobPost.objects.filter(profile=profile, created_at__date__gte=first)
             .annotate(day=TruncDate("created_at"))
             .values("day")
             .annotate(count=Count("id"))
@@ -117,9 +117,9 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
 class ExportMarkdownView(LoginRequiredMixin, TemplateView):
     def get(self, request, *args, **kwargs):
-        content = generate_markdown_recap(request.user)
+        content = generate_markdown_recap(request.profile)
         response = HttpResponse(content, content_type="text/markdown; charset=utf-8")
-        response["Content-Disposition"] = f'attachment; filename="{recap_filename(request.user)}"'
+        response["Content-Disposition"] = f'attachment; filename="{recap_filename(request.profile)}"'
         return response
 
 
@@ -128,7 +128,7 @@ class ExportPreviewView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["markdown_content"] = generate_markdown_recap(self.request.user)
+        ctx["markdown_content"] = generate_markdown_recap(self.request.profile)
         return ctx
 
 

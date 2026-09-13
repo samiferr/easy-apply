@@ -7,7 +7,7 @@ from .models import AITask
 class AITaskAdmin(admin.ModelAdmin):
     """Read-only debugging surface for when a worker misbehaves."""
 
-    list_display = ("id", "kind", "state", "user", "percent", "current_step", "queued_at", "finished_at")
+    list_display = ("id", "kind", "state", "user", "profile", "percent", "current_step", "queued_at", "finished_at")
     list_filter = ("kind", "state")
     search_fields = ("user__email", "celery_task_id", "current_step", "error_message")
     date_hierarchy = "queued_at"

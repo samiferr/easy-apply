@@ -1,4 +1,3 @@
-from django.conf import settings
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -18,8 +17,8 @@ class JobPreference(models.Model):
         ("hour", _("Per hour")),
     ]
 
-    user = models.OneToOneField(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="job_preference"
+    profile = models.OneToOneField(
+        "accounts.Profile", on_delete=models.CASCADE, related_name="job_preference"
     )
 
     # --- Compensation ----------------------------------------------------
@@ -67,7 +66,7 @@ class JobPreference(models.Model):
         verbose_name_plural = _("job preferences")
 
     def __str__(self):
-        return f"Job preferences of {self.user}"
+        return f"Job preferences of {self.profile}"
 
     @property
     def preferred_locations_list(self):
@@ -167,10 +166,10 @@ SEED_BENEFITS = [
 ]
 
 
-def get_or_create_preference(user) -> JobPreference:
-    """Return the user's JobPreference, seeding the starter benefit list the
+def get_or_create_preference(profile) -> JobPreference:
+    """Return the profile's JobPreference, seeding the starter benefit list the
     first time it is created."""
-    preference, created = JobPreference.objects.get_or_create(user=user)
+    preference, created = JobPreference.objects.get_or_create(profile=profile)
     if created:
         BenefitPreference.objects.bulk_create(
             BenefitPreference(

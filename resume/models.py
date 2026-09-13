@@ -1,4 +1,3 @@
-from django.conf import settings
 from django.core.validators import FileExtensionValidator
 from django.db import models
 from django.urls import reverse
@@ -6,7 +5,7 @@ from django.utils.text import slugify
 
 
 def resume_upload_path(instance, filename):
-    return f"resumes/user_{instance.user_id}/{filename}"
+    return f"resumes/profile_{instance.profile_id}/{filename}"
 
 
 class ResumeImport(models.Model):
@@ -23,8 +22,8 @@ class ResumeImport(models.Model):
         (STATUS_FAILED, "Failed"),
     ]
 
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="resume_imports"
+    profile = models.ForeignKey(
+        "accounts.Profile", on_delete=models.CASCADE, related_name="resume_imports"
     )
     file = models.FileField(
         upload_to=resume_upload_path,
@@ -52,8 +51,8 @@ class TailoredResume(models.Model):
     the job's requirement match, kept as editable Markdown until the user
     is happy with it and exports it as a PDF."""
 
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="tailored_resumes"
+    profile = models.ForeignKey(
+        "accounts.Profile", on_delete=models.CASCADE, related_name="tailored_resumes"
     )
     job = models.OneToOneField(
         "jobs.JobPost", on_delete=models.CASCADE, related_name="tailored_resume"
@@ -98,7 +97,8 @@ class TailoredResume(models.Model):
     @property
     def pdf_filename(self) -> str:
         """A safe, descriptive download name, e.g. "jane-doe-acme-resume.pdf"."""
-        bits = [self.user.get_full_name() or self.user.email.split("@")[0]]
+        user = self.profile.user
+        bits = [user.get_full_name() or user.email.split("@")[0]]
         if self.job.company_name:
             bits.append(self.job.company_name)
         elif self.job.title:

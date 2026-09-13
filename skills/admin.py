@@ -12,7 +12,7 @@ class SkillCategoryAdmin(admin.ModelAdmin):
 
 @admin.register(UserSkill)
 class UserSkillAdmin(admin.ModelAdmin):
-    list_display = ["name", "user", "category", "level"]
+    list_display = ["name", "profile", "category", "level"]
     list_filter = ["category__kind", "category", "level"]
-    search_fields = ["name", "user__email"]
+    search_fields = ["name", "profile__name", "profile__user__email"]
     autocomplete_fields = ["category"]

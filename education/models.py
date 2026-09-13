@@ -1,11 +1,10 @@
-from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 
 
 class Degree(models.Model):
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="degrees"
+    profile = models.ForeignKey(
+        "accounts.Profile", on_delete=models.CASCADE, related_name="degrees"
     )
     school = models.CharField(max_length=150)
     degree = models.CharField(max_length=150, help_text="e.g. Bachelor's, Master's, PhD")
@@ -30,8 +29,8 @@ class Degree(models.Model):
 
 
 class Certificate(models.Model):
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="certificates"
+    profile = models.ForeignKey(
+        "accounts.Profile", on_delete=models.CASCADE, related_name="certificates"
     )
     name = models.CharField(max_length=150)
     issuing_organization = models.CharField(max_length=150)

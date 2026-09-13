@@ -12,8 +12,10 @@ import logging
 
 from django.conf import settings
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
 from core.ai import AIServiceError, call_deepseek_json
+from core.language import language_clause, use_language
 from core.utils import build_resume_snapshot, profile_snapshot_is_empty
 
 from ..models import TailoredResume
@@ -36,6 +38,18 @@ DEFAULT_SECTIONS = [
     (EDUCATION, "EDUCATION & PROFESSIONAL DEVELOPMENT"),
     (LANGUAGES, "LANGUAGES"),
 ]
+
+#: The headings we print, per content key. `resume_template.md` decides which
+#: sections appear and in what order; these decide what they are *called*, so a
+#: French profile gets a French resume rather than French prose under English
+#: headings.
+SECTION_HEADINGS = {
+    SUMMARY: _("PROFESSIONAL SUMMARY"),
+    SKILLS: _("SKILLS"),
+    EXPERIENCE: _("WORKING EXPERIENCE"),
+    EDUCATION: _("EDUCATION & PROFESSIONAL DEVELOPMENT"),
+    LANGUAGES: _("LANGUAGES"),
+}
 
 SYSTEM_PROMPT = """You are an expert resume writer. You are given a JSON \
 object with three keys: "job" (a structured job posting, including every \
@@ -189,36 +203,30 @@ def build_job_payload(job) -> dict:
 # --- Markdown assembly ------------------------------------------------------
 
 
-def _header_lines(user) -> list[str]:
-    profile = getattr(user, "profile", None)
+def _header_lines(profile) -> list[str]:
+    user = profile.user
     name = user.get_full_name() or user.get_short_name()
-    contact_bits = [
-        profile.location if profile else "",
-        profile.phone if profile else "",
-        user.email,
-    ]
+    contact_bits = [profile.location, profile.phone, user.email]
     lines = [f"**{name}**", ""]
     contact = "  |  ".join(bit for bit in contact_bits if bit)
     if contact:
         lines.append(contact)
-    links = []
-    if profile:
-        links = [
-            url
-            for url in (profile.linkedin_url, profile.portfolio_url, profile.github_url)
-            if url
-        ]
+    links = [
+        url
+        for url in (profile.linkedin_url, profile.portfolio_url, profile.github_url)
+        if url
+    ]
     if links:
         lines.append("  |  ".join(links))
     return lines
 
 
-def _summary_lines(data, user) -> list[str]:
+def _summary_lines(data, profile) -> list[str]:
     summary = _clean_str(data.get("professional_summary"))
     return [summary] if summary else []
 
 
-def _skills_lines(data, user) -> list[str]:
+def _skills_lines(data, profile) -> list[str]:
     lines = []
     for group in _clean_dict_list(data.get("skills")):
         items = _clean_str_list(group.get("items"), 120)
@@ -229,7 +237,7 @@ def _skills_lines(data, user) -> list[str]:
     return lines
 
 
-def _experience_lines(data, user) -> list[str]:
+def _experience_lines(data, profile) -> list[str]:
     lines = []
     for role in _clean_dict_list(data.get("experience")):
         job_title = _clean_str(role.get("job_title"), 150)
@@ -255,7 +263,7 @@ def _experience_lines(data, user) -> list[str]:
     return lines
 
 
-def _education_lines(data, user) -> list[str]:
+def _education_lines(data, profile) -> list[str]:
     lines = []
     for entry in _clean_dict_list(data.get("education")):
         title = _clean_str(entry.get("title"), 150)
@@ -278,7 +286,7 @@ def _education_lines(data, user) -> list[str]:
     return lines
 
 
-def _languages_lines(data, user) -> list[str]:
+def _languages_lines(data, profile) -> list[str]:
     return [f"- {language}" for language in _clean_str_list(data.get("languages"), 120)]
 
 
@@ -291,23 +299,29 @@ SECTION_BUILDERS = {
 }
 
 
-def render_markdown(user, data: dict, sections=None) -> str:
+def render_markdown(profile, data: dict, sections=None) -> str:
     """Assemble the AI's section content into one Markdown document laid
     out like resume_template.md. Sections the AI returned nothing for are
-    left out rather than printed as an empty heading."""
+    left out rather than printed as an empty heading.
+
+    Headings are rendered in the profile's language, matching the prose the
+    model was told to write.
+    """
 
     sections = sections if sections is not None else load_template_sections()
-    lines = _header_lines(user)
+    lines = _header_lines(profile)
 
-    for key, heading in sections:
-        builder = SECTION_BUILDERS.get(key)
-        if builder is None:
-            continue
-        body = builder(data, user)
-        if not body:
-            continue
-        lines.extend(["", f"## **{heading}**", ""])
-        lines.extend(body)
+    with use_language(profile.language):
+        for key, heading in sections:
+            builder = SECTION_BUILDERS.get(key)
+            if builder is None:
+                continue
+            body = builder(data, profile)
+            if not body:
+                continue
+            label = SECTION_HEADINGS.get(key)
+            lines.extend(["", f"## **{label or heading}**", ""])
+            lines.extend(body)
 
     return "\n".join(lines).strip() + "\n"
 
@@ -315,37 +329,50 @@ def render_markdown(user, data: dict, sections=None) -> str:
 # --- Entry point ------------------------------------------------------------
 
 
-def generate_tailored_resume(job, user) -> dict:
+def generate_tailored_resume(job, profile=None) -> dict:
     """Draft (or re-draft) the tailored resume for `job` and store it as
     editable Markdown. Returns {"skipped": "empty_profile"} when there's
     nothing to write about, otherwise {"tailored_resume": <row>}. Raises
     AIServiceError on failure."""
 
-    profile_snapshot = build_resume_snapshot(user)
+    profile = profile or job.profile
+    with use_language(profile.language):
+        # The snapshot carries display strings (levels, proficiencies, dates)
+        # straight into the prompt, so build it in the profile's language.
+        profile_snapshot = build_resume_snapshot(profile)
+        empty_message = str(
+            _("Add some experience or skills to this profile first.")
+        )
     if profile_snapshot_is_empty(profile_snapshot):
         TailoredResume.objects.filter(job=job).update(
             state=TailoredResume.STATE_FAILED,
-            error_message="Add some experience or skills to your profile first.",
+            error_message=empty_message,
         )
         return {"skipped": "empty_profile"}
 
-    user_content = json.dumps(
+    with use_language(profile.language):
+        job_payload = build_job_payload(job)
+    payload = json.dumps(
         {
-            "job": build_job_payload(job),
+            "job": job_payload,
             "candidate_profile": profile_snapshot,
             "resume_template": load_template_text(),
-        }
+        },
+        # Accented profile content reaches the model as text, not as \uXXXX
+        # escapes — same as the matcher's payload.
+        ensure_ascii=False,
     )
+    user_content = f"{language_clause(profile.language)}\n\n{payload}"
     data = call_deepseek_json(SYSTEM_PROMPT, user_content, temperature=0.3)
 
-    markdown = render_markdown(user, data)
+    markdown = render_markdown(profile, data)
     if not markdown.strip():
         raise AIServiceError("The AI resume writer returned an empty resume.")
 
-    tailored_resume, _ = TailoredResume.objects.update_or_create(
+    tailored_resume, _created = TailoredResume.objects.update_or_create(
         job=job,
         defaults={
-            "user": user,
+            "profile": profile,
             "markdown": markdown,
             "ai_model": _clean_str(data.get("_model"), 100),
             "edited_by_user": False,

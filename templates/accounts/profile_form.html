@@ -1,0 +1,43 @@
+{% extends "accounts/settings_base.html" %}
+{% load i18n %}
+{% block title %}{% if object %}{% trans "Rename profile" %}{% else %}{% trans "New profile" %}{% endif %} · {{ SITE_NAME }}{% endblock %}
+{% block settings_content %}
+  <div class="card p-6 sm:p-8">
+    <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
+      {% if object %}{% trans "Rename profile" %}{% else %}{% trans "New profile" %}{% endif %}
+    </h2>
+    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+      {% if object %}
+        {% blocktrans trimmed with language=object.get_language_display %}
+          This profile is written in {{ language }}. A profile's language is fixed
+          when it's created — to work in another language, create a second profile.
+        {% endblocktrans %}
+      {% else %}
+        {% blocktrans trimmed %}
+          A profile keeps its own skills, experience, education, preferences, job
+          analyses and resumes. Pick the language it works in — every AI analysis
+          and every document generated in this profile will be written in it, and
+          it can't be changed later.
+        {% endblocktrans %}
+      {% endif %}
+    </p>
+
+    <form method="post" novalidate class="mt-6 space-y-5">
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+        <div class="rounded-lg bg-rose-50 p-3 text-sm text-rose-700 dark:bg-rose-950/40 dark:text-rose-300">
+          {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+        </div>
+      {% endif %}
+      {% for field in form %}
+        {% include "partials/field.html" with field=field %}
+      {% endfor %}
+      <div class="flex justify-end gap-2 border-t border-slate-100 pt-5 dark:border-slate-800">
+        <a href="{% url 'accounts:profile_list' %}" class="btn-secondary">{% trans "Cancel" %}</a>
+        <button type="submit" class="btn-primary">
+          {% if object %}{% trans "Save" %}{% else %}{% trans "Create profile" %}{% endif %}
+        </button>
+      </div>
+    </form>
+  </div>
+{% endblock %}

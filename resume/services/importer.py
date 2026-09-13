@@ -1,6 +1,9 @@
 """Orchestrates resume analysis (extract -> AI -> store) and turns a
 user's selections from the review page into real Profile / UserSkill /
 UserLanguage / WorkExperience+Highlights / Degree / Certificate rows.
+
+Everything is written into the profile the upload belongs to, so importing a
+resume into one workspace never touches another.
 """
 
 import logging
@@ -9,7 +12,6 @@ from datetime import datetime
 from django.db import transaction
 from django.utils import timezone
 
-from accounts.models import Profile
 from core.ai import AIServiceError
 from education.models import Certificate, Degree
 from experience.models import ExperienceHighlight, WorkExperience
@@ -100,8 +102,15 @@ def run_analysis(resume_import, progress=None) -> None:
                 "name", flat=True
             )
         )
-        # The AI call sits outside any transaction — see spec §7.1.
-        data = analyze_resume_text(raw_text, soft_categories, technical_categories)
+        # The AI call sits outside any transaction — see spec §7.1. The
+        # upload belongs to a profile, and that profile's language is what the
+        # parsed prose comes back in.
+        data = analyze_resume_text(
+            raw_text,
+            soft_categories,
+            technical_categories,
+            language=resume_import.profile.language,
+        )
 
         resume_import.ai_response = data
         resume_import.ai_model = _clean_str(data.get("_model"), 100)
@@ -126,15 +135,15 @@ def run_analysis(resume_import, progress=None) -> None:
 
 # --- Review: annotate the AI's suggestions with what's new vs. already-had --
 
-def build_review_sections(resume_import, user) -> dict:
+def build_review_sections(resume_import, profile) -> dict:
     data = resume_import.ai_response or {}
     profile_data = data.get("profile") or {}
-    profile = getattr(user, "profile", None)
+    user = profile.user
 
     profile_fields = []
     for field, label, max_length in PROFILE_FIELD_SPECS:
         current_value = user.first_name if field == "first_name" else (
-            user.last_name if field == "last_name" else getattr(profile, field, "") if profile else ""
+            user.last_name if field == "last_name" else getattr(profile, field, "")
         )
         if current_value:
             continue
@@ -144,7 +153,7 @@ def build_review_sections(resume_import, user) -> dict:
         profile_fields.append({"key": f"profile:{field}", "label": label, "value": value})
 
     existing_skills = {
-        (s.category.kind, s.name.lower()) for s in user.skills.select_related("category")
+        (s.category.kind, s.name.lower()) for s in profile.skills.select_related("category")
     }
     soft_skills, technical_skills = [], []
     for kind, section_key, prefix, bucket in (
@@ -164,7 +173,7 @@ def build_review_sections(resume_import, user) -> dict:
             })
 
     existing_languages = {
-        ul.language.name.lower() for ul in user.languages.select_related("language")
+        ul.language.name.lower() for ul in profile.languages.select_related("language")
     }
     languages = []
     for i, item in enumerate(_clean_list_of_dicts(data.get("languages"))):
@@ -180,7 +189,7 @@ def build_review_sections(resume_import, user) -> dict:
         })
 
     existing_experience = {
-        (e.company.lower(), e.job_title.lower()) for e in user.experiences.all()
+        (e.company.lower(), e.job_title.lower()) for e in profile.experiences.all()
     }
     experience = []
     for i, item in enumerate(_clean_list_of_dicts(data.get("experience"))):
@@ -200,7 +209,7 @@ def build_review_sections(resume_import, user) -> dict:
             "is_duplicate": (company.lower(), job_title.lower()) in existing_experience,
         })
 
-    existing_degrees = {(d.school.lower(), d.degree.lower()) for d in user.degrees.all()}
+    existing_degrees = {(d.school.lower(), d.degree.lower()) for d in profile.degrees.all()}
     degrees = []
     for i, item in enumerate(_clean_list_of_dicts(data.get("degrees"))):
         school = _clean_str(item.get("school"), 150)
@@ -219,7 +228,7 @@ def build_review_sections(resume_import, user) -> dict:
         })
 
     existing_certificates = {
-        (c.name.lower(), c.issuing_organization.lower()) for c in user.certificates.all()
+        (c.name.lower(), c.issuing_organization.lower()) for c in profile.certificates.all()
     }
     certificates = []
     for i, item in enumerate(_clean_list_of_dicts(data.get("certificates"))):
@@ -250,12 +259,12 @@ def build_review_sections(resume_import, user) -> dict:
 # --- Apply: create rows for whatever the user checked ------------------------
 
 @transaction.atomic
-def apply_selected(resume_import, user, selected_keys: set) -> dict:
+def apply_selected(resume_import, profile, selected_keys: set) -> dict:
     data = resume_import.ai_response or {}
     counts = {"profile": False, "skills": 0, "languages": 0, "experience": 0, "degrees": 0, "certificates": 0}
 
     profile_data = data.get("profile") or {}
-    profile, _ = Profile.objects.get_or_create(user=user)
+    user = profile.user
 
     if "profile:first_name" in selected_keys or "profile:last_name" in selected_keys:
         if "profile:first_name" in selected_keys:
@@ -294,7 +303,7 @@ def apply_selected(resume_import, user, selected_keys: set) -> dict:
             category, _ = SkillCategory.objects.get_or_create(name=category_name, kind=kind)
             level = LEVEL_MAP.get(_clean_str(item.get("level")).lower(), UserSkill.INTERMEDIATE)
             _, created = UserSkill.objects.get_or_create(
-                user=user, category=category, name=name, defaults={"level": level}
+                profile=profile, category=category, name=name, defaults={"level": level}
             )
             if created:
                 counts["skills"] += 1
@@ -313,7 +322,7 @@ def apply_selected(resume_import, user, selected_keys: set) -> dict:
             name__iexact=name, defaults={"name": name}
         )
         _, created = UserLanguage.objects.get_or_create(
-            user=user, language=language, defaults={"proficiency": proficiency}
+            profile=profile, language=language, defaults={"proficiency": proficiency}
         )
         if created:
             counts["languages"] += 1
@@ -331,7 +340,7 @@ def apply_selected(resume_import, user, selected_keys: set) -> dict:
             employment_type = ""
         is_current = bool(item.get("is_current"))
         experience = WorkExperience.objects.create(
-            user=user,
+            profile=profile,
             job_title=job_title,
             company=company,
             location=_clean_str(item.get("location"), 120),
@@ -356,7 +365,7 @@ def apply_selected(resume_import, user, selected_keys: set) -> dict:
             continue
         is_current = bool(item.get("is_current"))
         Degree.objects.create(
-            user=user,
+            profile=profile,
             school=school,
             degree=degree_name,
             field_of_study=_clean_str(item.get("field_of_study"), 150),
@@ -377,7 +386,7 @@ def apply_selected(resume_import, user, selected_keys: set) -> dict:
             continue
         does_not_expire = bool(item.get("does_not_expire"))
         Certificate.objects.create(
-            user=user,
+            profile=profile,
             name=name,
             issuing_organization=org,
             issue_date=_parse_date(item.get("issue_date")),

@@ -12,6 +12,7 @@
   <div class="my-2 border-t border-slate-200 dark:border-slate-800"></div>
   <ul class="space-y-0.5">
     <li><a href="{% url 'accounts:profile' %}" class="tab-rail-item {% if active_tab == 'personal' %}tab-rail-item-active{% endif %}">{% trans "Personal info" %}</a></li>
+    <li><a href="{% url 'accounts:profile_list' %}" class="tab-rail-item {% if active_tab == 'profiles' %}tab-rail-item-active{% endif %}">{% trans "Profiles" %}</a></li>
     <li><a href="{% url 'accounts:security' %}" class="tab-rail-item {% if active_tab == 'security' %}tab-rail-item-active{% endif %}">{% trans "Security" %}</a></li>
   </ul>
 </nav>

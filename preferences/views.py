@@ -15,7 +15,7 @@ class JobPreferenceView(LoginRequiredMixin, View):
     template_name = "preferences/job_preference.html"
 
     def get_context(self, request, form=None, benefit_form=None):
-        preference = get_or_create_preference(request.user)
+        preference = get_or_create_preference(request.profile)
         return {
             "preference": preference,
             "form": form or JobPreferenceForm(instance=preference),
@@ -28,7 +28,7 @@ class JobPreferenceView(LoginRequiredMixin, View):
         return render(request, self.template_name, self.get_context(request))
 
     def post(self, request):
-        preference = get_or_create_preference(request.user)
+        preference = get_or_create_preference(request.profile)
         form = JobPreferenceForm(request.POST, instance=preference)
         if form.is_valid():
             form.save()
@@ -39,7 +39,7 @@ class JobPreferenceView(LoginRequiredMixin, View):
 
 class BenefitCreateView(LoginRequiredMixin, View):
     def post(self, request):
-        preference = get_or_create_preference(request.user)
+        preference = get_or_create_preference(request.profile)
         form = BenefitPreferenceForm(request.POST, preference=preference)
         if form.is_valid():
             benefit = form.save(commit=False)
@@ -57,7 +57,7 @@ class BenefitUpdateView(LoginRequiredMixin, View):
 
     def post(self, request, pk):
         benefit = get_object_or_404(
-            BenefitPreference, pk=pk, preference__user=request.user
+            BenefitPreference, pk=pk, preference__profile=request.profile
         )
         importance = request.POST.get("importance")
         valid = {choice[0] for choice in BenefitPreference.IMPORTANCE_CHOICES}
@@ -70,7 +70,7 @@ class BenefitUpdateView(LoginRequiredMixin, View):
 class BenefitDeleteView(LoginRequiredMixin, View):
     def post(self, request, pk):
         benefit = get_object_or_404(
-            BenefitPreference, pk=pk, preference__user=request.user
+            BenefitPreference, pk=pk, preference__profile=request.profile
         )
         name = benefit.name
         benefit.delete()

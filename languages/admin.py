@@ -10,7 +10,7 @@ class LanguageAdmin(admin.ModelAdmin):
 
 @admin.register(UserLanguage)
 class UserLanguageAdmin(admin.ModelAdmin):
-    list_display = ["language", "user", "proficiency"]
+    list_display = ["language", "profile", "proficiency"]
     list_filter = ["proficiency"]
-    search_fields = ["user__email", "language__name"]
+    search_fields = ["profile__name", "profile__user__email", "language__name"]
     autocomplete_fields = ["language"]

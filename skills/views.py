@@ -23,7 +23,7 @@ class SkillListView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        base_qs = UserSkill.objects.filter(user=self.request.user).select_related("category")
+        base_qs = UserSkill.objects.filter(profile=self.request.profile).select_related("category")
         ctx["soft_skills"] = _grouped_by_category(base_qs.filter(category__kind=SkillCategory.SOFT))
         ctx["technical_skills"] = _grouped_by_category(
             base_qs.filter(category__kind=SkillCategory.TECHNICAL)
@@ -45,7 +45,7 @@ class BaseSkillFormView(LoginRequiredMixin):
         return kind
 
     def get_queryset(self):
-        return UserSkill.objects.filter(user=self.request.user)
+        return UserSkill.objects.filter(profile=self.request.profile)
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -64,7 +64,7 @@ class BaseSkillFormView(LoginRequiredMixin):
 
 class SkillCreateView(BaseSkillFormView, CreateView):
     def form_valid(self, form):
-        form.instance.user = self.request.user
+        form.instance.profile = self.request.profile
         messages.success(self.request, f"Added “{form.instance.name}” to your skills.")
         return super().form_valid(form)
 
@@ -79,7 +79,7 @@ class SkillDeleteView(LoginRequiredMixin, DeleteView):
     model = UserSkill
 
     def get_queryset(self):
-        return UserSkill.objects.filter(user=self.request.user)
+        return UserSkill.objects.filter(profile=self.request.profile)
 
     def get_success_url(self):
         return f"{reverse_lazy('skills:list')}?tab={self.object.category.kind}"

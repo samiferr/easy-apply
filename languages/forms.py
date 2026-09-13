@@ -16,9 +16,9 @@ class UserLanguageForm(StyledModelForm):
         model = UserLanguage
         fields = ["proficiency"]
 
-    def __init__(self, *args, user=None, **kwargs):
+    def __init__(self, *args, profile=None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.user = user
+        self.profile = profile
         self.order_fields(["language_name", "proficiency"])
         if self.instance.pk:
             self.fields["language_name"].initial = self.instance.language.name
@@ -29,7 +29,7 @@ class UserLanguageForm(StyledModelForm):
         if not name:
             raise forms.ValidationError("Please enter a language.")
         existing = (
-            UserLanguage.objects.filter(user=self.user, language__name__iexact=name)
+            UserLanguage.objects.filter(profile=self.profile, language__name__iexact=name)
             .exclude(pk=self.instance.pk)
             .exists()
         )
@@ -44,8 +44,8 @@ class UserLanguageForm(StyledModelForm):
         )
         instance = super().save(commit=False)
         instance.language = language
-        if self.user is not None:
-            instance.user = self.user
+        if self.profile is not None:
+            instance.profile = self.profile
         if commit:
             instance.save()
         return instance

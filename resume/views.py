@@ -23,7 +23,7 @@ class ResumeUploadView(LoginRequiredMixin, CreateView):
     template_name = "resume/resume_upload.html"
 
     def form_valid(self, form):
-        form.instance.user = self.request.user
+        form.instance.profile = self.request.profile
         form.instance.original_filename = form.instance.file.name
         response = super().form_valid(form)
         # Never block the POST on an AI call — the review page shows progress.
@@ -37,14 +37,14 @@ class ResumeUploadView(LoginRequiredMixin, CreateView):
 class ResumeReviewView(LoginRequiredMixin, View):
     template_name = "resume/resume_review.html"
 
-    def get_object(self, pk, user):
-        return get_object_or_404(ResumeImport, pk=pk, user=user)
+    def get_object(self, pk, profile):
+        return get_object_or_404(ResumeImport, pk=pk, profile=profile)
 
     def get(self, request, pk):
-        resume_import = self.get_object(pk, request.user)
+        resume_import = self.get_object(pk, request.profile)
         sections = None
         if resume_import.status == ResumeImport.STATUS_COMPLETED:
-            sections = build_review_sections(resume_import, request.user)
+            sections = build_review_sections(resume_import, request.profile)
         return render(
             request,
             self.template_name,
@@ -56,19 +56,19 @@ class ResumeReviewView(LoginRequiredMixin, View):
         )
 
     def post(self, request, pk):
-        resume_import = self.get_object(pk, request.user)
+        resume_import = self.get_object(pk, request.profile)
         if resume_import.status != ResumeImport.STATUS_COMPLETED:
             return redirect("resume:review", pk=pk)
 
         selected_keys = set(request.POST.getlist("selected"))
         if not selected_keys:
             messages.warning(request, _("Select at least one item to add it to your profile."))
-            sections = build_review_sections(resume_import, request.user)
+            sections = build_review_sections(resume_import, request.profile)
             return render(
                 request, self.template_name, {"resume_import": resume_import, "sections": sections}
             )
 
-        counts = apply_selected(resume_import, request.user, selected_keys)
+        counts = apply_selected(resume_import, request.profile, selected_keys)
         added = [
             f"{counts['skills']} skill(s)" if counts["skills"] else None,
             f"{counts['languages']} language(s)" if counts["languages"] else None,
@@ -90,10 +90,10 @@ class TailoredResumeMixin(LoginRequiredMixin):
     """Shared lookup: a tailored resume is always addressed by its job."""
 
     def get_job(self, job_pk):
-        return get_object_or_404(JobPost, pk=job_pk, user=self.request.user)
+        return get_object_or_404(JobPost, pk=job_pk, profile=self.request.profile)
 
     def get_tailored_resume(self, job_pk):
-        return get_object_or_404(TailoredResume, job_id=job_pk, user=self.request.user)
+        return get_object_or_404(TailoredResume, job_id=job_pk, profile=self.request.profile)
 
 
 class TailoredResumeGenerateView(TailoredResumeMixin, View):
@@ -107,7 +107,7 @@ class TailoredResumeGenerateView(TailoredResumeMixin, View):
             )
             return redirect(job.get_absolute_url())
 
-        enqueue_tailored_resume(job, request.user)
+        enqueue_tailored_resume(job)
         messages.info(request, _("Writing your tailored resume — this takes a moment."))
         return redirect("resume:tailored", job_pk=job.pk)
 
@@ -184,7 +184,7 @@ def tailored_resume_pdf_response(tailored_resume) -> HttpResponse:
     pdf_bytes = render_markdown_pdf(
         tailored_resume.markdown,
         title=tailored_resume.job.title or "Resume",
-        author=tailored_resume.user.get_full_name(),
+        author=tailored_resume.profile.user.get_full_name(),
     )
     response = HttpResponse(pdf_bytes, content_type="application/pdf")
     response["Content-Disposition"] = f'attachment; filename="{tailored_resume.pdf_filename}"'
@@ -199,4 +199,4 @@ class TailoredResumeListView(LoginRequiredMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        return TailoredResume.objects.filter(user=self.request.user).select_related("job")
+        return TailoredResume.objects.filter(profile=self.request.profile).select_related("job")

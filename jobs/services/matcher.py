@@ -16,6 +16,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from core.ai import AIServiceError
+from core.language import use_language
 from core.utils import build_profile_slice, empty_slice_hint, profile_slice_is_empty
 
 from ..models import JobElement, JobSection
@@ -60,9 +61,15 @@ def _parse_matches(data: dict, by_id: dict[int, JobElement]) -> list[JobElement]
     return updated
 
 
-def _apply_empty_slice(elements, section_key: str) -> list[JobElement]:
-    """Mark every element "not covered" without calling the AI."""
-    hint = empty_slice_hint(section_key)
+def _apply_empty_slice(elements, section_key: str, language: str) -> list[JobElement]:
+    """Mark every element "not covered" without calling the AI.
+
+    The hint we write is the one piece of match evidence the AI never produces,
+    so it has to be translated here — into the profile's language, not the
+    worker's.
+    """
+    with use_language(language):
+        hint = str(empty_slice_hint(section_key))
     now = timezone.now()
     for element in elements:
         element.match_status = JobElement.NONE
@@ -80,24 +87,25 @@ def _save(elements: list[JobElement]):
         )
 
 
-def match_section_to_profile(section: JobSection, user=None) -> dict:
+def match_section_to_profile(section: JobSection, profile=None) -> dict:
     """Evaluate every element of one section. Returns a small summary dict.
 
     Raises AIServiceError on failure; the caller (the Celery task) records that
     on the section and on the AITask.
     """
-    user = user or section.job.user
+    profile = profile or section.job.profile
+    language = profile.language
     elements = list(section.elements.all())
     if not elements:
         return {"skipped": "no_elements", "matched": 0, "total": 0}
     if not section.is_matched_section:
         return {"skipped": "not_matched_section", "matched": 0, "total": len(elements)}
 
-    profile_slice = build_profile_slice(user, section.key)
+    profile_slice = build_profile_slice(profile, section.key)
 
     # Spec §6.2 — an empty slice never costs an API call.
     if profile_slice_is_empty(profile_slice):
-        updated = _apply_empty_slice(elements, section.key)
+        updated = _apply_empty_slice(elements, section.key, language)
         with transaction.atomic():
             _save(updated)
             section.match_state = JobSection.DONE
@@ -107,9 +115,7 @@ def match_section_to_profile(section: JobSection, user=None) -> dict:
         return {"skipped": "empty_slice", "matched": len(updated), "total": len(elements)}
 
     # The AI call happens here, outside any transaction.
-    data = match_section(
-        section.key, elements, profile_slice, language=section.job.analysis_language or "en"
-    )
+    data = match_section(section.key, elements, profile_slice, language=language)
     updated = _parse_matches(data, {e.id: e for e in elements})
 
     with transaction.atomic():
@@ -122,24 +128,23 @@ def match_section_to_profile(section: JobSection, user=None) -> dict:
     return {"matched": len(updated), "total": len(elements)}
 
 
-def match_element_to_profile(element: JobElement, user=None) -> dict:
+def match_element_to_profile(element: JobElement, profile=None) -> dict:
     """Re-evaluate exactly one element — nothing else on the job is touched."""
     section = element.section
-    user = user or section.job.user
+    profile = profile or section.job.profile
+    language = profile.language
 
     if not section.is_matched_section:
         return {"skipped": "not_matched_section"}
 
-    profile_slice = build_profile_slice(user, section.key)
+    profile_slice = build_profile_slice(profile, section.key)
 
     if profile_slice_is_empty(profile_slice):
-        updated = _apply_empty_slice([element], section.key)
+        updated = _apply_empty_slice([element], section.key, language)
         _save(updated)
         return {"skipped": "empty_slice", "matched": 1}
 
-    data = match_single_element(
-        section.key, element, profile_slice, language=section.job.analysis_language or "en"
-    )
+    data = match_single_element(section.key, element, profile_slice, language=language)
     updated = _parse_matches(data, {element.id: element})
     if not updated:
         raise AIServiceError("The AI matching service didn't return a verdict for this item.")

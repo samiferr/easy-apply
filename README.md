@@ -1,12 +1,32 @@
 # Easy Apply
 
-Easy Apply is a Django web app for job seekers to keep a single, well-organized
-record of everything that goes into a resume — soft skills, technical skills,
+Easy Apply is a Django web app for job seekers to keep a well-organized record
+of everything that goes into a resume — soft skills, technical skills,
 languages, work experience, degrees and certificates — and export it all as a
 clean Markdown recap in one click.
 
+One account can hold **several profiles**. A profile is a self-contained
+workspace with its own content, its own analyzed job posts, its own resumes —
+and its own language, chosen when the profile is created and used by every AI
+call made inside it.
+
 ## Features
 
+- **Multiple profiles, one account** — a profile is a workspace, not just a
+  page of personal details: skills, languages, experience, education, job
+  preferences, analyzed job posts, resume imports and tailored resumes all
+  belong to exactly one profile. Keep a "Backend engineer" profile and a
+  "Data analyst" profile side by side and switch between them from the top
+  bar; neither ever sees the other's content.
+- **A profile's language is chosen, then enforced** — you pick it when you
+  create the profile (there is no default to fall through to) and it is fixed
+  from then on. Every AI call made in that profile — job extraction,
+  requirement matching, resume parsing, resume writing — is instructed to
+  answer in it, and everything the app assembles itself (recap headings,
+  resume section titles, dates, "Present") is rendered in it too. Switching
+  profiles switches the interface language with them. Working in another
+  language means creating another profile, which is what keeps a profile's
+  content from ever ending up half-translated.
 - **AI job post analysis** — paste a job posting URL (or the description
   text) and DeepSeek breaks it into a **fixed set of 13 sections**
   (Overview, Company, Location & work arrangement, Compensation & benefits,
@@ -26,7 +46,7 @@ clean Markdown recap in one click.
   matching and resume generation are all Celery tasks with live progress
   and step-by-step status. No request ever blocks on an AI call.
 - **Bilingual (EN / FR)** — the whole interface, including the legal pages,
-  plus the AI analysis itself, which answers in the language you are using.
+  plus the AI analysis itself, which answers in the active profile's language.
 - **Tailored resume + PDF export** — once a job is analyzed (and, ideally,
   matched), generate a resume written for *that* posting: DeepSeek rewrites
   your recorded experience in the job's own vocabulary, the document is
@@ -69,22 +89,25 @@ clean Markdown recap in one click.
 
 ```
 config/         Django project settings, root URLconf
-accounts/       Custom user model, profile, auth & security views
+accounts/       Custom user model, the Profile (workspace) model, profile
+                CRUD/switching, auth & security views
 jobs/           Job post analysis: the fixed section enum (sections.py), the
                 add-to-profile registry (profile_targets.py), URL fetcher,
                 prompts, importer, matcher and Celery tasks
 resume/         Resume upload -> AI parsing -> review -> profile auto-fill,
                 plus job-tailored resumes (Markdown draft -> edit -> PDF)
-skills/         Soft/technical skill categories and per-user skills
-languages/      Languages and per-user proficiency
+skills/         Soft/technical skill categories and per-profile skills
+languages/      Languages and per-profile proficiency
 experience/     Work experience (each role has ExperienceHighlight bullet rows)
 education/      Degrees and certificates
 preferences/    Job preferences (salary, location, arrangement) and the
                 benefit list a job's Compensation section is matched against
 legal/          Privacy, terms, cookies, legal notice and contact pages
 core/           Landing page, dashboard, Markdown export, scoped profile
-                slices (utils.py), shared AI client (ai.py) and the AITask
-                progress model every AI path reports through
+                slices (utils.py), shared AI client (ai.py), the active-profile
+                middleware (middleware.py), the AI language contract
+                (language.py) and the AITask progress model every AI path
+                reports through
 locale/fr/      French message catalogue
 templates/      Shared base layout, partials, and per-app templates
                 (resume_template.md is the tailored-resume skeleton)
@@ -167,13 +190,67 @@ python manage.py compilemessages -l fr
 ```
 
 The language switcher in the top bar posts to Django's `set_language` view and
-stores the choice in the `django_language` cookie, so no URL changes.
+stores the choice in the `django_language` cookie, so no URL changes. That
+switcher only changes the *interface*: what the AI answers in comes from the
+active profile (see **Profiles** below).
 
 ### 5. Log in and try it out
 
-Register an account at `/accounts/register/`, then explore the dashboard,
-add a few skills/languages/experience/education entries, and download your
-recap from the dashboard or `/recap/preview/`.
+Register an account at `/accounts/register/` — the form asks which language
+your first profile works in — then explore the dashboard, add a few
+skills/languages/experience/education entries, and download your recap from
+the dashboard or `/recap/preview/`. Add a second profile from the switcher in
+the top bar to see the workspaces stay separate.
+
+## Profiles (workspaces)
+
+A `Profile` is not a page of personal details; it is the thing everything else
+hangs off. `UserSkill`, `UserLanguage`, `WorkExperience`, `Degree`,
+`Certificate`, `JobPreference`, `JobPost`, `ResumeImport` and `TailoredResume`
+each carry a `profile` foreign key and no `user` foreign key at all — so there
+is no query that can accidentally reach across profiles, and deleting a profile
+takes its content with it. `accounts.tests.ProfileIsolationTests` guards that
+shape.
+
+### The active profile
+
+`core.middleware.ActiveProfileMiddleware` resolves `request.profile` once per
+request (lazily, like `request.user`) from the `active_profile_id` session key,
+falling back to the user's oldest profile if the session points at one that no
+longer exists. Views filter and write through it; nothing reads
+`request.user.skills` any more, because that relation is gone.
+
+Every account has at least one profile: a `post_save` signal creates one for a
+new user, the `accounts.0002_profile_workspaces` migration backfills one for
+any pre-existing account that lacked one, and the delete view refuses to remove
+the last one.
+
+### The language contract
+
+A profile's language is required at creation (the select has a blank first
+option, so it cannot be defaulted into silently) and is **not editable
+afterwards** — the rename form drops the field. That is what lets the app
+promise that a profile's content is all in one language: the alternative,
+letting the language change under content already written, would leave a
+profile permanently mixed.
+
+`core/language.py` is the single place that turns a language code into
+instructions for the model:
+
+- `language_clause(code)` is prepended to the user message of **every** AI call
+  — job extraction, section matching, single-element re-matching, resume
+  parsing and tailored-resume writing.
+- `use_language(code)` is a `translation.override` wrapper used around anything
+  the app assembles itself, so the parts we write match the parts the model
+  writes: the Markdown recap, the tailored resume's section headings, the
+  profile slices sent into a matching prompt (they carry display strings like
+  *Expert* and *Jan 2020 – Aujourd'hui*), and the "nothing in your profile
+  covers this" evidence line written when a slice is empty.
+
+Because the source is the profile and not `get_language()`, re-running an
+analysis months later in a different browser language produces the same
+language it did the first time. Switching profiles also switches the interface
+language to match, so a French workspace is never read through an English UI.
 
 ## AI job post analysis
 
@@ -232,8 +309,8 @@ branches across services, views and templates.
 
 ### Scoped matching
 
-`core.utils.build_profile_slice(user, section_key)` returns **only** the mapped
-part of the profile. A technical-skills check receives your technical skills
+`core.utils.build_profile_slice(profile, section_key)` returns **only** the
+mapped part of that profile. A technical-skills check receives your technical skills
 and nothing else — not your salary expectations, not your languages. This is
 both a privacy property and a cost one: payloads are a fraction of the size of
 the old single all-requirements-plus-whole-profile call.
@@ -302,6 +379,12 @@ On an analyzed job's detail page, **Generate tailored resume**
    from the model, and sections the model returned nothing for are dropped
    instead of printed empty.
 
+Steps 1–3 all run under the profile's language: the prompt carries the
+language clause, the snapshot's display strings are built inside
+`use_language`, and the section headings come from a translated map keyed by
+the template's own section keys — so a French profile gets *RÉSUMÉ
+PROFESSIONNEL* over French prose, not French prose under English headings.
+
 The draft is stored on a `TailoredResume` row (one per job) and opened in a
 Markdown editor. Nothing is auto-sent anywhere: the user edits the text,
 saves, and exports when happy.
@@ -326,7 +409,9 @@ throughout the rest of the app. The pipeline (`resume/services/`):
    `core/ai.py` client the job-analysis feature uses) asking for profile
    info, soft/technical skills, languages, work experience (with highlight
    bullets), degrees and certificates — steered to reuse the site's existing
-   skill categories where they fit.
+   skill categories where they fit, and to write everything it produces in the
+   profile's language. The uploaded resume itself can be in any language: what
+   lands in the profile is normalized into the one that profile works in.
 3. **`importer.py`** does the rest in two steps:
    - `build_review_sections()` compares every suggested item against what
      the user already has (same skill name + kind, same language, same
@@ -341,7 +426,9 @@ throughout the rest of the app. The pipeline (`resume/services/`):
      checked, inside one transaction.
 
 Nothing touches your profile until you explicitly submit the review page, so
-a bad AI guess costs you an unchecked box, not corrupted data.
+a bad AI guess costs you an unchecked box, not corrupted data. Everything that
+is created lands in the profile the upload belongs to — importing a resume into
+one workspace never touches another.
 
 ## Password reset & recovery
 

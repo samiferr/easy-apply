@@ -14,8 +14,8 @@ class EducationListView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["degrees"] = Degree.objects.filter(user=self.request.user)
-        ctx["certificates"] = Certificate.objects.filter(user=self.request.user)
+        ctx["degrees"] = Degree.objects.filter(profile=self.request.profile)
+        ctx["certificates"] = Certificate.objects.filter(profile=self.request.profile)
         return ctx
 
 
@@ -26,12 +26,12 @@ class DegreeFormMixin(LoginRequiredMixin):
     success_url = reverse_lazy("education:list")
 
     def get_queryset(self):
-        return Degree.objects.filter(user=self.request.user)
+        return Degree.objects.filter(profile=self.request.profile)
 
 
 class DegreeCreateView(DegreeFormMixin, CreateView):
     def form_valid(self, form):
-        form.instance.user = self.request.user
+        form.instance.profile = self.request.profile
         messages.success(self.request, f"Added your degree from {form.instance.school}.")
         return super().form_valid(form)
 
@@ -47,7 +47,7 @@ class DegreeDeleteView(LoginRequiredMixin, DeleteView):
     success_url = reverse_lazy("education:list")
 
     def get_queryset(self):
-        return Degree.objects.filter(user=self.request.user)
+        return Degree.objects.filter(profile=self.request.profile)
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
@@ -62,12 +62,12 @@ class CertificateFormMixin(LoginRequiredMixin):
     success_url = reverse_lazy("education:list")
 
     def get_queryset(self):
-        return Certificate.objects.filter(user=self.request.user)
+        return Certificate.objects.filter(profile=self.request.profile)
 
 
 class CertificateCreateView(CertificateFormMixin, CreateView):
     def form_valid(self, form):
-        form.instance.user = self.request.user
+        form.instance.profile = self.request.profile
         messages.success(self.request, f"Added the “{form.instance.name}” certificate.")
         return super().form_valid(form)
 
@@ -83,7 +83,7 @@ class CertificateDeleteView(LoginRequiredMixin, DeleteView):
     success_url = reverse_lazy("education:list")
 
     def get_queryset(self):
-        return Certificate.objects.filter(user=self.request.user)
+        return Certificate.objects.filter(profile=self.request.profile)
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()

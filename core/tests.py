@@ -4,10 +4,20 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
+from accounts.models import Profile
 from jobs.models import JobPost
 from jobs.services.importer import apply_analysis
 
 User = get_user_model()
+
+
+def make_profile(email, *, language="en", name="Main"):
+    user = User.objects.create_user(email=email, password="pw12345678")
+    profile = Profile.objects.get(user=user)
+    profile.name = name
+    profile.language = language
+    profile.save(update_fields=["name", "language"])
+    return profile
 
 
 class PublicPagesTests(TestCase):
@@ -40,8 +50,8 @@ class PublicPagesTests(TestCase):
 
 class AuthenticatedPagesTests(TestCase):
     def setUp(self):
-        self.user = User.objects.create_user(email="s@example.com", password="pw12345678")
-        self.client.force_login(self.user)
+        self.profile = make_profile("s@example.com")
+        self.client.force_login(self.profile.user)
 
     def test_every_app_screen_renders(self):
         for name in [
@@ -56,6 +66,8 @@ class AuthenticatedPagesTests(TestCase):
             "resume:upload",
             "resume:tailored_list",
             "accounts:profile",
+            "accounts:profile_list",
+            "accounts:profile_create",
             "accounts:security",
             "core:export_preview",
         ]:
@@ -68,7 +80,7 @@ class AuthenticatedPagesTests(TestCase):
         self.assertEqual(self.client.get(reverse("core:dashboard")).status_code, 200)
 
     def test_job_detail_renders_all_thirteen_sections(self):
-        job = JobPost.objects.create(user=self.user, source_url="https://x.test/j")
+        job = JobPost.objects.create(profile=self.profile, source_url="https://x.test/j")
         apply_analysis(
             job,
             {
@@ -90,13 +102,13 @@ class AuthenticatedPagesTests(TestCase):
 
     def test_preferences_seeds_a_starter_benefit_list(self):
         self.client.get(reverse("preferences:detail"))
-        self.assertTrue(self.user.job_preference.benefits.exists())
+        self.assertTrue(self.profile.job_preference.benefits.exists())
 
 
 class DashboardChartTests(TestCase):
     def setUp(self):
-        self.user = User.objects.create_user(email="t@example.com", password="pw12345678")
-        self.client.force_login(self.user)
+        self.profile = make_profile("t@example.com")
+        self.client.force_login(self.profile.user)
 
     def test_chart_handles_an_empty_month(self):
         response = self.client.get(reverse("core:dashboard"))
@@ -106,8 +118,8 @@ class DashboardChartTests(TestCase):
         self.assertTrue(all(bar["percent"] == 0 for bar in chart["bars"]))
 
     def test_chart_counts_jobs_for_the_current_month(self):
-        JobPost.objects.create(user=self.user, source_url="https://x.test/a")
-        JobPost.objects.create(user=self.user, source_url="https://x.test/b")
+        JobPost.objects.create(profile=self.profile, source_url="https://x.test/a")
+        JobPost.objects.create(profile=self.profile, source_url="https://x.test/b")
         chart = self.client.get(reverse("core:dashboard")).context["chart"]
         self.assertTrue(chart["has_data"])
         self.assertEqual(chart["total"], 2)
@@ -118,7 +130,8 @@ class FrenchCatalogueTests(TestCase):
     """The FR catalogue must actually reach the rendered page, not just compile."""
 
     def setUp(self):
-        self.user = User.objects.create_user(email="fr@example.com", password="pw12345678")
+        self.profile = make_profile("fr@example.com", language="fr")
+        self.user = self.profile.user
         self.client.cookies["django_language"] = "fr"
 
     def test_marketing_page_is_translated(self):
@@ -140,7 +153,7 @@ class FrenchCatalogueTests(TestCase):
 
     def test_job_sections_are_translated(self):
         self.client.force_login(self.user)
-        job = JobPost.objects.create(user=self.user, source_url="https://x.test/j")
+        job = JobPost.objects.create(profile=self.profile, source_url="https://x.test/j")
         apply_analysis(job, {"title": "X", "sections": [{"key": "overview", "body": "b", "elements": []}]}, "raw")
         body = self.client.get(job.get_absolute_url()).content.decode()
         for needle in ["Vue d’ensemble", "Rémunération et avantages", "Signaux d’alerte possibles"]:
@@ -162,8 +175,8 @@ class ResponsiveContractTests(TestCase):
     """Guards the layout rules that are easy to regress silently."""
 
     def setUp(self):
-        self.user = User.objects.create_user(email="r@example.com", password="pw12345678")
-        self.client.force_login(self.user)
+        self.profile = make_profile("r@example.com")
+        self.client.force_login(self.profile.user)
 
     def test_every_form_widget_carries_the_shared_classes(self):
         """An unstyled widget falls back to the browser's intrinsic width and
@@ -172,13 +185,13 @@ class ResponsiveContractTests(TestCase):
         from preferences.forms import BenefitPreferenceForm, JobPreferenceForm
         from preferences.models import get_or_create_preference
 
-        preference = get_or_create_preference(self.user)
+        preference = get_or_create_preference(self.profile)
         forms_to_check = [
             JobPreferenceForm(instance=preference),
             BenefitPreferenceForm(preference=preference),
         ]
         for target in ADD_TARGETS.values():
-            forms_to_check.append(target.form_class(user=self.user, element=None))
+            forms_to_check.append(target.form_class(profile=self.profile, element=None))
 
         for form in forms_to_check:
             for name, field in form.fields.items():

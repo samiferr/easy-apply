@@ -1,13 +1,13 @@
-from django.conf import settings
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 
 class SkillCategory(models.Model):
     SOFT = "soft"
     TECHNICAL = "technical"
     KIND_CHOICES = [
-        (SOFT, "Soft skill"),
-        (TECHNICAL, "Technical skill"),
+        (SOFT, _("Soft skill")),
+        (TECHNICAL, _("Technical skill")),
     ]
 
     name = models.CharField(max_length=100)
@@ -35,14 +35,14 @@ class UserSkill(models.Model):
     ADVANCED = 3
     EXPERT = 4
     LEVEL_CHOICES = [
-        (BEGINNER, "Beginner"),
-        (INTERMEDIATE, "Intermediate"),
-        (ADVANCED, "Advanced"),
-        (EXPERT, "Expert"),
+        (BEGINNER, _("Beginner")),
+        (INTERMEDIATE, _("Intermediate")),
+        (ADVANCED, _("Advanced")),
+        (EXPERT, _("Expert")),
     ]
 
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="skills"
+    profile = models.ForeignKey(
+        "accounts.Profile", on_delete=models.CASCADE, related_name="skills"
     )
     category = models.ForeignKey(
         SkillCategory, on_delete=models.PROTECT, related_name="user_skills"
@@ -56,7 +56,8 @@ class UserSkill(models.Model):
         ordering = ["category__name", "-level", "name"]
         constraints = [
             models.UniqueConstraint(
-                fields=["user", "category", "name"], name="unique_skill_per_user_category"
+                fields=["profile", "category", "name"],
+                name="unique_skill_per_profile_category",
             )
         ]
 
