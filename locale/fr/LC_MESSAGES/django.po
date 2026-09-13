@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Easy Apply\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-13 18:06+0000\n"
+"POT-Creation-Date: 2026-09-13 20:07+0000\n"
 "PO-Revision-Date: 2026-09-10 01:20+0000\n"
 "Last-Translator: Easy Apply <noreply@easy-apply.app>\n"
 "Language-Team: French <fr@easy-apply.app>\n"
@@ -104,7 +104,7 @@ msgstr "profil"
 msgid "profiles"
 msgstr "profils"
 
-#: accounts/services.py:14
+#: accounts/services.py:14 templates/core/dashboard.html:33
 msgid "My profile"
 msgstr "Mon profil"
 
@@ -148,27 +148,27 @@ msgid "Resume generation"
 msgstr "Génération du CV"
 
 #: core/models.py:33 jobs/tasks.py:207 jobs/tasks.py:273 resume/tasks.py:61
-#: resume/tasks.py:128 templates/core/dashboard.html:136
+#: resume/tasks.py:128 templates/core/dashboard.html:143
 #: templates/jobs/job_detail.html:169
 msgid "Queued"
 msgstr "En attente"
 
-#: core/models.py:34 templates/core/dashboard.html:136
+#: core/models.py:34 templates/core/dashboard.html:143
 #: templates/jobs/job_detail.html:169
 msgid "Running"
 msgstr "En cours"
 
-#: core/models.py:35 templates/core/dashboard.html:137
+#: core/models.py:35 templates/core/dashboard.html:144
 #: templates/jobs/job_detail.html:170
 msgid "Done"
 msgstr "Terminé"
 
-#: core/models.py:36 templates/core/dashboard.html:137
+#: core/models.py:36 templates/core/dashboard.html:144
 #: templates/jobs/_status_badge.html:5 templates/jobs/job_detail.html:170
 msgid "Failed"
 msgstr "Échec"
 
-#: core/models.py:37 templates/core/dashboard.html:138
+#: core/models.py:37 templates/core/dashboard.html:145
 #: templates/jobs/job_detail.html:171
 msgid "Canceled"
 msgstr "Annulé"
@@ -202,7 +202,7 @@ msgid "Technical Skills"
 msgstr "Compétences techniques"
 
 #: core/utils.py:85 jobs/sections.py:125 templates/core/home.html:39
-#: templates/partials/sidebar.html:72 templates/resume/resume_review.html:94
+#: templates/partials/sidebar.html:66 templates/resume/resume_review.html:94
 msgid "Languages"
 msgstr "Langues"
 
@@ -210,7 +210,7 @@ msgstr "Langues"
 msgid "Work Experience"
 msgstr "Expérience professionnelle"
 
-#: core/utils.py:109 templates/partials/sidebar.html:60
+#: core/utils.py:109 templates/partials/sidebar.html:54
 #: templates/resume/resume_review.html:130
 msgid "Education"
 msgstr "Formation"
@@ -1054,19 +1054,29 @@ msgstr "Compétence comportementale"
 msgid "Technical skill"
 msgstr "Compétence technique"
 
-#: skills/models.py:38
+#: skills/models.py:14 templates/partials/sidebar.html:62
+#: templates/resume/resume_review.html:74
+msgid "Soft skills"
+msgstr "Compétences comportementales"
+
+#: skills/models.py:15 templates/partials/sidebar.html:58
+#: templates/resume/resume_review.html:82
+msgid "Technical skills"
+msgstr "Compétences techniques"
+
+#: skills/models.py:43
 msgid "Beginner"
 msgstr "Débutant"
 
-#: skills/models.py:39
+#: skills/models.py:44
 msgid "Intermediate"
 msgstr "Intermédiaire"
 
-#: skills/models.py:40
+#: skills/models.py:45
 msgid "Advanced"
 msgstr "Avancé"
 
-#: skills/models.py:41
+#: skills/models.py:46
 msgid "Expert"
 msgstr "Expert"
 
@@ -1181,16 +1191,21 @@ msgstr "Vous avez déjà un CV ?"
 msgid "Upload it and AI will fill in your skills, experience and education."
 msgstr "Importez-le et l’IA remplira vos compétences, votre expérience et votre formation."
 
-#: templates/accounts/profile.html:15 templates/partials/sidebar.html:80
+#: templates/accounts/profile.html:15 templates/partials/sidebar.html:74
 msgid "Import from resume"
 msgstr "Importer depuis un CV"
 
-#: templates/accounts/profile.html:30
+#: templates/accounts/profile.html:31
+#, python-format
+msgid "%(name)s (%(language)s)"
+msgstr "%(name)s (%(language)s)"
+
+#: templates/accounts/profile.html:35
 #, python-format
 msgid "%(name)s (%(language)s) — %(percent)s%% complete"
 msgstr "%(name)s (%(language)s) — complété à %(percent)s %%"
 
-#: templates/accounts/profile.html:57 templates/resume/tailored_resume.html:41
+#: templates/accounts/profile.html:63 templates/resume/tailored_resume.html:41
 msgid "Save changes"
 msgstr "Enregistrer les modifications"
 
@@ -1366,7 +1381,7 @@ msgstr "Aucune offre analysée ce mois-ci pour l’instant."
 
 #: templates/core/_jobs_chart.html:44 templates/core/dashboard.html:18
 #: templates/jobs/job_form.html:12 templates/jobs/job_list.html:14
-#: templates/partials/sidebar.html:44
+#: templates/partials/sidebar.html:38
 msgid "Analyze a job post"
 msgstr "Analyser une offre"
 
@@ -1379,7 +1394,7 @@ msgstr "Offres analysées chaque jour en %(month)s"
 msgid "Day"
 msgstr "Jour"
 
-#: templates/core/dashboard.html:3 templates/partials/sidebar.html:32
+#: templates/core/dashboard.html:3 templates/partials/sidebar.html:26
 msgid "Dashboard"
 msgstr "Tableau de bord"
 
@@ -1404,54 +1419,58 @@ msgstr "Importer un CV"
 msgid "Fill your profile from a PDF or DOCX."
 msgstr "Remplissez votre profil à partir d’un PDF ou d’un DOCX."
 
-#: templates/core/dashboard.html:32
+#: templates/core/dashboard.html:34
+msgid "Skills, experience, education."
+msgstr "Compétences, expérience, formation."
+
+#: templates/core/dashboard.html:36
 msgid "Complete my profile"
 msgstr "Compléter mon profil"
 
-#: templates/core/dashboard.html:33
+#: templates/core/dashboard.html:37
 msgid "complete"
 msgstr "complété"
 
-#: templates/core/dashboard.html:39 templates/partials/sidebar.html:52
+#: templates/core/dashboard.html:44 templates/partials/sidebar.html:46
 #: templates/preferences/job_preference.html:3
 #: templates/preferences/job_preference.html:4
 msgid "Job preferences"
 msgstr "Préférences d’emploi"
 
-#: templates/core/dashboard.html:40
+#: templates/core/dashboard.html:45
 msgid "Salary, location, benefits."
 msgstr "Salaire, lieu, avantages."
 
-#: templates/core/dashboard.html:47
+#: templates/core/dashboard.html:52
 msgid "In progress"
 msgstr "En cours"
 
-#: templates/core/dashboard.html:59
+#: templates/core/dashboard.html:64
 msgid "Last analyzed jobs"
 msgstr "Dernières offres analysées"
 
-#: templates/core/dashboard.html:60
+#: templates/core/dashboard.html:65
 msgid "See all"
 msgstr "Tout voir"
 
-#: templates/core/dashboard.html:74
+#: templates/core/dashboard.html:79
 #, python-format
 msgid "%(when)s ago"
 msgstr "il y a %(when)s"
 
-#: templates/core/dashboard.html:93
+#: templates/core/dashboard.html:98
 msgid "You haven't analyzed any job posts yet."
 msgstr "Vous n’avez encore analysé aucune offre."
 
-#: templates/core/dashboard.html:94 templates/jobs/job_list.html:136
+#: templates/core/dashboard.html:99 templates/jobs/job_list.html:136
 msgid "Analyze your first job post"
 msgstr "Analyser votre première offre"
 
-#: templates/core/dashboard.html:104
+#: templates/core/dashboard.html:110
 msgid "Profile completion"
 msgstr "Complétion du profil"
 
-#: templates/core/dashboard.html:112
+#: templates/core/dashboard.html:118
 msgid "A fuller profile means sharper matching — empty sections are skipped entirely."
 msgstr "Un profil plus complet affine la comparaison — les sections vides sont entièrement ignorées."
 
@@ -1878,7 +1897,7 @@ msgstr "Ajoutée il y a %(when)s"
 msgid "Open"
 msgstr "Ouvrir"
 
-#: templates/jobs/job_list.html:95 templates/partials/sidebar.html:77
+#: templates/jobs/job_list.html:95 templates/partials/sidebar.html:71
 msgid "Resume"
 msgstr "CV"
 
@@ -2412,7 +2431,7 @@ msgstr "Conçu pour vous aider à décrocher votre prochain poste."
 msgid "Dismiss"
 msgstr "Fermer"
 
-#: templates/partials/profile_base.html:11 templates/partials/sidebar.html:49
+#: templates/partials/profile_base.html:11 templates/partials/sidebar.html:43
 #: templates/resume/resume_review.html:55
 msgid "Profile"
 msgstr "Profil"
@@ -2441,44 +2460,36 @@ msgstr "Basculer le mode sombre"
 msgid "Go to dashboard"
 msgstr "Aller au tableau de bord"
 
-#: templates/partials/sidebar.html:27
+#: templates/partials/sidebar.html:21
 msgid "Main navigation"
 msgstr "Navigation principale"
 
-#: templates/partials/sidebar.html:37
+#: templates/partials/sidebar.html:31
 msgid "Jobs"
 msgstr "Offres"
 
-#: templates/partials/sidebar.html:40
+#: templates/partials/sidebar.html:34
 msgid "Job list"
 msgstr "Liste des offres"
 
-#: templates/partials/sidebar.html:56
+#: templates/partials/sidebar.html:50
 msgid "Experience"
 msgstr "Expérience"
 
-#: templates/partials/sidebar.html:64 templates/resume/resume_review.html:82
-msgid "Technical skills"
-msgstr "Compétences techniques"
-
-#: templates/partials/sidebar.html:68 templates/resume/resume_review.html:74
-msgid "Soft skills"
-msgstr "Compétences comportementales"
-
-#: templates/partials/sidebar.html:84 templates/resume/tailored_list.html:3
+#: templates/partials/sidebar.html:78 templates/resume/tailored_list.html:3
 #: templates/resume/tailored_list.html:6
 msgid "Tailored resumes"
 msgstr "CV personnalisés"
 
-#: templates/partials/sidebar.html:93
+#: templates/partials/sidebar.html:87
 msgid "Expand sidebar"
 msgstr "Déployer le menu"
 
-#: templates/partials/sidebar.html:93
+#: templates/partials/sidebar.html:87
 msgid "Collapse sidebar"
 msgstr "Réduire le menu"
 
-#: templates/partials/sidebar.html:95
+#: templates/partials/sidebar.html:89
 msgid "Collapse"
 msgstr "Réduire"
 
@@ -2661,17 +2672,32 @@ msgstr "Régénérer depuis mon profil"
 msgid "Add your first skill"
 msgstr "Ajouter votre première compétence"
 
-#: templates/skills/skill_list.html:9
-msgid "Organize your soft and technical skills by category."
-msgstr "Organisez vos compétences comportementales et techniques par catégorie."
+#: templates/skills/skill_list.html:10
+msgid "How you work with people, grouped by category."
+msgstr "Votre façon de travailler avec les autres, par catégorie."
 
 #: templates/skills/skill_list.html:12
+msgid "The tools, languages and platforms you know, grouped by category."
+msgstr "Les outils, langages et plateformes que vous maîtrisez, par catégorie."
+
+#: templates/skills/skill_list.html:16
 msgid "+ Soft skill"
 msgstr "+ Compétence comportementale"
 
-#: templates/skills/skill_list.html:13
+#: templates/skills/skill_list.html:16
 msgid "+ Technical skill"
 msgstr "+ Compétence technique"
+
+#: templates/skills/skill_list.html:22
+msgid "No soft skills yet. Add your first one to strengthen your recap."
+msgstr "Aucune compétence comportementale pour l’instant. Ajoutez la première pour étoffer votre récapitulatif."
+
+#: templates/skills/skill_list.html:24
+msgid "No technical skills yet. Add the tools and languages you know."
+msgstr "Aucune compétence technique pour l’instant. Ajoutez les outils et langages que vous maîtrisez."
+
+#~ msgid "Organize your soft and technical skills by category."
+#~ msgstr "Organisez vos compétences comportementales et techniques par catégorie."
 
 #~ msgid "Profile sections"
 #~ msgstr "Sections du profil"

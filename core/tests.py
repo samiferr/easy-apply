@@ -61,7 +61,6 @@ class AuthenticatedPagesTests(TestCase):
             "preferences:detail",
             "experience:list",
             "education:list",
-            "skills:list",
             "languages:list",
             "resume:upload",
             "resume:tailored_list",
@@ -74,6 +73,12 @@ class AuthenticatedPagesTests(TestCase):
             with self.subTest(name=name):
                 response = self.client.get(reverse(name))
                 self.assertEqual(response.status_code, 200, f"{name} did not render")
+
+        # Soft and technical skills are two screens, one per sidebar entry.
+        for kind in ["soft", "technical"]:
+            with self.subTest(kind=kind):
+                url = reverse("skills:list", args=[kind])
+                self.assertEqual(self.client.get(url).status_code, 200, f"{url} did not render")
 
     def test_dashboard_renders_in_french(self):
         self.client.cookies["django_language"] = "fr"
@@ -207,3 +212,64 @@ class ResponsiveContractTests(TestCase):
         body = self.client.get(reverse("core:dashboard")).content.decode()
         self.assertIn('<div class="sr-only">', body)
         self.assertNotIn('<table class="sr-only">', body)
+
+
+class ProfileCompletionVisibilityTests(TestCase):
+    """The completion readouts are a to-do list — they go away once it's done."""
+
+    def setUp(self):
+        self.profile = make_profile("done@example.com")
+        self.client.force_login(self.profile.user)
+
+    def complete_everything(self):
+        from datetime import date
+
+        from education.models import Degree
+        from experience.models import ExperienceHighlight, WorkExperience
+        from languages.models import Language, UserLanguage
+        from preferences.models import get_or_create_preference
+        from skills.models import SkillCategory, UserSkill
+
+        self.profile.headline = "Backend developer"
+        self.profile.phone = "+1 555 0100"
+        self.profile.location = "Montreal, QC"
+        self.profile.bio = "Ships things."
+        self.profile.linkedin_url = "https://linkedin.com/in/x"
+        self.profile.avatar = "avatars/user_1/x.png"
+        self.profile.save()
+
+        preference = get_or_create_preference(self.profile)
+        preference.remote_ok = True
+        preference.save()
+
+        for kind in (SkillCategory.SOFT, SkillCategory.TECHNICAL):
+            category = SkillCategory.objects.filter(kind=kind).first()
+            UserSkill.objects.create(profile=self.profile, category=category, name=f"X{kind}")
+        UserLanguage.objects.create(
+            profile=self.profile,
+            language=Language.objects.create(name="English"),
+            proficiency=UserLanguage.NATIVE,
+        )
+        Degree.objects.create(profile=self.profile, school="McGill", degree="BSc")
+        experience = WorkExperience.objects.create(
+            profile=self.profile, job_title="Dev", company="Acme",
+            start_date=date(2020, 1, 1), is_current=True,
+        )
+        ExperienceHighlight.objects.create(experience=experience, text="Shipped things.")
+
+    def test_an_incomplete_profile_is_nudged(self):
+        response = self.client.get(reverse("core:dashboard"))
+        self.assertFalse(response.context["profile_is_complete"])
+        self.assertContains(response, ">Profile completion<")
+        self.assertContains(response, "% complete")
+        self.assertContains(self.client.get(reverse("accounts:profile")), "% complete")
+
+    def test_a_complete_profile_is_left_alone(self):
+        self.complete_everything()
+
+        response = self.client.get(reverse("core:dashboard"))
+        self.assertEqual(response.context["completion_percent"], 100)
+        self.assertTrue(response.context["profile_is_complete"])
+        self.assertNotContains(response, ">Profile completion<")
+        self.assertNotContains(response, "% complete")
+        self.assertNotContains(self.client.get(reverse("accounts:profile")), "% complete")

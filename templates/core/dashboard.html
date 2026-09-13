@@ -3,7 +3,7 @@
 {% block title %}{% trans "Dashboard" %} · {{ SITE_NAME }}{% endblock %}
 
 {% block content %}
-<div class="mx-auto w-full max-w-7xl px-4 pb-12 sm:px-6 lg:px-8">
+<div class="w-full max-w-7xl px-4 pb-12 sm:px-6 lg:px-8">
   <h1 class="page-title">{% blocktrans with name=user.get_short_name %}Welcome back, {{ name }}{% endblocktrans %}</h1>
   <p class="mt-2 text-slate-500 dark:text-slate-400">
     {% trans "Analyze a job post, then see how each requirement lines up with your profile." %}
@@ -29,8 +29,13 @@
       <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600 transition group-hover:bg-brand-600 group-hover:text-white dark:bg-brand-950/60 dark:text-brand-300">
         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       </span>
-      <p class="mt-4 font-semibold text-slate-900 dark:text-white">{% trans "Complete my profile" %}</p>
-      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{{ completion_percent }}% {% trans "complete" %}</p>
+      {% if profile_is_complete %}
+        <p class="mt-4 font-semibold text-slate-900 dark:text-white">{% trans "My profile" %}</p>
+        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{% trans "Skills, experience, education." %}</p>
+      {% else %}
+        <p class="mt-4 font-semibold text-slate-900 dark:text-white">{% trans "Complete my profile" %}</p>
+        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{{ completion_percent }}% {% trans "complete" %}</p>
+      {% endif %}
     </a>
     <a href="{% url 'preferences:detail' %}" class="card group p-5 transition hover:border-brand-300 hover:shadow-md dark:hover:border-brand-700">
       <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600 transition group-hover:bg-brand-600 group-hover:text-white dark:bg-brand-950/60 dark:text-brand-300">
@@ -51,9 +56,9 @@
     </div>
   {% endif %}
 
-  <div class="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
+  <div class="mt-8 grid grid-cols-1 gap-6 {% if not profile_is_complete %}lg:grid-cols-3{% endif %}">
     <!-- Last analyzed jobs -->
-    <div class="lg:col-span-2 space-y-6">
+    <div class="space-y-6 {% if not profile_is_complete %}lg:col-span-2{% endif %}">
       <div class="card p-5 sm:p-6">
         <div class="flex items-center justify-between">
           <h2 class="section-title">{% trans "Last analyzed jobs" %}</h2>
@@ -99,7 +104,8 @@
       {% include "core/_jobs_chart.html" with chart=chart %}
     </div>
 
-    <!-- Profile completion -->
+    {% if not profile_is_complete %}
+    <!-- Profile completion — a to-do list, so it goes away once it is done -->
     <div class="card h-fit p-5 sm:p-6">
       <h2 class="section-title">{% trans "Profile completion" %}</h2>
       <div class="mt-4 flex items-center gap-3">
@@ -112,9 +118,9 @@
         {% trans "A fuller profile means sharper matching — empty sections are skipped entirely." %}
       </p>
       <ul class="mt-5 space-y-2.5">
-        {% for label, done, url_name in checklist %}
+        {% for label, done, url in checklist %}
           <li>
-            <a href="{% url url_name %}" class="flex items-start gap-2.5 text-sm transition hover:text-brand-600 dark:hover:text-brand-400 {% if done %}text-slate-400 line-through dark:text-slate-500{% else %}text-slate-700 dark:text-slate-300{% endif %}">
+            <a href="{{ url }}" class="flex items-start gap-2.5 text-sm transition hover:text-brand-600 dark:hover:text-brand-400 {% if done %}text-slate-400 line-through dark:text-slate-500{% else %}text-slate-700 dark:text-slate-300{% endif %}">
               {% if done %}
                 <svg class="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
               {% else %}
@@ -126,6 +132,7 @@
         {% endfor %}
       </ul>
     </div>
+    {% endif %}
   </div>
 </div>
 {% endblock %}

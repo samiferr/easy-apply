@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import Http404
 from django.shortcuts import redirect
-from django.urls import reverse_lazy
+from django.urls import reverse
 from django.views.generic import CreateView, DeleteView, TemplateView, UpdateView
 
 from .forms import UserSkillForm
@@ -18,30 +18,47 @@ def _grouped_by_category(qs):
     return grouped
 
 
-class SkillListView(LoginRequiredMixin, TemplateView):
-    template_name = "skills/skill_list.html"
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        base_qs = UserSkill.objects.filter(profile=self.request.profile).select_related("category")
-        ctx["soft_skills"] = _grouped_by_category(base_qs.filter(category__kind=SkillCategory.SOFT))
-        ctx["technical_skills"] = _grouped_by_category(
-            base_qs.filter(category__kind=SkillCategory.TECHNICAL)
-        )
-        ctx["active_tab"] = self.request.GET.get("tab", "soft")
-        return ctx
+def skills_url(kind: str) -> str:
+    return reverse("skills:list", kwargs={"kind": kind})
 
 
-class BaseSkillFormView(LoginRequiredMixin):
-    model = UserSkill
-    form_class = UserSkillForm
-    template_name = "skills/skill_form.html"
+class SkillKindMixin:
+    """Soft and technical skills are two screens, one per sidebar entry.
+
+    The kind is a URL segment rather than a query-string tab, so each screen is
+    a real, bookmarkable page and the sidebar can highlight the one you are on.
+    """
 
     def get_kind(self):
         kind = self.kwargs.get("kind")
         if kind not in (SkillCategory.SOFT, SkillCategory.TECHNICAL):
             raise Http404("Unknown skill type")
         return kind
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["kind"] = self.get_kind()
+        ctx["kind_label"] = SkillCategory.KIND_PLURALS[ctx["kind"]]
+        return ctx
+
+
+class SkillListView(SkillKindMixin, LoginRequiredMixin, TemplateView):
+    template_name = "skills/skill_list.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["grouped"] = _grouped_by_category(
+            UserSkill.objects.filter(
+                profile=self.request.profile, category__kind=ctx["kind"]
+            ).select_related("category")
+        )
+        return ctx
+
+
+class BaseSkillFormView(SkillKindMixin, LoginRequiredMixin):
+    model = UserSkill
+    form_class = UserSkillForm
+    template_name = "skills/skill_form.html"
 
     def get_queryset(self):
         return UserSkill.objects.filter(profile=self.request.profile)
@@ -51,14 +68,8 @@ class BaseSkillFormView(LoginRequiredMixin):
         kwargs["kind"] = self.get_kind()
         return kwargs
 
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx["kind"] = self.get_kind()
-        ctx["kind_label"] = "Soft skill" if ctx["kind"] == SkillCategory.SOFT else "Technical skill"
-        return ctx
-
     def get_success_url(self):
-        return f"{reverse_lazy('skills:list')}?tab={self.get_kind()}"
+        return skills_url(self.get_kind())
 
 
 class SkillCreateView(BaseSkillFormView, CreateView):
@@ -81,7 +92,7 @@ class SkillDeleteView(LoginRequiredMixin, DeleteView):
         return UserSkill.objects.filter(profile=self.request.profile)
 
     def get_success_url(self):
-        return f"{reverse_lazy('skills:list')}?tab={self.object.category.kind}"
+        return skills_url(self.object.category.kind)
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
@@ -92,4 +103,4 @@ class SkillDeleteView(LoginRequiredMixin, DeleteView):
 
     def get(self, request, *args, **kwargs):
         # No confirmation page: deletion is triggered from a small inline form/modal.
-        return redirect("skills:list")
+        return redirect(skills_url(self.get_object().category.kind))

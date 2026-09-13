@@ -204,13 +204,16 @@ class ProfileIsolationTests(TestCase):
         )
 
         self.activate(self.analyst)
-        skills = self.client.get(reverse("skills:list")).content.decode()
+        skills = self.client.get(reverse("skills:list", args=["technical"])).content.decode()
         self.assertNotIn("Python", skills)
         jobs = self.client.get(reverse("jobs:list")).content.decode()
         self.assertNotIn("Backend Engineer", jobs)
 
         self.activate(self.backend)
-        self.assertIn("Python", self.client.get(reverse("skills:list")).content.decode())
+        self.assertIn(
+            "Python",
+            self.client.get(reverse("skills:list", args=["technical"])).content.decode(),
+        )
         self.assertIn(
             "Backend Engineer", self.client.get(reverse("jobs:list")).content.decode()
         )

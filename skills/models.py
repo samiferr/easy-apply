@@ -9,6 +9,11 @@ class SkillCategory(models.Model):
         (SOFT, _("Soft skill")),
         (TECHNICAL, _("Technical skill")),
     ]
+    #: Page-title form. KIND_CHOICES is singular because it labels one row.
+    KIND_PLURALS = {
+        SOFT: _("Soft skills"),
+        TECHNICAL: _("Technical skills"),
+    }
 
     name = models.CharField(max_length=100)
     kind = models.CharField(max_length=20, choices=KIND_CHOICES)

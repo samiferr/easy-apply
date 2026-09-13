@@ -43,17 +43,20 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         certificate_count = profile.certificates.count()
 
         checklist = [
-            (_("Complete your profile"), profile.completion_percent >= 60, "accounts:profile"),
-            (_("Set your job preferences"), self._has_preferences(profile), "preferences:detail"),
-            (_("Add a technical skill"), technical_count > 0, "skills:list"),
-            (_("Add a soft skill"), soft_count > 0, "skills:list"),
-            (_("Add a language"), language_count > 0, "languages:list"),
-            (_("Add your work experience"), experience_count > 0, "experience:list"),
-            (_("Add your education or a certificate"), (degree_count + certificate_count) > 0, "education:list"),
+            (_("Complete your profile"), profile.completion_percent >= 60, reverse("accounts:profile")),
+            (_("Set your job preferences"), self._has_preferences(profile), reverse("preferences:detail")),
+            (_("Add a technical skill"), technical_count > 0, reverse("skills:list", args=["technical"])),
+            (_("Add a soft skill"), soft_count > 0, reverse("skills:list", args=["soft"])),
+            (_("Add a language"), language_count > 0, reverse("languages:list")),
+            (_("Add your work experience"), experience_count > 0, reverse("experience:list")),
+            (_("Add your education or a certificate"), (degree_count + certificate_count) > 0, reverse("education:list")),
         ]
         done_count = sum(1 for _label, done, _url in checklist if done)
         ctx["checklist"] = checklist
         ctx["completion_percent"] = round((done_count / len(checklist)) * 100)
+        # Nothing left to nudge about: the completion card and the "% complete"
+        # readouts are hidden once every box is ticked.
+        ctx["profile_is_complete"] = done_count == len(checklist)
 
         ctx["recent_jobs"] = (
             JobPost.objects.filter(profile=profile)
