@@ -53,7 +53,7 @@
 
       {% if sections.profile_fields %}
         <div class="card p-6">
-          <h2 class="font-semibold text-slate-900 dark:text-white">{% trans "Profile" %}</h2>
+          <h2 class="text-heading-base font-semibold text-slate-900 dark:text-white">{% trans "Profile" %}</h2>
           <div class="mt-3 space-y-2.5">
             {% for item in sections.profile_fields %}
               <label class="flex items-start gap-3 rounded-lg p-2 hover:bg-slate-50 dark:hover:bg-slate-800/50">
@@ -70,7 +70,7 @@
 
       {% if sections.soft_skills or sections.technical_skills %}
         <div class="card p-6">
-          <h2 class="font-semibold text-slate-900 dark:text-white">{% trans "Skills" %}</h2>
+          <h2 class="text-heading-base font-semibold text-slate-900 dark:text-white">{% trans "Skills" %}</h2>
           {% if sections.soft_skills %}
             <p class="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">{% trans "Soft skills" %}</p>
             <div class="space-y-1">
@@ -92,7 +92,7 @@
 
       {% if sections.languages %}
         <div class="card p-6">
-          <h2 class="font-semibold text-slate-900 dark:text-white">{% trans "Languages" %}</h2>
+          <h2 class="text-heading-base font-semibold text-slate-900 dark:text-white">{% trans "Languages" %}</h2>
           <div class="mt-3 space-y-1">
             {% for item in sections.languages %}
               {% include "resume/_checkbox_item.html" with key=item.key is_duplicate=item.is_duplicate main=item.name meta=item.proficiency %}
@@ -103,7 +103,7 @@
 
       {% if sections.experience %}
         <div class="card p-6">
-          <h2 class="font-semibold text-slate-900 dark:text-white">{% trans "Work experience" %}</h2>
+          <h2 class="text-heading-base font-semibold text-slate-900 dark:text-white">{% trans "Work experience" %}</h2>
           <div class="mt-3 space-y-3">
             {% for item in sections.experience %}
               <label class="flex items-start gap-3 rounded-lg p-2 hover:bg-slate-50 dark:hover:bg-slate-800/50">
@@ -128,7 +128,7 @@
 
       {% if sections.degrees %}
         <div class="card p-6">
-          <h2 class="font-semibold text-slate-900 dark:text-white">{% trans "Education" %}</h2>
+          <h2 class="text-heading-base font-semibold text-slate-900 dark:text-white">{% trans "Education" %}</h2>
           <div class="mt-3 space-y-1">
             {% for item in sections.degrees %}
               {% include "resume/_checkbox_item.html" with key=item.key is_duplicate=item.is_duplicate main=item.degree|add:" — "|add:item.school meta=item.field_of_study %}
@@ -139,7 +139,7 @@
 
       {% if sections.certificates %}
         <div class="card p-6">
-          <h2 class="font-semibold text-slate-900 dark:text-white">{% trans "Certificates" %}</h2>
+          <h2 class="text-heading-base font-semibold text-slate-900 dark:text-white">{% trans "Certificates" %}</h2>
           <div class="mt-3 space-y-1">
             {% for item in sections.certificates %}
               {% include "resume/_checkbox_item.html" with key=item.key is_duplicate=item.is_duplicate main=item.name meta=item.issuing_organization %}

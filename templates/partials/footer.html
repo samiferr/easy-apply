@@ -15,7 +15,7 @@
       </div>
 
       <div>
-        <h2 class="text-sm font-semibold text-slate-900 dark:text-white">{% trans "Product" %}</h2>
+        <h2 class="text-heading-sm font-semibold text-slate-900 dark:text-white">{% trans "Product" %}</h2>
         <div class="mt-3 flex flex-col gap-2 text-sm">
           <a href="{% url 'accounts:register' %}" class="footer-link">{% trans "Create account" %}</a>
           <a href="{% url 'accounts:login' %}" class="footer-link">{% trans "Log in" %}</a>
@@ -23,14 +23,14 @@
       </div>
 
       <div>
-        <h2 class="text-sm font-semibold text-slate-900 dark:text-white">{% trans "Legal" %}</h2>
+        <h2 class="text-heading-sm font-semibold text-slate-900 dark:text-white">{% trans "Legal" %}</h2>
         <div class="mt-3 flex flex-col gap-2 text-sm">
           {% include "partials/_legal_links.html" %}
         </div>
       </div>
 
       <div>
-        <h2 class="text-sm font-semibold text-slate-900 dark:text-white">{% trans "Language" %}</h2>
+        <h2 class="text-heading-sm font-semibold text-slate-900 dark:text-white">{% trans "Language" %}</h2>
         <div class="mt-3">{% include "partials/language_switcher.html" %}</div>
       </div>
     </div>

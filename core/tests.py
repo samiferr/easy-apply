@@ -304,7 +304,11 @@ class ConfirmDeleteTests(TestCase):
         self.assertTrue(UserSkill.objects.filter(pk=skill.pk).exists())
 
         response = self.client.post(url)
-        self.assertRedirects(response, reverse("skills:list", args=["technical"]))
+        # The categories are tabs, so a delete returns to the one it was in.
+        self.assertRedirects(
+            response,
+            f'{reverse("skills:list", args=["technical"])}#category-{category.pk}',
+        )
         self.assertFalse(UserSkill.objects.filter(pk=skill.pk).exists())
 
     def test_language_delete_has_a_confirm_page(self):

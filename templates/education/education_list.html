@@ -9,7 +9,7 @@
 <div>
   <section>
     <div class="flex items-center justify-between">
-      <h2 class="font-semibold text-slate-900 dark:text-white">{% trans "Degrees" %}</h2>
+      <h2 class="text-heading-base font-semibold text-slate-900 dark:text-white">{% trans "Degrees" %}</h2>
       <a href="{% url 'education:degree_add' %}" class="btn-secondary">{% trans "+ Add degree" %}</a>
     </div>
     {% if degrees %}
@@ -46,7 +46,7 @@
 
   <section class="mt-10">
     <div class="flex items-center justify-between">
-      <h2 class="font-semibold text-slate-900 dark:text-white">{% trans "Certificates" %}</h2>
+      <h2 class="text-heading-base font-semibold text-slate-900 dark:text-white">{% trans "Certificates" %}</h2>
       <a href="{% url 'education:certificate_add' %}" class="btn-secondary">{% trans "+ Add certificate" %}</a>
     </div>
     {% if certificates %}

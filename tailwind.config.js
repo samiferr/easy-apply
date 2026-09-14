@@ -18,6 +18,26 @@ module.exports = {
       fontFamily: {
         sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
       },
+      fontSize: {
+        // Headings run 30% above Tailwind's body scale. Each entry below is
+        // the step it is named after multiplied by 1.3 — size and leading
+        // together, so a heading's type block keeps its proportions and a
+        // two-line title does not crowd itself. Unitless leading (the display
+        // steps, which ship at `1`) stays put; there is nothing to scale.
+        //
+        // They live here rather than as `text-[1.95rem]` at each call site so
+        // the ratio is stated once and the next change is one edit.
+        "heading-base": ["1.3rem", "1.95rem"], //    text-base  1rem     / 1.5rem
+        "heading-sm": ["1.1375rem", "1.625rem"], //  text-sm    0.875rem / 1.25rem
+        "heading-lg": ["1.4625rem", "2.275rem"], //  text-lg    1.125rem / 1.75rem
+        "heading-xl": ["1.625rem", "2.275rem"], //   text-xl    1.25rem  / 1.75rem
+        "heading-2xl": ["1.95rem", "2.6rem"], //     text-2xl   1.5rem   / 2rem
+        "heading-3xl": ["2.4375rem", "2.925rem"], // text-3xl   1.875rem / 2.25rem
+        "heading-4xl": ["2.925rem", "3.25rem"], //   text-4xl   2.25rem  / 2.5rem
+        "heading-5xl": ["3.9rem", "1"], //           text-5xl   3rem     / 1
+        "heading-6xl": ["4.875rem", "1"], //         text-6xl   3.75rem  / 1
+        "heading-7xl": ["5.85rem", "1"], //          text-7xl   4.5rem   / 1
+      },
       maxWidth: {
         // Caps the whole app on ultrawide displays: 16rem of sidebar plus an
         // 80rem content column.
