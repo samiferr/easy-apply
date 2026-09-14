@@ -83,6 +83,7 @@ class BenefitDeleteView(LoginRequiredMixin, View):
                 "heading": _("Delete this benefit?"),
                 "detail": benefit.name,
                 "cancel_url": cancel_url,
+                "parent_crumbs": [{"label": _("Job preferences"), "url": cancel_url}],
             },
         )
 

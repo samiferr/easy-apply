@@ -1,12 +1,13 @@
 {% extends "partials/profile_base.html" %}
 {% load i18n %}
 {% block title %}Education · {{ SITE_NAME }}{% endblock %}
-{% block profile_title %}Education & Certifications{% endblock %}
+{% block breadcrumb %}{% include "partials/_crumb.html" with crumb_label=_("Education") only %}{% endblock %}
+{% block page_title %}{% trans "Education & Certifications" %}{% endblock %}
+{% block page_subtitle %}{% trans "Your degrees and professional certificates." %}{% endblock %}
+
 {% block profile_content %}
 <div>
-  <p class="page-lead text-sm">{% trans "Your degrees and professional certificates." %}</p>
-
-  <section class="mt-8">
+  <section>
     <div class="flex items-center justify-between">
       <h2 class="font-semibold text-slate-900 dark:text-white">{% trans "Degrees" %}</h2>
       <a href="{% url 'education:degree_add' %}" class="btn-secondary">{% trans "+ Add degree" %}</a>

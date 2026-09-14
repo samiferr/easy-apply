@@ -1,3 +1,4 @@
+from django.utils.translation import gettext_lazy as _
 from django.views.generic import TemplateView
 
 
@@ -9,6 +10,8 @@ class LegalPageView(TemplateView):
     in one place — see config/settings.py.
     """
 
+    #: Shown as the page's `<h1>` and as its breadcrumb — see
+    #: `templates/legal/_legal_base.html`.
     page_title = ""
 
     def get_context_data(self, **kwargs):
@@ -19,19 +22,24 @@ class LegalPageView(TemplateView):
 
 class PrivacyView(LegalPageView):
     template_name = "legal/privacy.html"
+    page_title = _("Privacy Policy")
 
 
 class TermsView(LegalPageView):
     template_name = "legal/terms.html"
+    page_title = _("Terms of Service")
 
 
 class CookiesView(LegalPageView):
     template_name = "legal/cookies.html"
+    page_title = _("Cookie Policy")
 
 
 class NoticeView(LegalPageView):
     template_name = "legal/notice.html"
+    page_title = _("Legal notice")
 
 
 class ContactView(LegalPageView):
     template_name = "legal/contact.html"
+    page_title = _("Contact")

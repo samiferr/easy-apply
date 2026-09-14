@@ -1,18 +1,15 @@
 {% extends "partials/profile_base.html" %}
 {% load i18n %}
 {% block title %}Work experience · {{ SITE_NAME }}{% endblock %}
-{% block profile_title %}Work experience{% endblock %}
+{% block breadcrumb %}{% include "partials/_crumb.html" with crumb_label=_("Work experience") only %}{% endblock %}
+{% block page_title %}{% trans "Work experience" %}{% endblock %}
+{% block page_subtitle %}{% trans "Your professional history, most recent first." %}{% endblock %}
+{% block page_actions %}<a href="{% url 'experience:add' %}" class="btn-primary">{% trans "+ Add experience" %}</a>{% endblock %}
+
 {% block profile_content %}
 <div>
-  <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-    <div>
-      <p class="page-lead text-sm">{% trans "Your professional history, most recent first." %}</p>
-    </div>
-    <a href="{% url 'experience:add' %}" class="btn-primary">{% trans "+ Add experience" %}</a>
-  </div>
-
   {% if experiences %}
-    <ol class="mt-8 space-y-8 border-l-2 border-line pl-6">
+    <ol class="space-y-8 border-l-2 border-line pl-6">
       {% for exp in experiences %}
         <li class="group relative">
           <span class="absolute -left-[1.94rem] top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full {% if exp.is_current %}bg-brand-600{% else %}bg-slate-300 dark:bg-slate-600{% endif %} ring-4 ring-slate-50 dark:ring-slate-950"></span>

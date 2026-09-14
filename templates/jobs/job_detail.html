@@ -2,65 +2,54 @@
 {% load i18n static %}
 {% block title %}{{ job.title|default:_("Job post") }} · {{ SITE_NAME }}{% endblock %}
 
-{% block content %}
-<div class="mx-auto w-full max-w-7xl px-4 pb-12 sm:px-6 lg:px-8"
-     x-data="jobAnalysis({{ job.pk }}, '{{ rail.0.spec.key }}')">
-
-  <a href="{% url 'jobs:list' %}" class="inline-flex items-center gap-1 text-sm font-medium text-slate-600 transition hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200">
-    <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
-    {% trans "Back to job posts" %}
+{% block breadcrumb %}
+  {% url 'jobs:list' as jobs_list_url %}
+  {% include "partials/_crumb.html" with crumb_label=_("Job posts") crumb_url=jobs_list_url only %}
+  {% include "partials/_crumb.html" with crumb_label=job.title|default:_("Untitled role") only %}
+{% endblock %}
+{% block page_title %}{{ job.title|default:_("Untitled role") }}{% endblock %}
+{% block page_title_badge %}{% include "jobs/_status_badge.html" with status=job.status %}{% endblock %}
+{% block page_subtitle %}{{ job.company_name|default:"—" }}{% if job.seniority_level %} · {{ job.seniority_level }}{% endif %}{% endblock %}
+{% block page_meta %}
+  <a href="{{ job.source_url }}" target="_blank" rel="noopener" class="mt-2 inline-flex items-center gap-1 text-sm font-medium text-brand-600 transition hover:text-brand-700 dark:text-brand-400">
+    {% trans "View original posting" %}
+    <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.25 5.5a.75.75 0 00-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 00.75-.75v-4a.75.75 0 011.5 0v4A2.25 2.25 0 0112.75 17h-8.5A2.25 2.25 0 012 14.75v-8.5A2.25 2.25 0 014.25 4h5a.75.75 0 010 1.5h-5z" clip-rule="evenodd" /><path fill-rule="evenodd" d="M6.194 12.753a.75.75 0 001.06.053L16.5 4.44v2.81a.75.75 0 001.5 0v-4.5a.75.75 0 00-.75-.75h-4.5a.75.75 0 000 1.5h2.553l-9.056 8.194a.75.75 0 00-.053 1.06z" clip-rule="evenodd" /></svg>
   </a>
+{% endblock %}
+{% block page_actions %}
+  {% if job.sections.exists %}
+    <form method="post" action="{% url 'jobs:match_profile' job.pk %}">
+      {% csrf_token %}
+      <button type="submit" class="btn-primary">
+        {% if job.profile_matched_at %}{% trans "Re-match to my profile" %}{% else %}{% trans "Match to my profile" %}{% endif %}
+      </button>
+    </form>
+    {% if tailored_resume %}
+      <a href="{% url 'resume:tailored' job.pk %}" class="btn-secondary">{% trans "Tailored resume" %}</a>
+    {% else %}
+      <form method="post" action="{% url 'resume:tailored_generate' job.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="btn-secondary">{% trans "Generate tailored resume" %}</button>
+      </form>
+    {% endif %}
+  {% endif %}
+  <form method="post" action="{% url 'jobs:reanalyze' job.pk %}">
+    {% csrf_token %}
+    <button type="submit" class="btn-secondary">{% trans "Re-analyze" %}</button>
+  </form>
+  <a href="{% url 'jobs:delete' job.pk %}" class="btn-danger">{% trans "Delete" %}</a>
+{% endblock %}
 
-  <!-- Header -->
-  <div class="card mt-4 p-6 sm:p-8">
-    <div class="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
-      <div class="min-w-0">
-        <div class="flex flex-wrap items-center gap-2">
-          <h1 class="page-title">{{ job.title|default:_("Untitled role") }}</h1>
-          {% include "jobs/_status_badge.html" with status=job.status %}
-        </div>
-        <p class="mt-2 text-slate-600 dark:text-slate-400">
-          {{ job.company_name|default:"" }}{% if job.seniority_level %} · {{ job.seniority_level }}{% endif %}
-        </p>
-        <a href="{{ job.source_url }}" target="_blank" rel="noopener" class="mt-2 inline-flex items-center gap-1 text-sm font-medium text-brand-600 transition hover:text-brand-700 dark:text-brand-400">
-          {% trans "View original posting" %}
-          <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.25 5.5a.75.75 0 00-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 00.75-.75v-4a.75.75 0 011.5 0v4A2.25 2.25 0 0112.75 17h-8.5A2.25 2.25 0 012 14.75v-8.5A2.25 2.25 0 014.25 4h5a.75.75 0 010 1.5h-5z" clip-rule="evenodd" /><path fill-rule="evenodd" d="M6.194 12.753a.75.75 0 001.06.053L16.5 4.44v2.81a.75.75 0 001.5 0v-4.5a.75.75 0 00-.75-.75h-4.5a.75.75 0 000 1.5h2.553l-9.056 8.194a.75.75 0 00-.053 1.06z" clip-rule="evenodd" /></svg>
-        </a>
-      </div>
-
-      <div class="flex shrink-0 flex-wrap gap-2">
-        {% if job.sections.exists %}
-          <form method="post" action="{% url 'jobs:match_profile' job.pk %}">
-            {% csrf_token %}
-            <button type="submit" class="btn-primary">
-              {% if job.profile_matched_at %}{% trans "Re-match to my profile" %}{% else %}{% trans "Match to my profile" %}{% endif %}
-            </button>
-          </form>
-          {% if tailored_resume %}
-            <a href="{% url 'resume:tailored' job.pk %}" class="btn-secondary">{% trans "Tailored resume" %}</a>
-          {% else %}
-            <form method="post" action="{% url 'resume:tailored_generate' job.pk %}">
-              {% csrf_token %}
-              <button type="submit" class="btn-secondary">{% trans "Generate tailored resume" %}</button>
-            </form>
-          {% endif %}
-        {% endif %}
-        <form method="post" action="{% url 'jobs:reanalyze' job.pk %}">
-          {% csrf_token %}
-          <button type="submit" class="btn-secondary">{% trans "Re-analyze" %}</button>
-        </form>
-        <a href="{% url 'jobs:delete' job.pk %}" class="btn-danger">{% trans "Delete" %}</a>
-      </div>
-    </div>
-  </div>
+{% block content %}
+<div x-data="jobAnalysis({{ job.pk }}, '{{ rail.0.spec.key }}')">
 
   <!-- Live progress -->
   {% if ai_task and not ai_task.is_terminal or ai_task.state == "failed" %}
-    <div class="mt-6">
+    <div>
       {% include "partials/_ai_progress.html" with ai_task=ai_task retry_url=job.get_absolute_url|add:"" %}
     </div>
   {% elif match_task and not match_task.is_terminal or match_task.state == "failed" %}
-    <div class="mt-6">{% include "partials/_ai_progress.html" with ai_task=match_task %}</div>
+    <div>{% include "partials/_ai_progress.html" with ai_task=match_task %}</div>
   {% endif %}
 
   {% if job.needs_reanalysis %}

@@ -1,6 +1,10 @@
 {% extends "accounts/settings_base.html" %}
 {% load widget_tweaks i18n %}
 {% block title %}Security · {{ SITE_NAME }}{% endblock %}
+{% block settings_breadcrumb %}{% include "partials/_crumb.html" with crumb_label=_("Security") only %}{% endblock %}
+{% block page_title %}{% trans "Security" %}{% endblock %}
+{% block page_subtitle %}{% trans "Your account details, your password, and deleting the account for good." %}{% endblock %}
+
 {% block settings_content %}
   <div class="space-y-6">
     <div class="card p-6 sm:p-8">

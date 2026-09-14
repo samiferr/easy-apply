@@ -1,21 +1,18 @@
 {% extends "base_app.html" %}
 {% load i18n %}
 {% block title %}Analyze a job post · {{ SITE_NAME }}{% endblock %}
+{% block breadcrumb %}
+  {% url 'jobs:list' as jobs_list_url %}
+  {% include "partials/_crumb.html" with crumb_label=_("Job posts") crumb_url=jobs_list_url only %}
+  {% include "partials/_crumb.html" with crumb_label=_("Analyze a job post") only %}
+{% endblock %}
+{% block page_title %}{% trans "Analyze a job post" %}{% endblock %}
+{% block page_subtitle %}{% trans "Paste the link to a job posting. AI will read it and structure it into responsibilities, must-haves, nice-to-haves, compensation, location and more." %}{% endblock %}
+
 {% block content %}
-<div class="mx-auto max-w-2xl px-4 py-10 sm:px-6 lg:px-8">
-  <a href="{% url 'jobs:list' %}" class="inline-flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200">
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
-    Back to job posts
-  </a>
-
-  <div class="card mt-4 p-6 sm:p-8" x-data="{ submitting: false, showPaste: false }">
-    <h1 class="card-title">{% trans "Analyze a job post" %}</h1>
-    <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
-      Paste the link to a job posting. AI will read it and structure it into responsibilities,
-      must-haves, nice-to-haves, compensation, location and more.
-    </p>
-
-    <form method="post" novalidate class="mt-6 space-y-5" @submit="submitting = true">
+<div class="max-w-2xl">
+  <div class="card p-6 sm:p-8" x-data="{ submitting: false, showPaste: false }">
+    <form method="post" novalidate class="space-y-5" @submit="submitting = true">
       {% csrf_token %}
       {% if form.non_field_errors %}
         <div class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">

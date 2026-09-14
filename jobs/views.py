@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404, redirect
 from django.template.loader import render_to_string
 from django.urls import reverse_lazy
 from django.utils import timezone
-from django.utils.translation import gettext as _
+from django.utils.translation import gettext as _, gettext_lazy
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, View
 
 from core.mixins import ConfirmDeleteMixin
@@ -113,6 +113,7 @@ class JobPostDeleteView(ConfirmDeleteMixin, LoginRequiredMixin, DeleteView):
     model = JobPost
     success_url = reverse_lazy("jobs:list")
     cancel_url_name = "jobs:list"
+    parent_label = gettext_lazy("Job posts")
 
     def get_queryset(self):
         return JobPost.objects.filter(profile=self.request.profile)

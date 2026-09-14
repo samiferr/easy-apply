@@ -1,0 +1,17 @@
+{% comment %}
+One breadcrumb after the root, for the `breadcrumb` block of `base_app.html`.
+
+  {% include "partials/_crumb.html" with crumb_label=_("Job posts") crumb_url=... only %}
+
+Pass `crumb_url` for an ancestor; leave it out for the page you are on, which
+renders as plain `aria-current` text. `only` keeps a previous crumb's URL from
+leaking into the next one.
+{% endcomment %}
+<li class="breadcrumb-item">
+  <svg class="breadcrumb-sep" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+  {% if crumb_url %}
+    <a href="{{ crumb_url }}" class="breadcrumb-link">{{ crumb_label }}</a>
+  {% else %}
+    <span class="breadcrumb-current" aria-current="page">{{ crumb_label }}</span>
+  {% endif %}
+</li>

@@ -19,6 +19,10 @@ class ConfirmDeleteMixin:
     confirm_label = None
     warning = None
     cancel_url_name = None
+    #: Breadcrumb label for `cancel_url` — the screen this delete was reached
+    #: from, so the confirmation page carries the same header as every other.
+    #: Override `get_parent_crumbs` instead when the trail is deeper than one.
+    parent_label = None
 
     def get_heading(self):
         return str(self.object)
@@ -32,6 +36,20 @@ class ConfirmDeleteMixin:
     def get_cancel_url(self):
         return reverse(self.cancel_url_name)
 
+    def get_parent_label(self):
+        return self.parent_label
+
+    def get_parent_crumbs(self):
+        """The breadcrumb trail between "Dashboard" and this page's "Delete".
+
+        Each entry is a ``{"label": ..., "url": ...}`` mapping. The default is
+        the single screen Cancel returns to; override for a deeper trail.
+        """
+        label = self.get_parent_label()
+        if not label:
+            return []
+        return [{"label": label, "url": self.get_cancel_url()}]
+
     def get_page_title(self):
         return self.get_heading()
 
@@ -44,6 +62,7 @@ class ConfirmDeleteMixin:
                 "detail": self.get_detail(),
                 "warning": self.get_warning(),
                 "cancel_url": self.get_cancel_url(),
+                "parent_crumbs": self.get_parent_crumbs(),
                 "confirm_label": self.confirm_label,
             }
         )

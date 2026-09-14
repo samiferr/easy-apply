@@ -166,10 +166,62 @@
     @apply badge bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300;
   }
 
+  /* --- Page shell ------------------------------------------------------- */
+  /* Every application screen renders inside this one container, so the
+     breadcrumb, the title and the subtitle land in exactly the same place on
+     every page — dashboard, lists, detail screens, add/edit forms and delete
+     confirmations alike. `base_app.html` owns the markup; a page only fills
+     the blocks.
+
+     Content columns below the header are capped but *not* centred
+     (`max-w-2xl`, never `mx-auto max-w-2xl`), so a narrow form still starts
+     on the same left edge as the title above it. */
+  .page-shell {
+    @apply mx-auto w-full max-w-7xl px-4 pb-12 sm:px-6 lg:px-8;
+  }
+  .page-header {
+    @apply pb-6 pt-6;
+  }
+  /* Title and subtitle on the left, the screen's primary actions on the
+     right; the actions drop under the title below `sm`. */
+  .page-header-row {
+    @apply mt-3 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between;
+  }
+  .page-actions {
+    @apply flex shrink-0 flex-wrap items-center gap-2 empty:hidden;
+  }
+
+  /* --- Breadcrumb ------------------------------------------------------- */
+  /* The first line of every page: where you are, and one click back to each
+     step above. It replaces the ad-hoc "← Back to …" links the form and
+     detail screens each used to carry in their own spot. */
+  .breadcrumb {
+    @apply flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm;
+  }
+  .breadcrumb-item {
+    @apply flex min-w-0 items-center gap-1.5;
+  }
+  .breadcrumb-link {
+    @apply rounded text-slate-600 transition hover:text-slate-900 focus-visible:outline-none
+      focus-visible:ring-2 focus-visible:ring-brand-500 dark:text-slate-400 dark:hover:text-white;
+  }
+  /* The last crumb is the page itself: never a link, and truncated rather
+     than allowed to wrap when the title is a long job post name. */
+  .breadcrumb-current {
+    @apply max-w-[12rem] truncate font-medium text-slate-900 sm:max-w-sm dark:text-white;
+  }
+  /* Purely decorative and `aria-hidden`: the crumb order carries the meaning,
+     so this one chevron is exempt from the 3:1 floor the rest of the palette
+     holds to — it is deliberately quiet next to the labels. */
+  .breadcrumb-sep {
+    @apply h-3.5 w-3.5 shrink-0 text-slate-400 dark:text-slate-600;
+  }
+
   /* --- Headings --------------------------------------------------------- */
-  /* The one heading class for a full-width page (dashboard, list/detail
-     screens, legal pages, settings). Every such page uses it so position,
-     size and weight never drift between screens. */
+  /* The one heading class for a page that has a page header — which is every
+     screen in the app, plus the legal pages. The header in `base_app.html`
+     writes the tag, so position, size and weight cannot drift between
+     screens. */
   .page-title {
     @apply text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl dark:text-white;
   }
@@ -180,11 +232,11 @@
   .page-lead {
     @apply measure mt-2 text-slate-600 dark:text-slate-400;
   }
-  /* The heading inside a narrower single-purpose card: add/edit forms, the
-     resume upload intro, a delete confirmation. One size down from
-     `.page-title` because the card itself, not the viewport, sets its scale —
-     a responsive bump here would make short headings feel oversized in a
-     max-w-lg/2xl column. */
+  /* The heading inside a narrower single-purpose card that carries no page
+     header of its own: the log in, register and password-reset screens. One
+     size down from `.page-title` because the card itself, not the viewport,
+     sets its scale — a responsive bump here would make short headings feel
+     oversized in a max-w-md column. */
   .card-title {
     @apply text-xl font-bold text-slate-900 dark:text-white;
   }

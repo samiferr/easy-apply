@@ -1,11 +1,27 @@
 {% extends "base_app.html" %}
 {% load i18n %}
-{% block content %}
-<div class="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
-  <h1 class="page-title">{% trans "Account settings" %}</h1>
-  <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">{% trans "Manage your profiles, their personal info and your account security." %}</p>
+{% comment %}
+Shell for the four account-settings screens. Breadcrumb, title and subtitle
+come from `base_app.html` and each screen names its own; all this adds is the
+tab column beside the content. The "Account settings" crumb every screen shares
+is here so it is written once.
+{% endcomment %}
+{% block breadcrumb %}
+  {% if request.resolver_match.url_name == 'profile' %}
+    {# Personal info is the section root: the crumb is the page you are on. #}
+    {% include "partials/_crumb.html" with crumb_label=_("Account settings") only %}
+  {% else %}
+    {% url 'accounts:profile' as settings_url %}
+    {% include "partials/_crumb.html" with crumb_label=_("Account settings") crumb_url=settings_url only %}
+  {% endif %}
+  {% block settings_breadcrumb %}{% endblock %}
+{% endblock %}
+{% block page_title %}{% trans "Account settings" %}{% endblock %}
+{% block page_subtitle %}{% trans "Manage your profiles, their personal info and your account security." %}{% endblock %}
 
-  <div class="mt-8 grid grid-cols-1 gap-8 md:grid-cols-4">
+{% block content %}
+<div class="max-w-5xl">
+  <div class="grid grid-cols-1 gap-8 md:grid-cols-4">
     <nav class="flex gap-1 overflow-x-auto md:col-span-1 md:flex-col">
       <a href="{% url 'accounts:profile' %}" class="nav-link whitespace-nowrap {% if request.resolver_match.url_name == 'profile' %}nav-link-active{% endif %}">{% trans "Personal info" %}</a>
       <a href="{% url 'accounts:profile_list' %}" class="nav-link whitespace-nowrap {% if active_tab == 'profiles' %}nav-link-active{% endif %}">{% trans "Profiles" %}</a>
