@@ -4,6 +4,7 @@ certificates, via the shared DeepSeek client.
 """
 
 from core.ai import call_deepseek_json
+from core.language import language_clause
 
 SYSTEM_PROMPT = """You are an expert resume parser helping populate a \
 structured career profile. You read raw resume text (possibly messy, \
@@ -79,7 +80,18 @@ covered by another entry.
 """
 
 
-def analyze_resume_text(raw_text: str, soft_categories: list, technical_categories: list) -> dict:
+def analyze_resume_text(
+    raw_text: str,
+    soft_categories: list,
+    technical_categories: list,
+    language: str = "en",
+) -> dict:
+    """Parse a resume into structured data, written in `language`.
+
+    The resume itself may be in any language: the prose the model produces from
+    it (headline, bio, highlight bullets, category names) is normalized into the
+    profile's language, so a French profile never ends up half English.
+    """
     truncated = raw_text[:20000]
     categories_note = (
         "When choosing a `category` for each skill, prefer one of these existing "
@@ -88,5 +100,8 @@ def analyze_resume_text(raw_text: str, soft_categories: list, technical_categori
         f"reasonably fits: {', '.join(technical_categories) or '(none yet)'}.\n"
         "Only use a different category name if nothing listed is a reasonable fit."
     )
-    user_content = f"{categories_note}\n\n--- Resume text ---\n{truncated}"
+    user_content = (
+        f"{language_clause(language)}\n\n{categories_note}\n\n"
+        f"--- Resume text ---\n{truncated}"
+    )
     return call_deepseek_json(SYSTEM_PROMPT, user_content)

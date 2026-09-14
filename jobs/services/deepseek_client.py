@@ -14,23 +14,13 @@ jobs/tasks.py.
 import json
 
 from core.ai import AIConfigError, AIServiceError, call_deepseek_json
+from core.language import language_clause, use_language
 
 from ..sections import SECTIONS, get_section
 
 # Kept as aliases so existing imports keep working.
 DeepSeekError = AIServiceError
 DeepSeekConfigError = AIConfigError
-
-_LANGUAGE_NAMES = {"en": "English", "fr": "French"}
-
-
-def _language_clause(language_code: str) -> str:
-    name = _LANGUAGE_NAMES.get((language_code or "en")[:2], "English")
-    return (
-        f"Write every piece of prose you produce — summaries, section bodies and "
-        f"explanations — in {name}. Keep proper nouns (company names, product "
-        f"names, technologies) in their original form."
-    )
 
 
 # --------------------------------------------------------------------------
@@ -120,7 +110,7 @@ def analyze_job_text(raw_text: str, source_url: str = "", language: str = "en") 
     truncated = raw_text[:18000]
     user_content = (
         f"Job posting URL: {source_url or '(pasted manually)'}\n\n"
-        f"{_language_clause(language)}\n\n"
+        f"{language_clause(language)}\n\n"
         f"--- Job posting text ---\n{truncated}"
     )
     return call_deepseek_json(EXTRACTION_SYSTEM_PROMPT, user_content)
@@ -170,11 +160,16 @@ candidate does not have it.
 """
 
 
-def _match_payload(section_key: str, elements, profile_slice: dict) -> str:
+def _match_payload(section_key: str, elements, profile_slice: dict, language: str) -> str:
+    """The JSON the matcher sends. The section label is resolved under the
+    profile's language so the model is not handed an English label and then
+    asked to answer in French."""
     section = get_section(section_key)
+    with use_language(language):
+        label = str(section.label) if section else section_key
     return json.dumps(
         {
-            "section": str(section.label) if section else section_key,
+            "section": label,
             "elements": [{"id": e.id, "text": e.text} for e in elements],
             "candidate_profile": profile_slice,
         },
@@ -184,11 +179,13 @@ def _match_payload(section_key: str, elements, profile_slice: dict) -> str:
 
 def match_section(section_key: str, elements, profile_slice: dict, language: str = "en") -> dict:
     """Evaluate every element of one section against only its profile slice."""
-    user_content = f"{_language_clause(language)}\n\n{_match_payload(section_key, elements, profile_slice)}"
+    payload = _match_payload(section_key, elements, profile_slice, language)
+    user_content = f"{language_clause(language)}\n\n{payload}"
     return call_deepseek_json(MATCH_SYSTEM_PROMPT, user_content, temperature=0.1)
 
 
 def match_single_element(section_key: str, element, profile_slice: dict, language: str = "en") -> dict:
     """Re-evaluate exactly one element — used after "Add to my profile"."""
-    user_content = f"{_language_clause(language)}\n\n{_match_payload(section_key, [element], profile_slice)}"
+    payload = _match_payload(section_key, [element], profile_slice, language)
+    user_content = f"{language_clause(language)}\n\n{payload}"
     return call_deepseek_json(MATCH_SYSTEM_PROMPT, user_content, temperature=0.1)

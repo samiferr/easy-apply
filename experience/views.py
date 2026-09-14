@@ -2,21 +2,23 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
+from django.utils.translation import gettext as _
 from django.views import View
 from django.views.generic import DeleteView, ListView
+
+from core.mixins import ConfirmDeleteMixin
 
 from .forms import HighlightFormSet, WorkExperienceForm
 from .models import WorkExperience
 
 
 class ExperienceListView(LoginRequiredMixin, ListView):
-    extra_context = {"active_tab": "experience"}
     model = WorkExperience
     template_name = "experience/experience_list.html"
     context_object_name = "experiences"
 
     def get_queryset(self):
-        return WorkExperience.objects.filter(user=self.request.user).prefetch_related(
+        return WorkExperience.objects.filter(profile=self.request.profile).prefetch_related(
             "highlights"
         )
 
@@ -43,11 +45,13 @@ class BaseExperienceFormView(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):
         instance = self.get_object()
         form = WorkExperienceForm(request.POST, instance=instance)
-        formset = HighlightFormSet(request.POST, instance=instance or WorkExperience(user=request.user))
+        formset = HighlightFormSet(
+            request.POST, instance=instance or WorkExperience(profile=request.profile)
+        )
 
         if form.is_valid() and formset.is_valid():
             experience = form.save(commit=False)
-            experience.user = request.user
+            experience.profile = request.profile
             experience.save()
             formset.instance = experience
             formset.save()
@@ -66,18 +70,27 @@ class ExperienceCreateView(BaseExperienceFormView):
 
 class ExperienceUpdateView(BaseExperienceFormView):
     def get_object(self):
-        return get_object_or_404(WorkExperience, pk=self.kwargs["pk"], user=self.request.user)
+        return get_object_or_404(
+            WorkExperience, pk=self.kwargs["pk"], profile=self.request.profile
+        )
 
     def get_success_message(self, experience):
         return "Work experience updated."
 
 
-class ExperienceDeleteView(LoginRequiredMixin, DeleteView):
+class ExperienceDeleteView(ConfirmDeleteMixin, LoginRequiredMixin, DeleteView):
     model = WorkExperience
     success_url = reverse_lazy("experience:list")
+    cancel_url_name = "experience:list"
 
     def get_queryset(self):
-        return WorkExperience.objects.filter(user=self.request.user)
+        return WorkExperience.objects.filter(profile=self.request.profile)
+
+    def get_heading(self):
+        return _("Delete this role?")
+
+    def get_detail(self):
+        return f"{self.object.job_title} — {self.object.company}"
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()

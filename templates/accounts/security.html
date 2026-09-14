@@ -7,11 +7,11 @@
       <h2 class="text-lg font-semibold text-slate-900 dark:text-white">{% trans "Account" %}</h2>
       <dl class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          <dt class="text-xs font-medium uppercase tracking-wide text-slate-400">{% trans "Email address" %}</dt>
+          <dt class="text-xs font-medium uppercase tracking-wide text-slate-600 dark:text-slate-400">{% trans "Email address" %}</dt>
           <dd class="mt-1 text-sm text-slate-900 dark:text-white">{{ request.user.email }}</dd>
         </div>
         <div>
-          <dt class="text-xs font-medium uppercase tracking-wide text-slate-400">{% trans "Member since" %}</dt>
+          <dt class="text-xs font-medium uppercase tracking-wide text-slate-600 dark:text-slate-400">{% trans "Member since" %}</dt>
           <dd class="mt-1 text-sm text-slate-900 dark:text-white">{{ request.user.date_joined|date:"F j, Y" }}</dd>
         </div>
       </dl>
@@ -19,7 +19,7 @@
 
     <div class="card p-6 sm:p-8">
       <h2 class="text-lg font-semibold text-slate-900 dark:text-white">{% trans "Change password" %}</h2>
-      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{% trans "Use a strong password you don't use elsewhere." %}</p>
+      <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">{% trans "Use a strong password you don't use elsewhere." %}</p>
       <form method="post" novalidate class="mt-5 space-y-5">
         {% csrf_token %}
         <input type="hidden" name="change_password" value="1" />
@@ -41,7 +41,7 @@
 
     <div class="card border-rose-200 p-6 dark:border-rose-900/60 sm:p-8" x-data="{ confirmOpen: false }">
       <h2 class="text-lg font-semibold text-rose-700 dark:text-rose-400">{% trans "Danger zone" %}</h2>
-      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+      <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
         Permanently delete your account and all recorded skills, languages, experience and education. This can't be undone.
       </p>
       <button type="button" @click="confirmOpen = true" class="btn-danger mt-4">{% trans "Delete my account" %}</button>
@@ -49,7 +49,7 @@
       <div x-show="confirmOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4" style="display:none;">
         <div class="card w-full max-w-md p-6" @click.outside="confirmOpen = false">
           <h3 class="text-lg font-semibold text-slate-900 dark:text-white">{% trans "Delete your account?" %}</h3>
-          <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">{% trans "This action is permanent and cannot be undone." %}</p>
+          <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">{% trans "This action is permanent and cannot be undone." %}</p>
           <form method="post" novalidate class="mt-4 space-y-4">
             {% csrf_token %}
             <input type="hidden" name="delete_account" value="1" />

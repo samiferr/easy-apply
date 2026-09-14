@@ -3,7 +3,7 @@
 {% block title %}Create your account · {{ SITE_NAME }}{% endblock %}
 {% block auth_content %}
   <h1 class="text-2xl font-bold text-slate-900 dark:text-white">{% trans "Create your account" %}</h1>
-  <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{% trans "Start building your skills recap in minutes." %}</p>
+  <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">{% trans "Start building your skills recap in minutes." %}</p>
 
   <form method="post" novalidate class="mt-6 space-y-5">
     {% csrf_token %}
@@ -17,6 +17,7 @@
       {% include "partials/field.html" with field=form.last_name %}
     </div>
     {% include "partials/field.html" with field=form.email %}
+    {% include "partials/field.html" with field=form.profile_language %}
     {% include "partials/field.html" with field=form.password1 %}
     {% include "partials/field.html" with field=form.password2 %}
 

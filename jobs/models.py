@@ -1,4 +1,3 @@
-from django.conf import settings
 from django.db import models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
@@ -30,14 +29,14 @@ class JobPost(models.Model):
     ONSITE = "onsite"
     UNCLEAR = "unclear"
     WORK_ARRANGEMENT_CHOICES = [
-        (REMOTE, "Remote"),
-        (HYBRID, "Hybrid"),
-        (ONSITE, "On-site"),
-        (UNCLEAR, "Not specified"),
+        (REMOTE, _("Remote")),
+        (HYBRID, _("Hybrid")),
+        (ONSITE, _("On-site")),
+        (UNCLEAR, _("Not specified")),
     ]
 
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="job_posts"
+    profile = models.ForeignKey(
+        "accounts.Profile", on_delete=models.CASCADE, related_name="job_posts"
     )
     source_url = models.URLField(max_length=1000)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
@@ -86,7 +85,11 @@ class JobPost(models.Model):
     analysis_language = models.CharField(
         max_length=10,
         blank=True,
-        help_text="Language the AI was asked to answer in, so a re-render never mixes languages.",
+        help_text=(
+            "The language this stored analysis is written in. Copied from the "
+            "profile at analysis time, so the record says what it is even if the "
+            "job is later read from somewhere else."
+        ),
     )
     raw_text = models.TextField(blank=True)
     manual_text = models.TextField(

@@ -1,5 +1,5 @@
-from django.conf import settings
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 
 class Language(models.Model):
@@ -19,16 +19,16 @@ class UserLanguage(models.Model):
     FLUENT = "fluent"
     NATIVE = "native"
     PROFICIENCY_CHOICES = [
-        (BASIC, "Basic"),
-        (CONVERSATIONAL, "Conversational"),
-        (PROFESSIONAL, "Professional working proficiency"),
-        (FLUENT, "Fluent"),
-        (NATIVE, "Native / bilingual"),
+        (BASIC, _("Basic")),
+        (CONVERSATIONAL, _("Conversational")),
+        (PROFESSIONAL, _("Professional working proficiency")),
+        (FLUENT, _("Fluent")),
+        (NATIVE, _("Native / bilingual")),
     ]
     PROFICIENCY_ORDER = {choice[0]: i for i, choice in enumerate(PROFICIENCY_CHOICES)}
 
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="languages"
+    profile = models.ForeignKey(
+        "accounts.Profile", on_delete=models.CASCADE, related_name="languages"
     )
     language = models.ForeignKey(Language, on_delete=models.PROTECT, related_name="speakers")
     proficiency = models.CharField(
@@ -38,7 +38,9 @@ class UserLanguage(models.Model):
     class Meta:
         ordering = ["language__name"]
         constraints = [
-            models.UniqueConstraint(fields=["user", "language"], name="unique_language_per_user")
+            models.UniqueConstraint(
+                fields=["profile", "language"], name="unique_language_per_profile"
+            )
         ]
 
     def __str__(self):

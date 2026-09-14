@@ -4,26 +4,39 @@
   {% include "partials/_head.html" %}
   {% block extra_head %}{% endblock %}
 </head>
-<body class="min-h-full font-sans" x-data="appShell()">
-  <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:z-[60] focus:m-3 focus:rounded-lg focus:bg-brand-600 focus:px-4 focus:py-2 focus:text-white">{% trans "Skip to content" %}</a>
+{% comment %}
+The shell is one continuous surface: sidebar, top bar and content all sit on the
+same canvas with no dividing rules between them. Structure comes from spacing,
+from the cards the content sits in, and — for the top bar — from a shadow that
+only appears once something has scrolled underneath it.
 
-  {% include "partials/sidebar.html" %}
+Layout is a plain flex row inside a centred, capped container, so the sidebar is
+`sticky` rather than `fixed` and the content column needs no matching padding.
+Below `md` the sidebar leaves the flow and becomes an off-canvas drawer.
+{% endcomment %}
+<body class="min-h-full bg-canvas font-sans" x-data="appShell()"
+      @scroll.window="scrolled = window.scrollY > 4">
+  <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:z-[60] focus:m-3 focus:rounded-lg focus:bg-brand-600 focus:px-4 focus:py-2 focus:font-semibold focus:text-white">{% trans "Skip to content" %}</a>
 
-  <!-- Mobile scrim -->
-  <div x-show="mobileOpen" x-cloak x-transition.opacity @click="mobileOpen = false"
-       class="fixed inset-0 z-40 bg-slate-900/50 md:hidden" aria-hidden="true"></div>
+  <div class="mx-auto flex w-full max-w-shell">
+    {% include "partials/sidebar.html" %}
 
-  <div class="flex min-h-full flex-col transition-all duration-200" :class="collapsed ? 'md:pl-[4.5rem]' : 'md:pl-64'">
-    {% include "partials/topbar.html" %}
+    <!-- Mobile scrim -->
+    <div x-show="mobileOpen" x-cloak x-transition.opacity @click="mobileOpen = false"
+         class="fixed inset-0 z-40 bg-slate-950/60 md:hidden" aria-hidden="true"></div>
 
-    <main id="main-content" class="flex-1">
-      <div class="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        {% include "partials/messages.html" %}
-      </div>
-      {% block content %}{% endblock %}
-    </main>
+    <div class="flex min-h-svh min-w-0 flex-1 flex-col">
+      {% include "partials/topbar.html" %}
 
-    {% include "partials/app_footer.html" %}
+      <main id="main-content" class="flex-1">
+        <div class="mx-auto w-full max-w-7xl px-4 pt-6 sm:px-6 lg:px-8">
+          {% include "partials/messages.html" %}
+        </div>
+        {% block content %}{% endblock %}
+      </main>
+
+      {% include "partials/app_footer.html" %}
+    </div>
   </div>
 
   <script defer src="{% static 'js/alpine.min.js' %}"></script>
@@ -32,6 +45,9 @@
       return {
         collapsed: localStorage.sidebarCollapsed === "1",
         mobileOpen: false,
+        // Drives the top bar's shadow: with no border, this is what separates
+        // the bar from content passing beneath it.
+        scrolled: window.scrollY > 4,
         toggleCollapsed() {
           this.collapsed = !this.collapsed;
           localStorage.sidebarCollapsed = this.collapsed ? "1" : "0";

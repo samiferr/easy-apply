@@ -54,7 +54,7 @@ def analyze_resume_import(self, resume_import_id: int, task_id: int) -> dict:
 
 def enqueue_resume_analysis(resume_import: ResumeImport) -> AITask:
     task = AITask.start_for(
-        resume_import.user,
+        resume_import.profile,
         AITask.RESUME_IMPORT,
         resume_import,
         steps_total=2,
@@ -77,7 +77,7 @@ def generate_tailored_resume_task(self, job_id: int, task_id: int) -> dict:
 
     from .services.tailored import generate_tailored_resume
 
-    job = JobPost.objects.filter(pk=job_id).select_related("user").first()
+    job = JobPost.objects.filter(pk=job_id).select_related("profile").first()
     task = get_task(task_id)
     if job is None:
         fail_task(task, _("That job post no longer exists."))
@@ -93,7 +93,7 @@ def generate_tailored_resume_task(self, job_id: int, task_id: int) -> dict:
         tailored.save(update_fields=["state", "error_message"])
 
     try:
-        generate_tailored_resume(job, job.user)
+        generate_tailored_resume(job)
     except AIServiceError as exc:
         if is_retryable(exc) and self.request.retries < MAX_RETRIES:
             raise self.retry(exc=exc, countdown=5 * (2**self.request.retries))
@@ -116,16 +116,16 @@ def generate_tailored_resume_task(self, job_id: int, task_id: int) -> dict:
     return {"ok": True}
 
 
-def enqueue_tailored_resume(job, user) -> AITask:
+def enqueue_tailored_resume(job) -> AITask:
     tailored, _created = TailoredResume.objects.get_or_create(
-        job=job, defaults={"user": user}
+        job=job, defaults={"profile": job.profile}
     )
     tailored.state = TailoredResume.STATE_PENDING
     tailored.error_message = ""
     tailored.save(update_fields=["state", "error_message"])
 
     task = AITask.start_for(
-        user, AITask.TAILORED_RESUME, tailored, steps_total=1, step=_("Queued")
+        job.profile, AITask.TAILORED_RESUME, tailored, steps_total=1, step=_("Queued")
     )
     if dispatch(task, generate_tailored_resume_task.s(), args=(job.pk, task.pk)) is None:
         tailored.state = TailoredResume.STATE_FAILED

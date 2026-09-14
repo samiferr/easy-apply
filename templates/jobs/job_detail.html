@@ -6,7 +6,7 @@
 <div class="mx-auto w-full max-w-7xl px-4 pb-12 sm:px-6 lg:px-8"
      x-data="jobAnalysis({{ job.pk }}, '{{ rail.0.spec.key }}')">
 
-  <a href="{% url 'jobs:list' %}" class="inline-flex items-center gap-1 text-sm font-medium text-slate-500 transition hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
+  <a href="{% url 'jobs:list' %}" class="inline-flex items-center gap-1 text-sm font-medium text-slate-600 transition hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200">
     <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
     {% trans "Back to job posts" %}
   </a>
@@ -19,7 +19,7 @@
           <h1 class="page-title">{{ job.title|default:_("Untitled role") }}</h1>
           {% include "jobs/_status_badge.html" with status=job.status %}
         </div>
-        <p class="mt-2 text-slate-500 dark:text-slate-400">
+        <p class="mt-2 text-slate-600 dark:text-slate-400">
           {{ job.company_name|default:"" }}{% if job.seniority_level %} · {{ job.seniority_level }}{% endif %}
         </p>
         <a href="{{ job.source_url }}" target="_blank" rel="noopener" class="mt-2 inline-flex items-center gap-1 text-sm font-medium text-brand-600 transition hover:text-brand-700 dark:text-brand-400">
@@ -49,10 +49,7 @@
           {% csrf_token %}
           <button type="submit" class="btn-secondary">{% trans "Re-analyze" %}</button>
         </form>
-        <form method="post" action="{% url 'jobs:delete' job.pk %}" onsubmit="return confirm('{% trans "Delete this job post analysis?" %}');">
-          {% csrf_token %}
-          <button type="submit" class="btn-danger">{% trans "Delete" %}</button>
-        </form>
+        <a href="{% url 'jobs:delete' job.pk %}" class="btn-danger">{% trans "Delete" %}</a>
       </div>
     </div>
   </div>
@@ -100,7 +97,7 @@
       <div class="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
         <div class="h-full rounded-full bg-brand-600 transition-all duration-500" :style="'width: ' + summary.score_percent + '%'" style="width: {{ match_summary.score_percent }}%"></div>
       </div>
-      <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-500 dark:text-slate-400">
+      <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600 dark:text-slate-400">
         <span class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-emerald-500"></span><span x-text="summary.strong">{{ match_summary.strong }}</span> {% trans "strong" %}</span>
         <span class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-amber-500"></span><span x-text="summary.partial">{{ match_summary.partial }}</span> {% trans "partial" %}</span>
         <span class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-slate-300 dark:bg-slate-600"></span><span x-text="summary.none">{{ match_summary.none }}</span> {% trans "not covered" %}</span>
@@ -134,10 +131,10 @@
                       <template x-if="countOf('{{ row.spec.key }}', 'partial')"><span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span></template>
                       <template x-if="countOf('{{ row.spec.key }}', 'none')"><span class="h-1.5 w-1.5 rounded-full bg-slate-300 dark:bg-slate-600"></span></template>
                     </span>
-                    <span class="text-xs tabular-nums text-slate-400">{{ row.section.elements.count }}</span>
+                    <span class="text-xs tabular-nums text-slate-600 dark:text-slate-400">{{ row.section.elements.count }}</span>
                   {% endif %}
                 {% else %}
-                  <span class="text-xs text-slate-300 dark:text-slate-600">—</span>
+                  <span class="text-xs text-slate-600 dark:text-slate-400">—</span>
                 {% endif %}
               </span>
             </button>

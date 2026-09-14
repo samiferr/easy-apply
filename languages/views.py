@@ -1,20 +1,22 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
+from django.utils.translation import gettext as _
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
+
+from core.mixins import ConfirmDeleteMixin
 
 from .forms import UserLanguageForm
 from .models import UserLanguage
 
 
 class LanguageListView(LoginRequiredMixin, ListView):
-    extra_context = {"active_tab": "languages"}
     model = UserLanguage
     template_name = "languages/language_list.html"
     context_object_name = "user_languages"
 
     def get_queryset(self):
-        return UserLanguage.objects.filter(user=self.request.user).select_related("language")
+        return UserLanguage.objects.filter(profile=self.request.profile).select_related("language")
 
 
 class LanguageFormMixin(LoginRequiredMixin):
@@ -24,11 +26,11 @@ class LanguageFormMixin(LoginRequiredMixin):
     success_url = reverse_lazy("languages:list")
 
     def get_queryset(self):
-        return UserLanguage.objects.filter(user=self.request.user)
+        return UserLanguage.objects.filter(profile=self.request.profile)
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs["user"] = self.request.user
+        kwargs["profile"] = self.request.profile
         return kwargs
 
 
@@ -44,12 +46,19 @@ class LanguageUpdateView(LanguageFormMixin, UpdateView):
         return super().form_valid(form)
 
 
-class LanguageDeleteView(LoginRequiredMixin, DeleteView):
+class LanguageDeleteView(ConfirmDeleteMixin, LoginRequiredMixin, DeleteView):
     model = UserLanguage
     success_url = reverse_lazy("languages:list")
+    cancel_url_name = "languages:list"
 
     def get_queryset(self):
-        return UserLanguage.objects.filter(user=self.request.user)
+        return UserLanguage.objects.filter(profile=self.request.profile)
+
+    def get_heading(self):
+        return _("Delete this language?")
+
+    def get_detail(self):
+        return f"{self.object.language.name} — {self.object.get_proficiency_display()}"
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()

@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Easy Apply\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-10 02:05+0000\n"
+"POT-Creation-Date: 2026-09-14 01:38+0000\n"
 "PO-Revision-Date: 2026-09-10 01:20+0000\n"
 "Last-Translator: Easy Apply <noreply@easy-apply.app>\n"
 "Language-Team: French <fr@easy-apply.app>\n"
@@ -14,6 +14,135 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: accounts/forms.py:15
+msgid "Choose a language…"
+msgstr "Choisissez une langue…"
+
+#: accounts/forms.py:25
+msgid "Profile language"
+msgstr "Langue du profil"
+
+#: accounts/forms.py:28
+msgid "Your first profile — and everything the AI writes for it — uses this language. You can add profiles in other languages later."
+msgstr "Votre premier profil — et tout ce que l’IA rédige pour lui — utilise cette langue. Vous pourrez ajouter des profils dans d’autres langues plus tard."
+
+#: accounts/forms.py:132
+msgid "Backend engineer"
+msgstr "Ingénieur backend"
+
+#: accounts/forms.py:141
+msgid "Give this profile a name."
+msgstr "Donnez un nom à ce profil."
+
+#: accounts/forms.py:146
+msgid "You already have a profile with that name."
+msgstr "Vous avez déjà un profil portant ce nom."
+
+#: accounts/forms.py:159 accounts/models.py:77 jobs/profile_targets.py:88
+#: templates/partials/footer.html:33
+msgid "Language"
+msgstr "Langue"
+
+#: accounts/forms.py:162
+msgid "Every analysis, match and resume generated in this profile is written in this language. It can't be changed afterwards."
+msgstr "Chaque analyse, correspondance et CV généré dans ce profil est rédigé dans cette langue. Elle ne pourra pas être modifiée par la suite."
+
+#: accounts/models.py:72
+msgid "Profile name"
+msgstr "Nom du profil"
+
+#: accounts/models.py:74
+msgid "e.g. “Backend engineer” or “Data analyst (FR)”."
+msgstr "p. ex. « Ingénieur backend » ou « Analyste de données (FR) »."
+
+#: accounts/models.py:81
+msgid "Every AI analysis and every document generated for this profile is written in this language. It can't be changed later."
+msgstr "Chaque analyse IA et chaque document généré pour ce profil est rédigé dans cette langue. Elle ne pourra pas être modifiée plus tard."
+
+#: accounts/models.py:87
+msgid "Professional headline"
+msgstr "Titre professionnel"
+
+#: accounts/models.py:90
+msgid "e.g. “Frontend Developer looking for new opportunities”"
+msgstr "p. ex. « Développeuse frontend à la recherche de nouvelles opportunités »"
+
+#: accounts/models.py:92
+msgid "Phone"
+msgstr "Téléphone"
+
+#: accounts/models.py:93
+msgid "Location"
+msgstr "Lieu"
+
+#: accounts/models.py:94
+msgid "About me"
+msgstr "À propos de moi"
+
+#: accounts/models.py:95
+msgid "Avatar"
+msgstr "Photo de profil"
+
+#: accounts/models.py:96
+msgid "LinkedIn"
+msgstr "LinkedIn"
+
+#: accounts/models.py:97
+msgid "Portfolio / website"
+msgstr "Portfolio / site web"
+
+#: accounts/models.py:98
+msgid "GitHub"
+msgstr "GitHub"
+
+#: accounts/models.py:104
+msgid "profile"
+msgstr "profil"
+
+#: accounts/models.py:105
+msgid "profiles"
+msgstr "profils"
+
+#: accounts/services.py:14 templates/core/dashboard.html:33
+msgid "My profile"
+msgstr "Mon profil"
+
+#: accounts/views.py:174
+#, python-format
+msgid "Created “%(name)s” (%(language)s). You're now working in it."
+msgstr "« %(name)s » (%(language)s) a été créé. Vous y travaillez maintenant."
+
+#: accounts/views.py:199
+msgid "Profile renamed."
+msgstr "Profil renommé."
+
+#: accounts/views.py:210
+#, python-format
+msgid "Switched to “%(name)s”."
+msgstr "Vous travaillez maintenant dans « %(name)s »."
+
+#: accounts/views.py:250 accounts/views.py:275
+msgid "You can't delete your only profile — create another one first."
+msgstr "Vous ne pouvez pas supprimer votre seul profil — créez-en un autre d’abord."
+
+#: accounts/views.py:258
+msgid "Delete this profile?"
+msgstr "Supprimer ce profil ?"
+
+#: accounts/views.py:259
+#, python-format
+msgid "Delete “%(name)s”?"
+msgstr "Supprimer « %(name)s » ?"
+
+#: accounts/views.py:261
+msgid "This deletes everything recorded in it — skills, experience, education, job preferences, analyzed job posts and resumes. This can't be undone."
+msgstr "Cela supprime tout ce qu’il contient — compétences, expérience, formation, préférences d’emploi, offres analysées et CV. Cette action est irréversible."
+
+#: accounts/views.py:285
+#, python-format
+msgid "Deleted “%(name)s” and everything in it."
+msgstr "« %(name)s » et tout son contenu ont été supprimés."
 
 #: core/models.py:21
 msgid "Resume analysis"
@@ -31,37 +160,37 @@ msgstr "Analyse de correspondance"
 msgid "Resume generation"
 msgstr "Génération du CV"
 
-#: core/models.py:33 jobs/tasks.py:203 jobs/tasks.py:269 resume/tasks.py:61
-#: resume/tasks.py:128 templates/core/dashboard.html:136
-#: templates/jobs/job_detail.html:169
+#: core/models.py:33 jobs/tasks.py:207 jobs/tasks.py:273 resume/tasks.py:61
+#: resume/tasks.py:128 templates/core/dashboard.html:143
+#: templates/jobs/job_detail.html:166
 msgid "Queued"
 msgstr "En attente"
 
-#: core/models.py:34 templates/core/dashboard.html:136
-#: templates/jobs/job_detail.html:169
+#: core/models.py:34 templates/core/dashboard.html:143
+#: templates/jobs/job_detail.html:166
 msgid "Running"
 msgstr "En cours"
 
-#: core/models.py:35 templates/core/dashboard.html:137
-#: templates/jobs/job_detail.html:170
+#: core/models.py:35 templates/core/dashboard.html:144
+#: templates/jobs/job_detail.html:167
 msgid "Done"
 msgstr "Terminé"
 
-#: core/models.py:36 templates/core/dashboard.html:137
-#: templates/jobs/_status_badge.html:5 templates/jobs/job_detail.html:170
+#: core/models.py:36 templates/core/dashboard.html:144
+#: templates/jobs/_status_badge.html:5 templates/jobs/job_detail.html:167
 msgid "Failed"
 msgstr "Échec"
 
-#: core/models.py:37 templates/core/dashboard.html:138
-#: templates/jobs/job_detail.html:171
+#: core/models.py:37 templates/core/dashboard.html:145
+#: templates/jobs/job_detail.html:168
 msgid "Canceled"
 msgstr "Annulé"
 
-#: core/models.py:70
+#: core/models.py:81
 msgid "AI task"
 msgstr "tâche IA"
 
-#: core/models.py:71
+#: core/models.py:82
 msgid "AI tasks"
 msgstr "tâches IA"
 
@@ -70,39 +199,92 @@ msgid "This took too long and was stopped. Please try again."
 msgstr "L’opération a pris trop de temps et a été interrompue. Veuillez réessayer."
 
 #: core/tasks.py:63
-msgid ""
-"Background processing is unavailable right now. Please try again shortly."
+msgid "Background processing is unavailable right now. Please try again shortly."
 msgstr "Le traitement en arrière-plan est momentanément indisponible. Veuillez réessayer sous peu."
 
-#: core/utils.py:440
+#: core/utils.py:62
+msgid "About"
+msgstr "À propos"
+
+#: core/utils.py:70
+msgid "Soft Skills"
+msgstr "Compétences comportementales"
+
+#: core/utils.py:70
+msgid "Technical Skills"
+msgstr "Compétences techniques"
+
+#: core/utils.py:85 jobs/sections.py:125 templates/core/home.html:39
+#: templates/partials/sidebar.html:70 templates/resume/resume_review.html:94
+msgid "Languages"
+msgstr "Langues"
+
+#: core/utils.py:93
+msgid "Work Experience"
+msgstr "Expérience professionnelle"
+
+#: core/utils.py:109 templates/partials/sidebar.html:58
+#: templates/resume/resume_review.html:130
+msgid "Education"
+msgstr "Formation"
+
+#: core/utils.py:117 core/utils.py:284 experience/models.py:54
+msgid "Present"
+msgstr "Aujourd’hui"
+
+#: core/utils.py:131 templates/education/education_list.html:48
+#: templates/resume/resume_review.html:141
+msgid "Certificates"
+msgstr "Certificats"
+
+#: core/utils.py:137
+#, python-format
+msgid "Issued %(date)s"
+msgstr "Délivré le %(date)s"
+
+#: core/utils.py:139
+msgid "No expiration"
+msgstr "Sans expiration"
+
+#: core/utils.py:141
+#, python-format
+msgid "Expires %(date)s"
+msgstr "Expire le %(date)s"
+
+#: core/utils.py:151
+#, python-format
+msgid "Generated with Easy Apply on %(date)s."
+msgstr "Généré avec Easy Apply le %(date)s."
+
+#: core/utils.py:463
 msgid "No location or work-arrangement preferences recorded yet."
 msgstr "Aucune préférence de lieu ou de mode de travail enregistrée pour l’instant."
 
-#: core/utils.py:441
+#: core/utils.py:464
 msgid "No salary or benefit preferences recorded yet."
 msgstr "Aucune préférence de salaire ou d’avantages enregistrée pour l’instant."
 
-#: core/utils.py:442
+#: core/utils.py:465
 msgid "No work experience or technical skills recorded yet."
 msgstr "Aucune expérience professionnelle ni compétence technique enregistrée pour l’instant."
 
-#: core/utils.py:443 core/utils.py:444
+#: core/utils.py:466 core/utils.py:467
 msgid "No technical skills recorded in your profile yet."
 msgstr "Aucune compétence technique enregistrée dans votre profil pour l’instant."
 
-#: core/utils.py:445
+#: core/utils.py:468
 msgid "No soft skills recorded in your profile yet."
 msgstr "Aucune compétence comportementale enregistrée dans votre profil pour l’instant."
 
-#: core/utils.py:446
+#: core/utils.py:469
 msgid "No languages recorded in your profile yet."
 msgstr "Aucune langue enregistrée dans votre profil pour l’instant."
 
-#: core/utils.py:447
+#: core/utils.py:470
 msgid "No degrees or certificates recorded in your profile yet."
 msgstr "Aucun diplôme ni certificat enregistré dans votre profil pour l’instant."
 
-#: core/utils.py:449
+#: core/utils.py:472
 msgid "Nothing in your profile covers this yet."
 msgstr "Rien dans votre profil ne couvre encore ce point."
 
@@ -134,50 +316,107 @@ msgstr "Ajoutez votre expérience professionnelle"
 msgid "Add your education or a certificate"
 msgstr "Ajoutez une formation ou un certificat"
 
-#: jobs/models.py:174
+#: education/views.py:50 education/views.py:94 experience/views.py:85
+#: jobs/views.py:129 languages/views.py:53 skills/views.py:92
+#: templates/core/confirm_delete.html:32
+msgid "This can't be undone."
+msgstr "Cette action est irréversible."
+
+#: education/views.py:56
+msgid "Delete this degree?"
+msgstr "Supprimer ce diplôme ?"
+
+#: education/views.py:100
+msgid "Delete this certificate?"
+msgstr "Supprimer ce certificat ?"
+
+#: experience/models.py:14
+msgid "Full-time"
+msgstr "Temps plein"
+
+#: experience/models.py:15
+msgid "Part-time"
+msgstr "Temps partiel"
+
+#: experience/models.py:16
+msgid "Contract"
+msgstr "Contrat"
+
+#: experience/models.py:17
+msgid "Freelance"
+msgstr "Freelance"
+
+#: experience/models.py:18
+msgid "Internship"
+msgstr "Stage"
+
+#: experience/views.py:91
+msgid "Delete this role?"
+msgstr "Supprimer ce poste ?"
+
+#: jobs/models.py:32 jobs/profile_targets.py:231
+#: templates/jobs/_arrangement_badge.html:3
+msgid "Remote"
+msgstr "Télétravail"
+
+#: jobs/models.py:33 jobs/profile_targets.py:231
+#: templates/jobs/_arrangement_badge.html:5
+msgid "Hybrid"
+msgstr "Hybride"
+
+#: jobs/models.py:34 jobs/profile_targets.py:231
+#: templates/jobs/_arrangement_badge.html:7
+msgid "On-site"
+msgstr "Sur site"
+
+#: jobs/models.py:35
+msgid "Not specified"
+msgstr "Non précisé"
+
+#: jobs/models.py:177
 msgid "Not matched yet"
 msgstr "Pas encore comparé"
 
-#: jobs/models.py:175
+#: jobs/models.py:178
 msgid "Matching…"
 msgstr "Comparaison en cours…"
 
-#: jobs/models.py:176
+#: jobs/models.py:179
 msgid "Matched"
 msgstr "Comparé"
 
-#: jobs/models.py:177
+#: jobs/models.py:180
 msgid "Matching failed"
 msgstr "Échec de la comparaison"
 
-#: jobs/models.py:190
+#: jobs/models.py:193
 msgid "job section"
 msgstr "section d’offre"
 
-#: jobs/models.py:191
+#: jobs/models.py:194
 msgid "job sections"
 msgstr "sections d’offre"
 
-#: jobs/models.py:244 templates/core/home.html:45
+#: jobs/models.py:247 templates/core/home.html:45
 #: templates/jobs/_match_badge.html:8
 msgid "Strong match"
 msgstr "Correspondance forte"
 
-#: jobs/models.py:245 templates/core/home.html:49
+#: jobs/models.py:248 templates/core/home.html:49
 #: templates/jobs/_match_badge.html:10
 msgid "Partial match"
 msgstr "Correspondance partielle"
 
-#: jobs/models.py:246 templates/core/home.html:53
+#: jobs/models.py:249 templates/core/home.html:53
 #: templates/jobs/_match_badge.html:12
 msgid "Not covered"
 msgstr "Non couvert"
 
-#: jobs/models.py:265
+#: jobs/models.py:268
 msgid "job element"
 msgstr "élément d’offre"
 
-#: jobs/models.py:266
+#: jobs/models.py:269
 msgid "job elements"
 msgstr "éléments d’offre"
 
@@ -198,176 +437,160 @@ msgstr "Niveau"
 msgid "“%(name)s” is already in that category on your profile."
 msgstr "« %(name)s » figure déjà dans cette catégorie de votre profil."
 
-#: jobs/profile_targets.py:88 templates/partials/footer.html:33
-msgid "Language"
-msgstr "Langue"
-
 #: jobs/profile_targets.py:90
 msgid "Proficiency"
 msgstr "Niveau de maîtrise"
 
-#: jobs/profile_targets.py:100
+#: jobs/profile_targets.py:102
 #, python-format
 msgid "%(name)s is already on your profile."
 msgstr "%(name)s figure déjà dans votre profil."
 
-#: jobs/profile_targets.py:116
+#: jobs/profile_targets.py:120
 msgid "Add to which role?"
 msgstr "À quel poste l’ajouter ?"
 
-#: jobs/profile_targets.py:118
+#: jobs/profile_targets.py:122
 msgid "Highlight"
 msgstr "Réalisation"
 
-#: jobs/profile_targets.py:128
+#: jobs/profile_targets.py:132
 msgid "Add a work experience to your profile first, then come back."
 msgstr "Ajoutez d’abord une expérience professionnelle à votre profil, puis revenez ici."
 
-#: jobs/profile_targets.py:146
+#: jobs/profile_targets.py:150
 msgid "Record as"
 msgstr "Enregistrer comme"
 
-#: jobs/profile_targets.py:147
+#: jobs/profile_targets.py:151
 msgid "Degree"
 msgstr "Diplôme"
 
-#: jobs/profile_targets.py:147
+#: jobs/profile_targets.py:151
 msgid "Certificate"
 msgstr "Certificat"
 
-#: jobs/profile_targets.py:151
+#: jobs/profile_targets.py:155
 msgid "Degree or certificate name"
 msgstr "Nom du diplôme ou du certificat"
 
-#: jobs/profile_targets.py:153
+#: jobs/profile_targets.py:157
 msgid "School or issuing organization"
 msgstr "Établissement ou organisme émetteur"
 
-#: jobs/profile_targets.py:155
+#: jobs/profile_targets.py:159
 msgid "Field of study"
 msgstr "Domaine d’études"
 
-#: jobs/profile_targets.py:160
+#: jobs/profile_targets.py:164
 msgid "Certificates need an issuing organization."
 msgstr "Un certificat doit indiquer un organisme émetteur."
 
-#: jobs/profile_targets.py:179 preferences/forms.py:57
-#: preferences/models.py:133 templates/preferences/job_preference.html:58
+#: jobs/profile_targets.py:183 preferences/forms.py:57
+#: preferences/models.py:132 templates/preferences/job_preference.html:58
 msgid "Benefit"
 msgstr "Avantage"
 
-#: jobs/profile_targets.py:181 preferences/models.py:135
+#: jobs/profile_targets.py:185 preferences/models.py:134
 #: templates/preferences/job_preference.html:59
 msgid "Importance"
 msgstr "Importance"
 
-#: jobs/profile_targets.py:185 preferences/forms.py:58
-#: preferences/models.py:137 templates/preferences/job_preference.html:60
+#: jobs/profile_targets.py:189 preferences/forms.py:58
+#: preferences/models.py:136 templates/preferences/job_preference.html:60
 msgid "Notes"
 msgstr "Remarques"
 
-#: jobs/profile_targets.py:192 preferences/forms.py:73
+#: jobs/profile_targets.py:196 preferences/forms.py:73
 #, python-format
 msgid "“%(name)s” is already in your preferences."
 msgstr "« %(name)s » figure déjà dans vos préférences."
 
-#: jobs/profile_targets.py:215
+#: jobs/profile_targets.py:219
 msgid "Record this as"
 msgstr "Enregistrer ceci comme"
 
-#: jobs/profile_targets.py:217
+#: jobs/profile_targets.py:221
 msgid "A preferred location"
 msgstr "Un lieu souhaité"
 
-#: jobs/profile_targets.py:218
+#: jobs/profile_targets.py:222
 msgid "An acceptable work arrangement"
 msgstr "Un mode de travail acceptable"
 
-#: jobs/profile_targets.py:219
+#: jobs/profile_targets.py:223
 msgid "My time zone preference"
 msgstr "Ma préférence de fuseau horaire"
 
-#: jobs/profile_targets.py:220
+#: jobs/profile_targets.py:224
 msgid "Maximum travel I accept"
 msgstr "Déplacements maximum acceptés"
 
-#: jobs/profile_targets.py:224
+#: jobs/profile_targets.py:228
 msgid "Value"
 msgstr "Valeur"
 
-#: jobs/profile_targets.py:226
+#: jobs/profile_targets.py:230
 msgid "Arrangement"
 msgstr "Mode de travail"
 
-#: jobs/profile_targets.py:227 templates/jobs/_arrangement_badge.html:3
-msgid "Remote"
-msgstr "Télétravail"
-
-#: jobs/profile_targets.py:227 templates/jobs/_arrangement_badge.html:5
-msgid "Hybrid"
-msgstr "Hybride"
-
-#: jobs/profile_targets.py:227 templates/jobs/_arrangement_badge.html:7
-msgid "On-site"
-msgstr "Sur site"
-
-#: jobs/profile_targets.py:231 preferences/models.py:51
+#: jobs/profile_targets.py:235 preferences/models.py:50
 msgid "Max. travel (%)"
 msgstr "Déplacements max. (%)"
 
-#: jobs/profile_targets.py:238
+#: jobs/profile_targets.py:242
 msgid "Pick which arrangement this is."
 msgstr "Indiquez de quel mode de travail il s’agit."
 
-#: jobs/profile_targets.py:240
+#: jobs/profile_targets.py:244
 msgid "Give a maximum travel percentage."
 msgstr "Indiquez un pourcentage maximum de déplacements."
 
-#: jobs/profile_targets.py:305
+#: jobs/profile_targets.py:309
 msgid "Add to my technical skills"
 msgstr "Ajouter à mes compétences techniques"
 
-#: jobs/profile_targets.py:306 jobs/profile_targets.py:312
+#: jobs/profile_targets.py:310 jobs/profile_targets.py:316
 msgid "Review the name and level before adding it to your profile."
 msgstr "Vérifiez le nom et le niveau avant de l’ajouter à votre profil."
 
-#: jobs/profile_targets.py:311
+#: jobs/profile_targets.py:315
 msgid "Add to my soft skills"
 msgstr "Ajouter à mes compétences comportementales"
 
-#: jobs/profile_targets.py:317
+#: jobs/profile_targets.py:321
 msgid "Add to my languages"
 msgstr "Ajouter à mes langues"
 
-#: jobs/profile_targets.py:318
+#: jobs/profile_targets.py:322
 msgid "Set the proficiency that actually matches yours."
 msgstr "Indiquez le niveau qui correspond réellement au vôtre."
 
-#: jobs/profile_targets.py:323
+#: jobs/profile_targets.py:327
 msgid "Add to my experience"
 msgstr "Ajouter à mon expérience"
 
-#: jobs/profile_targets.py:324
+#: jobs/profile_targets.py:328
 msgid "Reword this in your own terms, then pick the role it belongs to."
 msgstr "Reformulez-le avec vos mots, puis choisissez le poste concerné."
 
-#: jobs/profile_targets.py:329
+#: jobs/profile_targets.py:333
 msgid "Add to my education"
 msgstr "Ajouter à ma formation"
 
-#: jobs/profile_targets.py:330
+#: jobs/profile_targets.py:334
 msgid "Record this as a degree or as a certificate."
 msgstr "Enregistrez ceci comme un diplôme ou comme un certificat."
 
-#: jobs/profile_targets.py:335 jobs/profile_targets.py:341
+#: jobs/profile_targets.py:339 jobs/profile_targets.py:345
 msgid "Add to my job preferences"
 msgstr "Ajouter à mes préférences d’emploi"
 
-#: jobs/profile_targets.py:336
+#: jobs/profile_targets.py:340
 msgid "Say how much this benefit matters to you."
 msgstr "Indiquez l’importance de cet avantage pour vous."
 
-#: jobs/profile_targets.py:342
+#: jobs/profile_targets.py:346
 msgid "Choose which preference this fact should update."
 msgstr "Choisissez la préférence que cette information doit mettre à jour."
 
@@ -435,17 +658,11 @@ msgstr "Compétences comportementales souhaitées"
 msgid "Checked against your soft skills."
 msgstr "Comparé à vos compétences comportementales."
 
-#: jobs/sections.py:125 templates/core/home.html:39
-#: templates/partials/_profile_rail.html:11 templates/partials/sidebar.html:66
-#: templates/resume/resume_review.html:94
-msgid "Languages"
-msgstr "Langues"
-
 #: jobs/sections.py:130
 msgid "Checked against the languages on your profile."
 msgstr "Comparé aux langues de votre profil."
 
-#: jobs/sections.py:134 templates/partials/_profile_rail.html:8
+#: jobs/sections.py:134
 msgid "Education & Certifications"
 msgstr "Formation et certifications"
 
@@ -477,96 +694,130 @@ msgstr "Récupération de l’offre"
 msgid "Reading the posting"
 msgstr "Lecture de l’offre"
 
-#: jobs/tasks.py:89
+#: jobs/tasks.py:93
 msgid "Extracting the job's sections"
 msgstr "Extraction des sections de l’offre"
 
-#: jobs/tasks.py:103
+#: jobs/tasks.py:107
 msgid "Something unexpected went wrong analyzing this job post."
 msgstr "Une erreur inattendue est survenue lors de l’analyse de cette offre."
 
-#: jobs/tasks.py:117
+#: jobs/tasks.py:121
 msgid "Sections extracted"
 msgstr "Sections extraites"
 
-#: jobs/tasks.py:146 jobs/tasks.py:251
+#: jobs/tasks.py:150 jobs/tasks.py:255
 #, python-format
 msgid "Matching %(section)s"
 msgstr "Comparaison : %(section)s"
 
-#: jobs/tasks.py:157 jobs/tasks.py:165
+#: jobs/tasks.py:161 jobs/tasks.py:169
 #, python-format
 msgid "%(section)s failed"
 msgstr "Échec : %(section)s"
 
-#: jobs/tasks.py:162
+#: jobs/tasks.py:166
 msgid "Something unexpected went wrong matching this section."
 msgstr "Une erreur inattendue est survenue lors de la comparaison de cette section."
 
-#: jobs/tasks.py:169
+#: jobs/tasks.py:173
 #, python-format
 msgid "Matched %(section)s"
 msgstr "Comparé : %(section)s"
 
-#: jobs/tasks.py:187
+#: jobs/tasks.py:191
 msgid "Every section failed to match. Please try again."
 msgstr "Aucune section n’a pu être comparée. Veuillez réessayer."
 
-#: jobs/tasks.py:189
+#: jobs/tasks.py:193
 msgid "Analysis complete"
 msgstr "Analyse terminée"
 
-#: jobs/tasks.py:294
+#: jobs/tasks.py:298
 msgid "That item no longer exists."
 msgstr "Cet élément n’existe plus."
 
-#: jobs/tasks.py:298 jobs/tasks.py:326
+#: jobs/tasks.py:302 jobs/tasks.py:330
 msgid "Re-evaluating this item"
 msgstr "Réévaluation de cet élément"
 
-#: jobs/tasks.py:311
+#: jobs/tasks.py:315
 msgid "Something unexpected went wrong re-evaluating this item."
 msgstr "Une erreur inattendue est survenue lors de la réévaluation de cet élément."
 
-#: jobs/tasks.py:315
+#: jobs/tasks.py:319
 msgid "Re-evaluated"
 msgstr "Réévalué"
 
-#: jobs/views.py:76
+#: jobs/views.py:78
 msgid "Analyzing this job post — the sections will fill in as they finish."
 msgstr "Analyse de l’offre en cours — les sections se rempliront au fur et à mesure."
 
 #: jobs/views.py:121
+msgid "Delete this job post analysis?"
+msgstr "Supprimer l’analyse de cette offre ?"
+
+#: jobs/views.py:128
+msgid "This also deletes the tailored resume written for it. This can't be undone."
+msgstr "Cela supprime aussi le CV personnalisé rédigé pour cette offre. Cette action est irréversible."
+
+#: jobs/views.py:135
 #, python-format
 msgid "Deleted “%(title)s”."
 msgstr "« %(title)s » a été supprimé."
 
-#: jobs/views.py:130
+#: jobs/views.py:144
 msgid "Re-analyzing this job post."
 msgstr "Nouvelle analyse de cette offre en cours."
 
-#: jobs/views.py:141
+#: jobs/views.py:155
 msgid "Analyze this job post first, then match it to your profile."
 msgstr "Analysez d’abord cette offre, puis comparez-la à votre profil."
 
-#: jobs/views.py:145
+#: jobs/views.py:159
 msgid "Matching this job against your profile."
 msgstr "Comparaison de cette offre avec votre profil en cours."
 
-#: jobs/views.py:167
+#: jobs/views.py:181
 #, python-format
 msgid "Re-matching %(section)s."
 msgstr "Nouvelle comparaison : %(section)s."
 
-#: jobs/views.py:245 jobs/views.py:260
+#: jobs/views.py:259 jobs/views.py:274
 msgid "This section can't be added to your profile."
 msgstr "Cette section ne peut pas être ajoutée à votre profil."
+
+#: languages/models.py:22
+msgid "Basic"
+msgstr "Notions"
+
+#: languages/models.py:23
+msgid "Conversational"
+msgstr "Conversationnel"
+
+#: languages/models.py:24
+msgid "Professional working proficiency"
+msgstr "Capacité professionnelle"
+
+#: languages/models.py:25
+msgid "Fluent"
+msgstr "Courant"
+
+#: languages/models.py:26
+msgid "Native / bilingual"
+msgstr "Natif / bilingue"
+
+#: languages/views.py:59
+msgid "Delete this language?"
+msgstr "Supprimer cette langue ?"
 
 #: preferences/forms.py:30
 msgid ""
 "Montréal, QC\n"
 "Remote (Canada)"
-msgstr "Montréal, QC\nTélétravail (Canada)"
+msgstr ""
+"Montréal, QC\n"
+"Télétravail (Canada)"
 
 #: preferences/forms.py:33
 msgid "Available from March, 4 weeks notice"
@@ -588,175 +839,203 @@ msgstr "Le salaire visé ne peut pas être inférieur au minimum."
 msgid "Give this benefit a name."
 msgstr "Donnez un nom à cet avantage."
 
-#: preferences/models.py:15
+#: preferences/models.py:14
 msgid "Per year"
 msgstr "Par an"
 
-#: preferences/models.py:16
+#: preferences/models.py:15
 msgid "Per month"
 msgstr "Par mois"
 
-#: preferences/models.py:17
+#: preferences/models.py:16
 msgid "Per day"
 msgstr "Par jour"
 
-#: preferences/models.py:18
+#: preferences/models.py:17
 msgid "Per hour"
 msgstr "Par heure"
 
-#: preferences/models.py:27
+#: preferences/models.py:26
 msgid "Minimum salary"
 msgstr "Salaire minimum"
 
-#: preferences/models.py:30
+#: preferences/models.py:29
 msgid "Target salary"
 msgstr "Salaire visé"
 
-#: preferences/models.py:32
+#: preferences/models.py:31
 msgid "Currency"
 msgstr "Devise"
 
-#: preferences/models.py:34
+#: preferences/models.py:33
 msgid "Period"
 msgstr "Période"
 
-#: preferences/models.py:39
+#: preferences/models.py:38
 msgid "Preferred locations"
 msgstr "Lieux souhaités"
 
-#: preferences/models.py:39
+#: preferences/models.py:38
 msgid "One location per line."
 msgstr "Un lieu par ligne."
 
-#: preferences/models.py:41
+#: preferences/models.py:40
 msgid "Open to remote"
 msgstr "Ouvert au télétravail"
 
-#: preferences/models.py:42
+#: preferences/models.py:41
 msgid "Open to hybrid"
 msgstr "Ouvert à l’hybride"
 
-#: preferences/models.py:43
+#: preferences/models.py:42
 msgid "Open to on-site"
 msgstr "Ouvert au travail sur site"
 
-#: preferences/models.py:45
+#: preferences/models.py:44
 msgid "Max. on-site days / week"
 msgstr "Jours sur site max. / semaine"
 
-#: preferences/models.py:48
+#: preferences/models.py:47
 msgid "Willing to relocate"
 msgstr "Prêt à déménager"
 
-#: preferences/models.py:54
+#: preferences/models.py:53
 msgid "Time zone"
 msgstr "Fuseau horaire"
 
-#: preferences/models.py:55
+#: preferences/models.py:54
 msgid "e.g. “EST ±2h” or “Europe only”"
 msgstr "p. ex. « HNE ±2 h » ou « Europe uniquement »"
 
-#: preferences/models.py:58
+#: preferences/models.py:57
 msgid "Employment types"
 msgstr "Types de contrat"
 
-#: preferences/models.py:59
+#: preferences/models.py:58
 msgid "Comma-separated, e.g. “Full-time, Contract”."
 msgstr "Séparés par des virgules, p. ex. « Temps plein, Contrat »."
 
-#: preferences/models.py:61 templates/legal/terms.html:38
+#: preferences/models.py:60 templates/legal/terms.html:38
 msgid "Availability"
 msgstr "Disponibilité"
 
-#: preferences/models.py:66
+#: preferences/models.py:65
 msgid "job preference"
 msgstr "préférence d’emploi"
 
-#: preferences/models.py:67
+#: preferences/models.py:66
 msgid "job preferences"
 msgstr "préférences d’emploi"
 
-#: preferences/models.py:125
+#: preferences/models.py:124
 msgid "Must have"
 msgstr "Indispensable"
 
-#: preferences/models.py:126
+#: preferences/models.py:125
 msgid "Nice to have"
 msgstr "Souhaitable"
 
-#: preferences/models.py:127
+#: preferences/models.py:126
 msgid "Not important"
 msgstr "Peu important"
 
-#: preferences/models.py:141
+#: preferences/models.py:140
 msgid "benefit preference"
 msgstr "préférence d’avantage"
 
-#: preferences/models.py:142
+#: preferences/models.py:141
 msgid "benefit preferences"
 msgstr "préférences d’avantages"
 
-#: preferences/models.py:155
+#: preferences/models.py:154
 msgid "Health benefits"
 msgstr "Assurance maladie"
 
-#: preferences/models.py:156
+#: preferences/models.py:155
 msgid "Dental care"
 msgstr "Soins dentaires"
 
-#: preferences/models.py:157
+#: preferences/models.py:156
 msgid "Vision care"
 msgstr "Soins de la vue"
 
-#: preferences/models.py:158
+#: preferences/models.py:157
 msgid "Life insurance"
 msgstr "Assurance vie"
 
-#: preferences/models.py:159
+#: preferences/models.py:158
 msgid "Retirement / pension matching"
 msgstr "Retraite / cotisation de l’employeur"
 
-#: preferences/models.py:160
+#: preferences/models.py:159
 msgid "Paid time off"
 msgstr "Congés payés"
 
-#: preferences/models.py:161
+#: preferences/models.py:160
 msgid "Parental leave"
 msgstr "Congé parental"
 
-#: preferences/models.py:162
+#: preferences/models.py:161
 msgid "Professional development budget"
 msgstr "Budget de formation"
 
-#: preferences/models.py:163
+#: preferences/models.py:162
 msgid "Flexible hours"
 msgstr "Horaires flexibles"
 
-#: preferences/models.py:164
+#: preferences/models.py:163
 msgid "Equity / stock options"
 msgstr "Actions / options d’achat"
 
-#: preferences/models.py:165
+#: preferences/models.py:164
 msgid "Remote work stipend"
 msgstr "Indemnité de télétravail"
 
-#: preferences/models.py:166
+#: preferences/models.py:165
 msgid "Wellness / gym"
 msgstr "Bien-être / sport"
 
-#: preferences/views.py:35
+#: preferences/views.py:36
 msgid "Job preferences saved."
 msgstr "Préférences d’emploi enregistrées."
 
-#: preferences/views.py:48
+#: preferences/views.py:49
 #, python-format
 msgid "Added “%(name)s” to your preferences."
 msgstr "« %(name)s » a été ajouté à vos préférences."
 
-#: preferences/views.py:77
+#: preferences/views.py:82 preferences/views.py:83
+msgid "Delete this benefit?"
+msgstr "Supprimer cet avantage ?"
+
+#: preferences/views.py:93
 #, python-format
 msgid "Removed “%(name)s”."
 msgstr "« %(name)s » a été supprimé."
+
+#: resume/services/tailored.py:47
+msgid "PROFESSIONAL SUMMARY"
+msgstr "RÉSUMÉ PROFESSIONNEL"
+
+#: resume/services/tailored.py:48
+msgid "SKILLS"
+msgstr "COMPÉTENCES"
+
+#: resume/services/tailored.py:49
+msgid "WORKING EXPERIENCE"
+msgstr "EXPÉRIENCE PROFESSIONNELLE"
+
+#: resume/services/tailored.py:50
+msgid "EDUCATION & PROFESSIONAL DEVELOPMENT"
+msgstr "FORMATION ET DÉVELOPPEMENT PROFESSIONNEL"
+
+#: resume/services/tailored.py:51
+msgid "LANGUAGES"
+msgstr "LANGUES"
+
+#: resume/services/tailored.py:344
+msgid "Add some experience or skills to this profile first."
+msgstr "Ajoutez d’abord une expérience ou des compétences à ce profil."
 
 #: resume/tasks.py:27
 msgid "That upload no longer exists."
@@ -810,9 +1089,51 @@ msgstr "Rédaction de votre CV personnalisé — cela prend un instant."
 msgid "Saved your changes."
 msgstr "Vos modifications ont été enregistrées."
 
-#: resume/views.py:179
+#: resume/views.py:182 resume/views.py:183
+msgid "Delete this tailored resume?"
+msgstr "Supprimer ce CV personnalisé ?"
+
+#: resume/views.py:192
 msgid "Deleted the tailored resume for this job."
 msgstr "Le CV personnalisé de cette offre a été supprimé."
+
+#: skills/models.py:9
+msgid "Soft skill"
+msgstr "Compétence comportementale"
+
+#: skills/models.py:10
+msgid "Technical skill"
+msgstr "Compétence technique"
+
+#: skills/models.py:14 templates/partials/sidebar.html:66
+#: templates/resume/resume_review.html:74
+msgid "Soft skills"
+msgstr "Compétences comportementales"
+
+#: skills/models.py:15 templates/partials/sidebar.html:62
+#: templates/resume/resume_review.html:82
+msgid "Technical skills"
+msgstr "Compétences techniques"
+
+#: skills/models.py:43
+msgid "Beginner"
+msgstr "Débutant"
+
+#: skills/models.py:44
+msgid "Intermediate"
+msgstr "Intermédiaire"
+
+#: skills/models.py:45
+msgid "Advanced"
+msgstr "Avancé"
+
+#: skills/models.py:46
+msgid "Expert"
+msgstr "Expert"
+
+#: skills/views.py:104
+msgid "Delete this skill?"
+msgstr "Supprimer cette compétence ?"
 
 #: templates/accounts/login.html:5
 msgid "Welcome back"
@@ -826,7 +1147,7 @@ msgstr "Connectez-vous pour continuer à enrichir votre récapitulatif."
 msgid "Forgot password?"
 msgstr "Mot de passe oublié ?"
 
-#: templates/accounts/login.html:25 templates/accounts/register.html:27
+#: templates/accounts/login.html:25 templates/accounts/register.html:28
 #: templates/core/home.html:22 templates/partials/footer.html:21
 #: templates/partials/public_nav.html:20
 msgid "Log in"
@@ -841,7 +1162,8 @@ msgid "You can always log back in with your email and password."
 msgstr "Vous pourrez toujours vous reconnecter avec votre adresse e-mail et votre mot de passe."
 
 #: templates/accounts/logout_confirm.html:10
-#: templates/accounts/security.html:64
+#: templates/accounts/profile_form.html:36 templates/accounts/security.html:64
+#: templates/core/confirm_delete.html:23 templates/core/confirm_delete.html:36
 #: templates/education/certificate_form.html:40
 #: templates/education/degree_form.html:41
 #: templates/experience/experience_form.html:88
@@ -851,7 +1173,7 @@ msgstr "Vous pourrez toujours vous reconnecter avec votre adresse e-mail et votr
 msgid "Cancel"
 msgstr "Annuler"
 
-#: templates/accounts/logout_confirm.html:11 templates/partials/topbar.html:55
+#: templates/accounts/logout_confirm.html:11 templates/partials/topbar.html:63
 msgid "Log out"
 msgstr "Se déconnecter"
 
@@ -925,13 +1247,93 @@ msgstr "Vous avez déjà un CV ?"
 msgid "Upload it and AI will fill in your skills, experience and education."
 msgstr "Importez-le et l’IA remplira vos compétences, votre expérience et votre formation."
 
-#: templates/accounts/profile.html:15 templates/partials/sidebar.html:74
+#: templates/accounts/profile.html:15 templates/partials/sidebar.html:78
 msgid "Import from resume"
 msgstr "Importer depuis un CV"
 
-#: templates/accounts/profile.html:53 templates/resume/tailored_resume.html:41
+#: templates/accounts/profile.html:31
+#, python-format
+msgid "%(name)s (%(language)s)"
+msgstr "%(name)s (%(language)s)"
+
+#: templates/accounts/profile.html:35
+#, python-format
+msgid "%(name)s (%(language)s) — %(percent)s%% complete"
+msgstr "%(name)s (%(language)s) — complété à %(percent)s %%"
+
+#: templates/accounts/profile.html:63 templates/resume/tailored_resume.html:41
 msgid "Save changes"
 msgstr "Enregistrer les modifications"
+
+#: templates/accounts/profile_form.html:3
+#: templates/accounts/profile_form.html:7
+msgid "Rename profile"
+msgstr "Renommer le profil"
+
+#: templates/accounts/profile_form.html:3
+#: templates/accounts/profile_form.html:7
+#: templates/accounts/profile_list.html:18
+msgid "New profile"
+msgstr "Nouveau profil"
+
+#: templates/accounts/profile_form.html:11
+#, python-format
+msgid "This profile is written in %(language)s. A profile's language is fixed when it's created — to work in another language, create a second profile."
+msgstr "Ce profil est rédigé en %(language)s. La langue d’un profil est fixée à sa création — pour travailler dans une autre langue, créez un second profil."
+
+#: templates/accounts/profile_form.html:16
+msgid "A profile keeps its own skills, experience, education, preferences, job analyses and resumes. Pick the language it works in — every AI analysis and every document generated in this profile will be written in it, and it can't be changed later."
+msgstr "Un profil conserve ses propres compétences, expériences, formations, préférences, analyses d’offres et CV. Choisissez sa langue de travail — chaque analyse IA et chaque document généré dans ce profil sera rédigé dans cette langue, et elle ne pourra pas être modifiée plus tard."
+
+#: templates/accounts/profile_form.html:38
+msgid "Save"
+msgstr "Enregistrer"
+
+#: templates/accounts/profile_form.html:38
+msgid "Create profile"
+msgstr "Créer le profil"
+
+#: templates/accounts/profile_list.html:3
+#: templates/accounts/settings_base.html:11
+#: templates/partials/profile_switcher.html:23
+#: templates/partials/topbar.html:51
+msgid "Profiles"
+msgstr "Profils"
+
+#: templates/accounts/profile_list.html:8
+msgid "Your profiles"
+msgstr "Vos profils"
+
+#: templates/accounts/profile_list.html:10
+msgid "A profile is a self-contained workspace: its own personal info, skills, experience, education, job preferences, analyzed job posts and resumes. Its language is fixed when you create it, and every AI analysis and document in it is written in that language."
+msgstr "Un profil est un espace de travail autonome : ses propres informations personnelles, compétences, expériences, formations, préférences d’emploi, offres analysées et CV. Sa langue est fixée à la création, et chaque analyse IA et chaque document qu’il contient est rédigé dans cette langue."
+
+#: templates/accounts/profile_list.html:29
+msgid "Active"
+msgstr "Actif"
+
+#: templates/accounts/profile_list.html:34
+#, python-format
+msgid "%(jobs)s job posts · %(skills)s skills"
+msgstr "%(jobs)s offres · %(skills)s compétences"
+
+#: templates/accounts/profile_list.html:45
+msgid "Switch to"
+msgstr "Basculer vers"
+
+#: templates/accounts/profile_list.html:48
+msgid "Rename"
+msgstr "Renommer"
+
+#: templates/accounts/profile_list.html:50
+#: templates/core/confirm_delete.html:37
+#: templates/education/education_list.html:31
+#: templates/education/education_list.html:73
+#: templates/experience/experience_list.html:32
+#: templates/jobs/job_detail.html:52 templates/jobs/job_list.html:101
+#: templates/resume/tailored_resume.html:52
+msgid "Delete"
+msgstr "Supprimer"
 
 #: templates/accounts/register.html:5 templates/core/home.html:21
 #: templates/core/home.html:155
@@ -942,7 +1344,7 @@ msgstr "Créez votre compte"
 msgid "Start building your skills recap in minutes."
 msgstr "Constituez votre récapitulatif de compétences en quelques minutes."
 
-#: templates/accounts/register.html:23 templates/partials/footer.html:20
+#: templates/accounts/register.html:24 templates/partials/footer.html:20
 #: templates/partials/public_nav.html:21
 msgid "Create account"
 msgstr "Créer un compte"
@@ -992,25 +1394,22 @@ msgid "Account settings"
 msgstr "Paramètres du compte"
 
 #: templates/accounts/settings_base.html:6
-msgid "Manage your public profile and account security."
-msgstr "Gérez votre profil public et la sécurité de votre compte."
+msgid "Manage your profiles, their personal info and your account security."
+msgstr "Gérez vos profils, leurs informations personnelles et la sécurité de votre compte."
 
-#: templates/accounts/settings_base.html:10
-#: templates/partials/profile_base.html:7 templates/partials/sidebar.html:43
-#: templates/resume/resume_review.html:55
-msgid "Profile"
-msgstr "Profil"
+#: templates/accounts/settings_base.html:10 templates/partials/topbar.html:50
+msgid "Personal info"
+msgstr "Informations personnelles"
 
-#: templates/accounts/settings_base.html:11
-#: templates/partials/_profile_rail.html:16 templates/partials/topbar.html:43
+#: templates/accounts/settings_base.html:12
 msgid "Security"
 msgstr "Sécurité"
 
-#: templates/accounts/settings_base.html:12
+#: templates/accounts/settings_base.html:13
 msgid "Export recap"
 msgstr "Exporter le récapitulatif"
 
-#: templates/base_app.html:8 templates/base_public.html:8
+#: templates/base_app.html:19 templates/base_public.html:8
 msgid "Skip to content"
 msgstr "Aller au contenu"
 
@@ -1035,7 +1434,7 @@ msgstr "Aucune offre analysée ce mois-ci pour l’instant."
 
 #: templates/core/_jobs_chart.html:44 templates/core/dashboard.html:18
 #: templates/jobs/job_form.html:12 templates/jobs/job_list.html:14
-#: templates/partials/sidebar.html:38
+#: templates/partials/sidebar.html:42
 msgid "Analyze a job post"
 msgstr "Analyser une offre"
 
@@ -1048,7 +1447,7 @@ msgstr "Offres analysées chaque jour en %(month)s"
 msgid "Day"
 msgstr "Jour"
 
-#: templates/core/dashboard.html:3 templates/partials/sidebar.html:26
+#: templates/core/dashboard.html:3 templates/partials/sidebar.html:30
 msgid "Dashboard"
 msgstr "Tableau de bord"
 
@@ -1058,8 +1457,7 @@ msgid "Welcome back, %(name)s"
 msgstr "Bon retour, %(name)s"
 
 #: templates/core/dashboard.html:9
-msgid ""
-"Analyze a job post, then see how each requirement lines up with your profile."
+msgid "Analyze a job post, then see how each requirement lines up with your profile."
 msgstr "Analysez une offre, puis voyez comment chaque exigence se compare à votre profil."
 
 #: templates/core/dashboard.html:19
@@ -1074,58 +1472,59 @@ msgstr "Importer un CV"
 msgid "Fill your profile from a PDF or DOCX."
 msgstr "Remplissez votre profil à partir d’un PDF ou d’un DOCX."
 
-#: templates/core/dashboard.html:32
+#: templates/core/dashboard.html:34
+msgid "Skills, experience, education."
+msgstr "Compétences, expérience, formation."
+
+#: templates/core/dashboard.html:36
 msgid "Complete my profile"
 msgstr "Compléter mon profil"
 
-#: templates/core/dashboard.html:33
+#: templates/core/dashboard.html:37
 msgid "complete"
 msgstr "complété"
 
-#: templates/core/dashboard.html:39 templates/partials/_profile_rail.html:6
-#: templates/partials/sidebar.html:46
+#: templates/core/dashboard.html:44 templates/partials/sidebar.html:50
 #: templates/preferences/job_preference.html:3
 #: templates/preferences/job_preference.html:4
 msgid "Job preferences"
 msgstr "Préférences d’emploi"
 
-#: templates/core/dashboard.html:40
+#: templates/core/dashboard.html:45
 msgid "Salary, location, benefits."
 msgstr "Salaire, lieu, avantages."
 
-#: templates/core/dashboard.html:47
+#: templates/core/dashboard.html:52
 msgid "In progress"
 msgstr "En cours"
 
-#: templates/core/dashboard.html:59
+#: templates/core/dashboard.html:64
 msgid "Last analyzed jobs"
 msgstr "Dernières offres analysées"
 
-#: templates/core/dashboard.html:60
+#: templates/core/dashboard.html:65
 msgid "See all"
 msgstr "Tout voir"
 
-#: templates/core/dashboard.html:74
+#: templates/core/dashboard.html:79
 #, python-format
 msgid "%(when)s ago"
 msgstr "il y a %(when)s"
 
-#: templates/core/dashboard.html:93
+#: templates/core/dashboard.html:98
 msgid "You haven't analyzed any job posts yet."
 msgstr "Vous n’avez encore analysé aucune offre."
 
-#: templates/core/dashboard.html:94 templates/jobs/job_list.html:136
+#: templates/core/dashboard.html:99 templates/jobs/job_list.html:133
 msgid "Analyze your first job post"
 msgstr "Analyser votre première offre"
 
-#: templates/core/dashboard.html:104
+#: templates/core/dashboard.html:110
 msgid "Profile completion"
 msgstr "Complétion du profil"
 
-#: templates/core/dashboard.html:112
-msgid ""
-"A fuller profile means sharper matching — empty sections are skipped "
-"entirely."
+#: templates/core/dashboard.html:118
+msgid "A fuller profile means sharper matching — empty sections are skipped entirely."
 msgstr "Un profil plus complet affine la comparaison — les sections vides sont entièrement ignorées."
 
 #: templates/core/export_preview.html:8
@@ -1158,10 +1557,7 @@ msgid "Stop guessing whether you fit the job."
 msgstr "Ne devinez plus si le poste vous correspond."
 
 #: templates/core/home.html:18
-msgid ""
-"Easy Apply breaks any job posting into its real requirements, checks every "
-"single one against your profile, and writes you a resume tailored to that "
-"posting."
+msgid "Easy Apply breaks any job posting into its real requirements, checks every single one against your profile, and writes you a resume tailored to that posting."
 msgstr "Easy Apply décompose n’importe quelle offre en exigences concrètes, les compare une à une à votre profil, et rédige un CV adapté à cette offre."
 
 #: templates/core/home.html:24
@@ -1177,9 +1573,7 @@ msgid "Upload your resume"
 msgstr "Importez votre CV"
 
 #: templates/core/home.html:76
-msgid ""
-"Drop in a PDF or DOCX. We pull out your skills, experience, education and "
-"languages — you review every item before anything is saved."
+msgid "Drop in a PDF or DOCX. We pull out your skills, experience, education and languages — you review every item before anything is saved."
 msgstr "Déposez un PDF ou un DOCX. Nous en extrayons vos compétences, votre expérience, votre formation et vos langues — vous vérifiez chaque élément avant tout enregistrement."
 
 #: templates/core/home.html:86
@@ -1187,9 +1581,7 @@ msgid "Paste a job post"
 msgstr "Collez une offre"
 
 #: templates/core/home.html:88
-msgid ""
-"A URL or the raw text. We break it into 13 fixed sections and evaluate every "
-"requirement against your profile, one at a time."
+msgid "A URL or the raw text. We break it into 13 fixed sections and evaluate every requirement against your profile, one at a time."
 msgstr "Une URL ou le texte brut. Nous la découpons en 13 sections fixes et évaluons chaque exigence au regard de votre profil, une par une."
 
 #: templates/core/home.html:98
@@ -1197,9 +1589,7 @@ msgid "Get your tailored resume"
 msgstr "Obtenez votre CV personnalisé"
 
 #: templates/core/home.html:100
-msgid ""
-"Your experience, rewritten in the posting's own vocabulary. Edit the "
-"Markdown, then export a clean PDF."
+msgid "Your experience, rewritten in the posting's own vocabulary. Edit the Markdown, then export a clean PDF."
 msgstr "Votre expérience, réécrite dans le vocabulaire de l’offre. Modifiez le Markdown, puis exportez un PDF soigné."
 
 #: templates/core/home.html:112
@@ -1207,8 +1597,7 @@ msgid "Why Easy Apply"
 msgstr "Pourquoi Easy Apply"
 
 #: templates/core/home.html:115
-msgid ""
-"Most tools give you one vague score. We show you the reasoning, line by line."
+msgid "Most tools give you one vague score. We show you the reasoning, line by line."
 msgstr "La plupart des outils donnent un score vague. Nous montrons le raisonnement, ligne par ligne."
 
 #: templates/core/home.html:120
@@ -1216,9 +1605,7 @@ msgid "Per-requirement matching"
 msgstr "Comparaison exigence par exigence"
 
 #: templates/core/home.html:121
-msgid ""
-"Every requirement gets its own verdict and a one-sentence explanation naming "
-"the exact skill, role or credential behind it."
+msgid "Every requirement gets its own verdict and a one-sentence explanation naming the exact skill, role or credential behind it."
 msgstr "Chaque exigence reçoit son propre verdict et une explication d’une phrase nommant la compétence, le poste ou le diplôme précis qui la justifie."
 
 #: templates/core/home.html:124
@@ -1226,9 +1613,7 @@ msgid "One-click add to profile"
 msgstr "Ajout au profil en un clic"
 
 #: templates/core/home.html:125
-msgid ""
-"Spot a requirement you actually meet but never recorded? Add it in a click — "
-"only that one line is re-evaluated."
+msgid "Spot a requirement you actually meet but never recorded? Add it in a click — only that one line is re-evaluated."
 msgstr "Vous repérez une exigence que vous remplissez mais n’aviez jamais notée ? Ajoutez-la en un clic — seule cette ligne est réévaluée."
 
 #: templates/core/home.html:128
@@ -1236,9 +1621,7 @@ msgid "Red-flag detection"
 msgstr "Détection des signaux d’alerte"
 
 #: templates/core/home.html:129
-msgid ""
-"Unrealistic requirement lists, vague responsibilities, pressure tactics — "
-"surfaced before you spend an evening on the application."
+msgid "Unrealistic requirement lists, vague responsibilities, pressure tactics — surfaced before you spend an evening on the application."
 msgstr "Listes d’exigences irréalistes, responsabilités vagues, pression à postuler — signalées avant que vous n’y consacriez une soirée."
 
 #: templates/core/home.html:132
@@ -1246,9 +1629,7 @@ msgid "Tailored resume + PDF"
 msgstr "CV personnalisé + PDF"
 
 #: templates/core/home.html:133
-msgid ""
-"A resume written for that specific posting, editable as Markdown and "
-"exportable as a print-ready PDF."
+msgid "A resume written for that specific posting, editable as Markdown and exportable as a print-ready PDF."
 msgstr "Un CV écrit pour cette offre précise, modifiable en Markdown et exportable en PDF prêt à imprimer."
 
 #: templates/core/home.html:136
@@ -1256,9 +1637,7 @@ msgid "Bilingual"
 msgstr "Bilingue"
 
 #: templates/core/home.html:137
-msgid ""
-"The whole app works in English and French — including the analysis itself, "
-"which answers in the language you're using."
+msgid "The whole app works in English and French — including the analysis itself, which answers in the language you're using."
 msgstr "Toute l’application fonctionne en anglais et en français — y compris l’analyse elle-même, qui répond dans la langue que vous utilisez."
 
 #: templates/core/home.html:140
@@ -1266,9 +1645,7 @@ msgid "Your data stays yours"
 msgstr "Vos données restent les vôtres"
 
 #: templates/core/home.html:141
-msgid ""
-"Export everything as Markdown whenever you like, and delete your account and "
-"its data in one step."
+msgid "Export everything as Markdown whenever you like, and delete your account and its data in one step."
 msgstr "Exportez tout en Markdown quand vous le souhaitez, et supprimez votre compte et ses données en une seule étape."
 
 #: templates/core/home.html:150
@@ -1276,8 +1653,7 @@ msgid "Ready for your next role?"
 msgstr "Prêt pour votre prochain poste ?"
 
 #: templates/core/home.html:152
-msgid ""
-"Set up your profile once, then analyze every posting against it in seconds."
+msgid "Set up your profile once, then analyze every posting against it in seconds."
 msgstr "Configurez votre profil une fois, puis analysez chaque offre en quelques secondes."
 
 #: templates/education/education_list.html:7
@@ -1293,41 +1669,28 @@ msgid "+ Add degree"
 msgstr "+ Ajouter un diplôme"
 
 #: templates/education/education_list.html:28
-#: templates/education/education_list.html:73
+#: templates/education/education_list.html:70
 #: templates/experience/experience_list.html:29
 msgid "Edit"
 msgstr "Modifier"
 
-#: templates/education/education_list.html:33
-#: templates/education/education_list.html:78
-#: templates/experience/experience_list.html:34
-#: templates/jobs/job_detail.html:54 templates/jobs/job_list.html:103
-#: templates/resume/tailored_resume.html:54
-msgid "Delete"
-msgstr "Supprimer"
-
-#: templates/education/education_list.html:43
+#: templates/education/education_list.html:40
 msgid "No degrees added yet."
 msgstr "Aucun diplôme ajouté pour l’instant."
 
-#: templates/education/education_list.html:44
+#: templates/education/education_list.html:41
 msgid "Add a degree"
 msgstr "Ajouter un diplôme"
 
-#: templates/education/education_list.html:51
-#: templates/resume/resume_review.html:141
-msgid "Certificates"
-msgstr "Certificats"
-
-#: templates/education/education_list.html:52
+#: templates/education/education_list.html:49
 msgid "+ Add certificate"
 msgstr "+ Ajouter un certificat"
 
-#: templates/education/education_list.html:88
+#: templates/education/education_list.html:82
 msgid "No certificates added yet."
 msgstr "Aucun certificat ajouté pour l’instant."
 
-#: templates/education/education_list.html:89
+#: templates/education/education_list.html:83
 msgid "Add a certificate"
 msgstr "Ajouter un certificat"
 
@@ -1336,16 +1699,14 @@ msgid "Highlights"
 msgstr "Réalisations"
 
 #: templates/experience/experience_form.html:44
-msgid ""
-"Add one achievement or responsibility per line — each is its own bullet "
-"point on your recap."
+msgid "Add one achievement or responsibility per line — each is its own bullet point on your recap."
 msgstr "Une réalisation ou responsabilité par ligne — chacune devient une puce de votre récapitulatif."
 
 #: templates/experience/experience_form.html:63
 #: templates/experience/experience_form.html:67
 #: templates/experience/experience_form.html:80
 #: templates/preferences/job_preference.html:61
-#: templates/preferences/job_preference.html:83
+#: templates/preferences/job_preference.html:81
 msgid "Remove"
 msgstr "Supprimer"
 
@@ -1361,11 +1722,11 @@ msgstr "Votre parcours professionnel, du plus récent au plus ancien."
 msgid "+ Add experience"
 msgstr "+ Ajouter une expérience"
 
-#: templates/experience/experience_list.html:56
+#: templates/experience/experience_list.html:53
 msgid "You haven't added any work experience yet."
 msgstr "Vous n’avez encore ajouté aucune expérience professionnelle."
 
-#: templates/experience/experience_list.html:57
+#: templates/experience/experience_list.html:54
 msgid "Add your first role"
 msgstr "Ajouter votre premier poste"
 
@@ -1495,49 +1856,43 @@ msgstr "Générer un CV personnalisé"
 msgid "Re-analyze"
 msgstr "Analyser à nouveau"
 
-#: templates/jobs/job_detail.html:52 templates/jobs/job_list.html:101
-msgid "Delete this job post analysis?"
-msgstr "Supprimer l’analyse de cette offre ?"
-
-#: templates/jobs/job_detail.html:71
+#: templates/jobs/job_detail.html:68
 msgid "This analysis predates the new section breakdown"
 msgstr "Cette analyse est antérieure au nouveau découpage en sections"
 
-#: templates/jobs/job_detail.html:73
-msgid ""
-"Re-analyze this job post to get the full 13-section breakdown and per-"
-"requirement matching."
+#: templates/jobs/job_detail.html:70
+msgid "Re-analyze this job post to get the full 13-section breakdown and per-requirement matching."
 msgstr "Relancez l’analyse de cette offre pour obtenir le découpage complet en 13 sections et la comparaison exigence par exigence."
 
-#: templates/jobs/job_detail.html:77
+#: templates/jobs/job_detail.html:74
 msgid "Re-analyze this job post"
 msgstr "Analyser à nouveau cette offre"
 
-#: templates/jobs/job_detail.html:84
+#: templates/jobs/job_detail.html:81
 msgid "Analysis failed"
 msgstr "Échec de l’analyse"
 
-#: templates/jobs/job_detail.html:88 templates/partials/_ai_progress.html:72
+#: templates/jobs/job_detail.html:85 templates/partials/_ai_progress.html:72
 msgid "Try again"
 msgstr "Réessayer"
 
-#: templates/jobs/job_detail.html:97
+#: templates/jobs/job_detail.html:94
 msgid "Profile match"
 msgstr "Correspondance avec le profil"
 
-#: templates/jobs/job_detail.html:104 templates/jobs/job_list.html:76
+#: templates/jobs/job_detail.html:101 templates/jobs/job_list.html:76
 msgid "strong"
 msgstr "forte"
 
-#: templates/jobs/job_detail.html:105 templates/jobs/job_list.html:77
+#: templates/jobs/job_detail.html:102 templates/jobs/job_list.html:77
 msgid "partial"
 msgstr "partielle"
 
-#: templates/jobs/job_detail.html:106 templates/jobs/job_list.html:78
+#: templates/jobs/job_detail.html:103 templates/jobs/job_list.html:78
 msgid "not covered"
 msgstr "non couvert"
 
-#: templates/jobs/job_detail.html:113
+#: templates/jobs/job_detail.html:110
 msgid "Job sections"
 msgstr "Sections de l’offre"
 
@@ -1591,43 +1946,41 @@ msgstr "Ajoutée il y a %(when)s"
 msgid "Open"
 msgstr "Ouvrir"
 
-#: templates/jobs/job_list.html:95 templates/partials/sidebar.html:71
+#: templates/jobs/job_list.html:95 templates/partials/sidebar.html:75
 msgid "Resume"
 msgstr "CV"
 
-#: templates/jobs/job_list.html:113
+#: templates/jobs/job_list.html:110
 msgid "Pagination"
 msgstr "Pagination"
 
-#: templates/jobs/job_list.html:115
+#: templates/jobs/job_list.html:112
 msgid "Previous"
 msgstr "Précédent"
 
-#: templates/jobs/job_list.html:118
+#: templates/jobs/job_list.html:115
 #, python-format
 msgid "Page %(current)s of %(total)s"
 msgstr "Page %(current)s sur %(total)s"
 
-#: templates/jobs/job_list.html:121
+#: templates/jobs/job_list.html:118
 msgid "Next"
 msgstr "Suivant"
 
-#: templates/jobs/job_list.html:129
+#: templates/jobs/job_list.html:126
 msgid "No job posts match that search."
 msgstr "Aucune offre ne correspond à cette recherche."
 
-#: templates/jobs/job_list.html:130
+#: templates/jobs/job_list.html:127
 msgid "Clear filters"
 msgstr "Effacer les filtres"
 
-#: templates/jobs/job_list.html:132
+#: templates/jobs/job_list.html:129
 msgid "No job posts yet"
 msgstr "Aucune offre pour l’instant"
 
-#: templates/jobs/job_list.html:134
-msgid ""
-"Paste a job posting URL and we'll break it into sections and check each "
-"requirement against your profile."
+#: templates/jobs/job_list.html:131
+msgid "Paste a job posting URL and we'll break it into sections and check each requirement against your profile."
 msgstr "Collez l’URL d’une offre : nous la découperons en sections et comparerons chaque exigence à votre profil."
 
 #: templates/languages/language_list.html:9
@@ -1638,11 +1991,11 @@ msgstr "Toutes les langues que vous parlez, avec votre niveau de maîtrise."
 msgid "+ Add language"
 msgstr "+ Ajouter une langue"
 
-#: templates/languages/language_list.html:41
+#: templates/languages/language_list.html:38
 msgid "You haven't added any languages yet."
 msgstr "Vous n’avez encore ajouté aucune langue."
 
-#: templates/languages/language_list.html:42
+#: templates/languages/language_list.html:39
 msgid "Add your first language"
 msgstr "Ajouter votre première langue"
 
@@ -1658,8 +2011,7 @@ msgid "Contact"
 msgstr "Contact"
 
 #: templates/legal/contact.html:6
-msgid ""
-"We read everything that comes in, and try to reply within a few working days."
+msgid "We read everything that comes in, and try to reply within a few working days."
 msgstr "Nous lisons tout ce qui nous parvient et tâchons de répondre sous quelques jours ouvrés."
 
 #: templates/legal/contact.html:8
@@ -1671,9 +2023,7 @@ msgid "Privacy and data requests"
 msgstr "Confidentialité et demandes relatives aux données"
 
 #: templates/legal/contact.html:14
-msgid ""
-"For access, correction, deletion or portability requests. Most of these you "
-"can do yourself:"
+msgid "For access, correction, deletion or portability requests. Most of these you can do yourself:"
 msgstr "Pour toute demande d’accès, de rectification, de suppression ou de portabilité. Vous pouvez faire l’essentiel vous-même :"
 
 #: templates/legal/contact.html:17
@@ -1694,10 +2044,7 @@ msgid "Cookie Policy"
 msgstr "Politique relative aux cookies"
 
 #: templates/legal/cookies.html:6
-msgid ""
-"We use only cookies and local storage that the app needs to work. There is "
-"no advertising, analytics or cross-site tracking, so there is no consent "
-"banner to dismiss."
+msgid "We use only cookies and local storage that the app needs to work. There is no advertising, analytics or cross-site tracking, so there is no consent banner to dismiss."
 msgstr "Nous n’utilisons que les cookies et le stockage local nécessaires au fonctionnement de l’application. Aucune publicité, aucune mesure d’audience, aucun suivi inter-sites : il n’y a donc aucune bannière de consentement à écarter."
 
 #: templates/legal/cookies.html:8
@@ -1761,9 +2108,7 @@ msgid "Refusing cookies"
 msgstr "Refuser les cookies"
 
 #: templates/legal/cookies.html:29
-msgid ""
-"You can clear or block these in your browser settings, but the session and "
-"CSRF cookies are required to log in — without them the app cannot work."
+msgid "You can clear or block these in your browser settings, but the session and CSRF cookies are required to log in — without them the app cannot work."
 msgstr "Vous pouvez les effacer ou les bloquer dans les réglages de votre navigateur, mais les cookies de session et CSRF sont indispensables à la connexion : sans eux, l’application ne peut pas fonctionner."
 
 #: templates/legal/notice.html:3 templates/legal/notice.html:4
@@ -1804,9 +2149,7 @@ msgid "AI sub-processor"
 msgstr "Sous-traitant IA"
 
 #: templates/legal/notice.html:26
-msgid ""
-"Job and resume analysis is performed by DeepSeek. See the Privacy Policy for "
-"what is sent and where it is processed."
+msgid "Job and resume analysis is performed by DeepSeek. See the Privacy Policy for what is sent and where it is processed."
 msgstr "L’analyse des offres et des CV est réalisée par DeepSeek. Consultez la politique de confidentialité pour savoir ce qui est transmis et où les données sont traitées."
 
 #: templates/legal/notice.html:28
@@ -1815,9 +2158,7 @@ msgstr "Propriété intellectuelle"
 
 #: templates/legal/notice.html:29
 #, python-format
-msgid ""
-"The site's design, code and branding belong to %(name)s. Content you record "
-"remains yours."
+msgid "The site's design, code and branding belong to %(name)s. Content you record remains yours."
 msgstr "Le design, le code et l’identité visuelle du site appartiennent à %(name)s. Les contenus que vous enregistrez restent les vôtres."
 
 #: templates/legal/privacy.html:3 templates/legal/privacy.html:4
@@ -1827,9 +2168,7 @@ msgstr "Politique de confidentialité"
 
 #: templates/legal/privacy.html:6
 #, python-format
-msgid ""
-"This policy explains what %(name)s collects when you use %(SITE_NAME)s, why, "
-"and what control you have over it."
+msgid "This policy explains what %(name)s collects when you use %(SITE_NAME)s, why, and what control you have over it."
 msgstr "Cette politique explique ce que %(name)s collecte lorsque vous utilisez %(SITE_NAME)s, pourquoi, et quel contrôle vous conservez sur vos données."
 
 #: templates/legal/privacy.html:8
@@ -1857,9 +2196,7 @@ msgid "Profile data"
 msgstr "Données de profil"
 
 #: templates/legal/privacy.html:14
-msgid ""
-"the headline, bio, avatar, contact links, skills, languages, work "
-"experience, education, certificates and job preferences you record."
+msgid "the headline, bio, avatar, contact links, skills, languages, work experience, education, certificates and job preferences you record."
 msgstr "le titre professionnel, la biographie, l’avatar, les liens de contact, les compétences, les langues, l’expérience, la formation, les certificats et les préférences d’emploi que vous enregistrez."
 
 #: templates/legal/privacy.html:15
@@ -1867,14 +2204,11 @@ msgid "Resume files"
 msgstr "Fichiers de CV"
 
 #: templates/legal/privacy.html:15
-msgid ""
-"any PDF, DOCX or TXT resume you upload, plus the text extracted from it."
+msgid "any PDF, DOCX or TXT resume you upload, plus the text extracted from it."
 msgstr "tout CV PDF, DOCX ou TXT que vous importez, ainsi que le texte qui en est extrait."
 
 #: templates/legal/privacy.html:16
-msgid ""
-"the URLs and job description text you submit, and the structured analysis "
-"produced from them."
+msgid "the URLs and job description text you submit, and the structured analysis produced from them."
 msgstr "les URL et les textes d’offres que vous soumettez, ainsi que l’analyse structurée qui en découle."
 
 #: templates/legal/privacy.html:17
@@ -1882,9 +2216,7 @@ msgid "Technical data"
 msgstr "Données techniques"
 
 #: templates/legal/privacy.html:17
-msgid ""
-"server logs containing IP address, browser type and timestamps, kept for "
-"security and debugging."
+msgid "server logs containing IP address, browser type and timestamps, kept for security and debugging."
 msgstr "des journaux serveur contenant l’adresse IP, le type de navigateur et des horodatages, conservés à des fins de sécurité et de débogage."
 
 #: templates/legal/privacy.html:20
@@ -1892,11 +2224,7 @@ msgid "Resume files: what happens to them"
 msgstr "Fichiers de CV : ce qu’ils deviennent"
 
 #: templates/legal/privacy.html:21
-msgid ""
-"Uploaded resumes are stored on our server under a per-user directory and are "
-"readable only by your account. We keep the file and its extracted text so "
-"you can re-run an import without re-uploading. Deleting a resume import, or "
-"deleting your account, removes the file and its text."
+msgid "Uploaded resumes are stored on our server under a per-user directory and are readable only by your account. We keep the file and its extracted text so you can re-run an import without re-uploading. Deleting a resume import, or deleting your account, removes the file and its text."
 msgstr "Les CV importés sont stockés sur notre serveur dans un répertoire propre à chaque utilisateur et ne sont lisibles que par votre compte. Nous conservons le fichier et le texte extrait afin que vous puissiez relancer un import sans réimporter le fichier. Supprimer un import de CV, ou supprimer votre compte, efface le fichier et son texte."
 
 #: templates/legal/privacy.html:23
@@ -1904,41 +2232,27 @@ msgid "AI processing — an important disclosure"
 msgstr "Traitement par IA — information importante"
 
 #: templates/legal/privacy.html:24
-msgid ""
-"To analyze a job post, read a resume, match requirements against your "
-"profile or write a tailored resume, we send the relevant text to "
-"<strong>DeepSeek</strong>, a third-party AI provider acting as our sub-"
-"processor. This means:"
+msgid "To analyze a job post, read a resume, match requirements against your profile or write a tailored resume, we send the relevant text to <strong>DeepSeek</strong>, a third-party AI provider acting as our sub-processor. This means:"
 msgstr "Pour analyser une offre, lire un CV, comparer des exigences à votre profil ou rédiger un CV personnalisé, nous transmettons le texte concerné à <strong>DeepSeek</strong>, un fournisseur d’IA tiers agissant comme sous-traitant. Cela signifie que :"
 
 #: templates/legal/privacy.html:26
-msgid ""
-"Job description text, resume text and the relevant parts of your profile "
-"leave our servers and are processed by DeepSeek."
+msgid "Job description text, resume text and the relevant parts of your profile leave our servers and are processed by DeepSeek."
 msgstr "le texte des offres, celui des CV et les parties pertinentes de votre profil quittent nos serveurs et sont traités par DeepSeek."
 
 #: templates/legal/privacy.html:27
-msgid ""
-"This processing may take place outside your country or region, including "
-"outside the EEA and Canada."
+msgid "This processing may take place outside your country or region, including outside the EEA and Canada."
 msgstr "ce traitement peut avoir lieu hors de votre pays ou de votre région, y compris hors de l’EEE et du Canada."
 
 #: templates/legal/privacy.html:28
-msgid ""
-"We send only the part of your profile that a given analysis needs — a skills "
-"check receives your skills, not your salary expectations."
+msgid "We send only the part of your profile that a given analysis needs — a skills check receives your skills, not your salary expectations."
 msgstr "nous n’envoyons que la partie de votre profil dont une analyse donnée a besoin : une vérification de compétences reçoit vos compétences, pas vos prétentions salariales."
 
 #: templates/legal/privacy.html:29
-msgid ""
-"We do not send your email address, password, avatar or contact details to "
-"the AI provider."
+msgid "We do not send your email address, password, avatar or contact details to the AI provider."
 msgstr "nous ne transmettons ni votre adresse e-mail, ni votre mot de passe, ni votre avatar, ni vos coordonnées au fournisseur d’IA."
 
 #: templates/legal/privacy.html:31
-msgid ""
-"If you would rather no data reached a third-party AI provider, do not upload "
-"a resume or analyze a job post — the rest of the app works without it."
+msgid "If you would rather no data reached a third-party AI provider, do not upload a resume or analyze a job post — the rest of the app works without it."
 msgstr "Si vous préférez qu’aucune donnée ne parvienne à un fournisseur d’IA tiers, n’importez pas de CV et n’analysez pas d’offre : le reste de l’application fonctionne sans cela."
 
 #: templates/legal/privacy.html:33
@@ -1946,15 +2260,11 @@ msgid "Legal basis"
 msgstr "Base légale"
 
 #: templates/legal/privacy.html:35
-msgid ""
-"Performing our contract with you — running the account and the analysis "
-"features you ask for."
+msgid "Performing our contract with you — running the account and the analysis features you ask for."
 msgstr "l’exécution de notre contrat avec vous — la gestion du compte et les fonctions d’analyse que vous demandez."
 
 #: templates/legal/privacy.html:36
-msgid ""
-"Your consent — uploading a resume or submitting a job post for AI analysis "
-"is an explicit, per-action choice."
+msgid "Your consent — uploading a resume or submitting a job post for AI analysis is an explicit, per-action choice."
 msgstr "votre consentement — importer un CV ou soumettre une offre à l’analyse par IA est un choix explicite, action par action."
 
 #: templates/legal/privacy.html:37
@@ -1966,11 +2276,7 @@ msgid "How long we keep it"
 msgstr "Durée de conservation"
 
 #: templates/legal/privacy.html:41
-msgid ""
-"Your account data and profile stay until you delete them. Resume files and "
-"job analyses stay until you delete them or close your account. Records of "
-"background analysis runs are pruned after 30 days. Server logs are kept for "
-"a short operational period."
+msgid "Your account data and profile stay until you delete them. Resume files and job analyses stay until you delete them or close your account. Records of background analysis runs are pruned after 30 days. Server logs are kept for a short operational period."
 msgstr "Vos données de compte et votre profil sont conservés jusqu’à ce que vous les supprimiez. Les fichiers de CV et les analyses d’offres sont conservés jusqu’à leur suppression ou la fermeture de votre compte. Les enregistrements des analyses exécutées en arrière-plan sont purgés au bout de 30 jours. Les journaux serveur sont conservés pendant une courte durée opérationnelle."
 
 #: templates/legal/privacy.html:43
@@ -1986,8 +2292,7 @@ msgid "Access and portability"
 msgstr "Accès et portabilité"
 
 #: templates/legal/privacy.html:46
-msgid ""
-"export everything you have recorded as a Markdown file from the user menu."
+msgid "export everything you have recorded as a Markdown file from the user menu."
 msgstr "exportez tout ce que vous avez enregistré dans un fichier Markdown depuis le menu utilisateur."
 
 #: templates/legal/privacy.html:47
@@ -2003,9 +2308,7 @@ msgid "Erasure"
 msgstr "Effacement"
 
 #: templates/legal/privacy.html:48
-msgid ""
-"delete individual items, or delete your entire account and its data from the "
-"Security page."
+msgid "delete individual items, or delete your entire account and its data from the Security page."
 msgstr "supprimez des éléments un à un, ou supprimez l’intégralité de votre compte et de ses données depuis la page Sécurité."
 
 #: templates/legal/privacy.html:49
@@ -2019,9 +2322,7 @@ msgstr "écrivez à %(email)s."
 
 #: templates/legal/privacy.html:51
 #, python-format
-msgid ""
-"You also have the right to lodge a complaint with the supervisory authority "
-"in %(jurisdiction)s."
+msgid "You also have the right to lodge a complaint with the supervisory authority in %(jurisdiction)s."
 msgstr "Vous avez également le droit d’introduire une réclamation auprès de l’autorité de contrôle compétente en %(jurisdiction)s."
 
 #: templates/legal/privacy.html:53
@@ -2029,9 +2330,7 @@ msgid "Cookies"
 msgstr "Cookies"
 
 #: templates/legal/privacy.html:54
-msgid ""
-"We use only what the app needs to function — see the <a href=\"/legal/"
-"cookies/\">Cookie Policy</a>. No advertising or tracking cookies."
+msgid "We use only what the app needs to function — see the <a href=\"/legal/cookies/\">Cookie Policy</a>. No advertising or tracking cookies."
 msgstr "Nous n’utilisons que ce qui est nécessaire au fonctionnement de l’application — voir la <a href=\"/legal/cookies/\">politique relative aux cookies</a>. Aucun cookie publicitaire ni de suivi."
 
 #: templates/legal/privacy.html:56
@@ -2039,9 +2338,7 @@ msgid "Changes"
 msgstr "Modifications"
 
 #: templates/legal/privacy.html:57
-msgid ""
-"If this policy changes materially, we will say so in the app before the "
-"change takes effect."
+msgid "If this policy changes materially, we will say so in the app before the change takes effect."
 msgstr "En cas de modification substantielle de cette politique, nous vous en informerons dans l’application avant son entrée en vigueur."
 
 #: templates/legal/terms.html:3 templates/legal/terms.html:4
@@ -2051,9 +2348,7 @@ msgstr "Conditions d’utilisation"
 
 #: templates/legal/terms.html:6
 #, python-format
-msgid ""
-"These terms govern your use of %(SITE_NAME)s, operated by %(name)s. By "
-"creating an account you accept them."
+msgid "These terms govern your use of %(SITE_NAME)s, operated by %(name)s. By creating an account you accept them."
 msgstr "Les présentes conditions régissent votre utilisation de %(SITE_NAME)s, exploité par %(name)s. En créant un compte, vous les acceptez."
 
 #: templates/legal/terms.html:8
@@ -2061,10 +2356,7 @@ msgid "The service"
 msgstr "Le service"
 
 #: templates/legal/terms.html:9
-msgid ""
-"Easy Apply lets you record a professional profile, analyze job postings "
-"against it, and generate resumes tailored to a specific posting. Parts of it "
-"are powered by an AI provider."
+msgid "Easy Apply lets you record a professional profile, analyze job postings against it, and generate resumes tailored to a specific posting. Parts of it are powered by an AI provider."
 msgstr "Easy Apply vous permet d’enregistrer un profil professionnel, d’analyser des offres d’emploi au regard de ce profil et de générer des CV adaptés à une offre précise. Certaines fonctions reposent sur un fournisseur d’IA."
 
 #: templates/legal/terms.html:11
@@ -2072,8 +2364,7 @@ msgid "Your account"
 msgstr "Votre compte"
 
 #: templates/legal/terms.html:13
-msgid ""
-"You must give an accurate email address and keep your password confidential."
+msgid "You must give an accurate email address and keep your password confidential."
 msgstr "Vous devez fournir une adresse e-mail exacte et garder votre mot de passe confidentiel."
 
 #: templates/legal/terms.html:14
@@ -2081,9 +2372,7 @@ msgid "You are responsible for what happens under your account."
 msgstr "Vous êtes responsable de ce qui se produit sous votre compte."
 
 #: templates/legal/terms.html:15
-msgid ""
-"One account per person. You must be old enough to enter a contract where you "
-"live."
+msgid "One account per person. You must be old enough to enter a contract where you live."
 msgstr "Un compte par personne. Vous devez avoir l’âge légal pour contracter dans votre pays de résidence."
 
 #: templates/legal/terms.html:18
@@ -2095,14 +2384,11 @@ msgid "You agree not to:"
 msgstr "Vous vous engagez à ne pas :"
 
 #: templates/legal/terms.html:21
-msgid ""
-"Upload content you have no right to, including someone else's resume without "
-"their permission."
+msgid "Upload content you have no right to, including someone else's resume without their permission."
 msgstr "importer des contenus sur lesquels vous n’avez aucun droit, notamment le CV d’un tiers sans son autorisation."
 
 #: templates/legal/terms.html:22
-msgid ""
-"Use the service to scrape job boards at scale or to circumvent their terms."
+msgid "Use the service to scrape job boards at scale or to circumvent their terms."
 msgstr "utiliser le service pour extraire massivement des données de sites d’emploi ou contourner leurs conditions."
 
 #: templates/legal/terms.html:23
@@ -2118,10 +2404,7 @@ msgid "AI-generated content — no guarantees"
 msgstr "Contenus générés par IA — aucune garantie"
 
 #: templates/legal/terms.html:28
-msgid ""
-"Job analyses, match verdicts and tailored resumes are produced by an AI "
-"model. They can be incomplete, out of date or simply wrong. They are "
-"suggestions, not advice."
+msgid "Job analyses, match verdicts and tailored resumes are produced by an AI model. They can be incomplete, out of date or simply wrong. They are suggestions, not advice."
 msgstr "Les analyses d’offres, les verdicts de correspondance et les CV personnalisés sont produits par un modèle d’IA. Ils peuvent être incomplets, obsolètes ou tout simplement erronés. Ce sont des suggestions, non des conseils."
 
 #: templates/legal/terms.html:30
@@ -2129,15 +2412,11 @@ msgid "Always read the original job posting yourself before applying."
 msgstr "Lisez toujours vous-même l’offre d’origine avant de postuler."
 
 #: templates/legal/terms.html:31
-msgid ""
-"Always check a generated resume for accuracy before you send it — you are "
-"responsible for anything you submit to an employer."
+msgid "Always check a generated resume for accuracy before you send it — you are responsible for anything you submit to an employer."
 msgstr "Vérifiez toujours l’exactitude d’un CV généré avant de l’envoyer : vous êtes responsable de tout ce que vous transmettez à un employeur."
 
 #: templates/legal/terms.html:32
-msgid ""
-"A match score is not a prediction of whether you will be hired, and a red "
-"flag is not an accusation against an employer."
+msgid "A match score is not a prediction of whether you will be hired, and a red flag is not an accusation against an employer."
 msgstr "Un score de correspondance ne prédit pas votre embauche, et un signal d’alerte ne constitue pas une accusation envers un employeur."
 
 #: templates/legal/terms.html:35
@@ -2145,17 +2424,11 @@ msgid "Your content"
 msgstr "Vos contenus"
 
 #: templates/legal/terms.html:36
-msgid ""
-"You keep ownership of everything you upload and record. You grant us only "
-"the permission needed to store it, display it back to you, and send the "
-"relevant parts to our AI sub-processor so the features you request can run."
+msgid "You keep ownership of everything you upload and record. You grant us only the permission needed to store it, display it back to you, and send the relevant parts to our AI sub-processor so the features you request can run."
 msgstr "Vous conservez la propriété de tout ce que vous importez et enregistrez. Vous ne nous accordez que l’autorisation nécessaire pour le stocker, vous le réafficher et en transmettre les parties utiles à notre sous-traitant IA afin d’exécuter les fonctions que vous demandez."
 
 #: templates/legal/terms.html:39
-msgid ""
-"The service is provided as-is, without warranty. We may change or suspend "
-"features, and analysis may be unavailable if our AI provider is down or rate-"
-"limiting us."
+msgid "The service is provided as-is, without warranty. We may change or suspend features, and analysis may be unavailable if our AI provider is down or rate-limiting us."
 msgstr "Le service est fourni en l’état, sans garantie. Nous pouvons modifier ou suspendre des fonctionnalités, et l’analyse peut être indisponible si notre fournisseur d’IA est hors service ou nous limite."
 
 #: templates/legal/terms.html:41
@@ -2163,10 +2436,7 @@ msgid "Liability"
 msgstr "Responsabilité"
 
 #: templates/legal/terms.html:42
-msgid ""
-"To the fullest extent the law allows, we are not liable for indirect or "
-"consequential loss, for lost job opportunities, or for decisions you make "
-"based on an analysis or a generated resume."
+msgid "To the fullest extent the law allows, we are not liable for indirect or consequential loss, for lost job opportunities, or for decisions you make based on an analysis or a generated resume."
 msgstr "Dans toute la mesure permise par la loi, nous ne sommes pas responsables des dommages indirects ou consécutifs, des opportunités d’emploi manquées, ni des décisions que vous prenez sur la base d’une analyse ou d’un CV généré."
 
 #: templates/legal/terms.html:44
@@ -2174,9 +2444,7 @@ msgid "Ending your use"
 msgstr "Fin d’utilisation"
 
 #: templates/legal/terms.html:45
-msgid ""
-"You can delete your account at any time from the Security page, which "
-"removes your data. We may suspend an account that breaches these terms."
+msgid "You can delete your account at any time from the Security page, which removes your data. We may suspend an account that breaches these terms."
 msgstr "Vous pouvez supprimer votre compte à tout moment depuis la page Sécurité, ce qui efface vos données. Nous pouvons suspendre un compte qui enfreint les présentes conditions."
 
 #: templates/legal/terms.html:47
@@ -2185,36 +2453,12 @@ msgstr "Droit applicable"
 
 #: templates/legal/terms.html:48
 #, python-format
-msgid ""
-"These terms are governed by the laws of %(jurisdiction)s, and its courts "
-"have exclusive jurisdiction."
+msgid "These terms are governed by the laws of %(jurisdiction)s, and its courts have exclusive jurisdiction."
 msgstr "Les présentes conditions sont régies par le droit de %(jurisdiction)s, dont les tribunaux sont seuls compétents."
 
 #: templates/partials/_head.html:5
-msgid ""
-"Analyze any job post against your profile, requirement by requirement, and "
-"generate a resume tailored to it."
+msgid "Analyze any job post against your profile, requirement by requirement, and generate a resume tailored to it."
 msgstr "Analysez n’importe quelle offre au regard de votre profil, exigence par exigence, et générez un CV adapté."
-
-#: templates/partials/_profile_rail.html:4
-msgid "Profile sections"
-msgstr "Sections du profil"
-
-#: templates/partials/_profile_rail.html:7 templates/partials/sidebar.html:50
-msgid "Experience"
-msgstr "Expérience"
-
-#: templates/partials/_profile_rail.html:9
-msgid "Technical Skills"
-msgstr "Compétences techniques"
-
-#: templates/partials/_profile_rail.html:10
-msgid "Soft Skills"
-msgstr "Compétences comportementales"
-
-#: templates/partials/_profile_rail.html:15 templates/partials/topbar.html:42
-msgid "Personal info"
-msgstr "Informations personnelles"
 
 #: templates/partials/footer.html:13
 msgid "Match any job post to your profile, requirement by requirement."
@@ -2236,6 +2480,27 @@ msgstr "Conçu pour vous aider à décrocher votre prochain poste."
 msgid "Dismiss"
 msgstr "Fermer"
 
+#: templates/partials/profile_base.html:11 templates/partials/sidebar.html:47
+#: templates/resume/resume_review.html:55
+msgid "Profile"
+msgstr "Profil"
+
+#: templates/partials/profile_switcher.html:11
+msgid "Switch profile"
+msgstr "Changer de profil"
+
+#: templates/partials/profile_switcher.html:24
+msgid "Each profile keeps its own jobs, skills and resumes."
+msgstr "Chaque profil conserve ses propres offres, compétences et CV."
+
+#: templates/partials/profile_switcher.html:41
+msgid "New profile…"
+msgstr "Nouveau profil…"
+
+#: templates/partials/profile_switcher.html:42
+msgid "Manage profiles"
+msgstr "Gérer les profils"
+
 #: templates/partials/public_nav.html:13
 msgid "Toggle dark mode"
 msgstr "Basculer le mode sombre"
@@ -2244,75 +2509,65 @@ msgstr "Basculer le mode sombre"
 msgid "Go to dashboard"
 msgstr "Aller au tableau de bord"
 
-#: templates/partials/sidebar.html:21
+#: templates/partials/sidebar.html:26
 msgid "Main navigation"
 msgstr "Navigation principale"
 
-#: templates/partials/sidebar.html:31
+#: templates/partials/sidebar.html:35
 msgid "Jobs"
 msgstr "Offres"
 
-#: templates/partials/sidebar.html:34
+#: templates/partials/sidebar.html:38
 msgid "Job list"
 msgstr "Liste des offres"
 
-#: templates/partials/sidebar.html:54 templates/resume/resume_review.html:130
-msgid "Education"
-msgstr "Formation"
+#: templates/partials/sidebar.html:54
+msgid "Experience"
+msgstr "Expérience"
 
-#: templates/partials/sidebar.html:58 templates/resume/resume_review.html:82
-msgid "Technical skills"
-msgstr "Compétences techniques"
-
-#: templates/partials/sidebar.html:62 templates/resume/resume_review.html:74
-msgid "Soft skills"
-msgstr "Compétences comportementales"
-
-#: templates/partials/sidebar.html:78 templates/resume/tailored_list.html:3
+#: templates/partials/sidebar.html:82 templates/resume/tailored_list.html:3
 #: templates/resume/tailored_list.html:6
 msgid "Tailored resumes"
 msgstr "CV personnalisés"
 
-#: templates/partials/sidebar.html:87
+#: templates/partials/sidebar.html:90
 msgid "Expand sidebar"
 msgstr "Déployer le menu"
 
-#: templates/partials/sidebar.html:87
+#: templates/partials/sidebar.html:90
 msgid "Collapse sidebar"
 msgstr "Réduire le menu"
 
-#: templates/partials/sidebar.html:89
+#: templates/partials/sidebar.html:93
 msgid "Collapse"
 msgstr "Réduire"
 
-#: templates/partials/topbar.html:6
+#: templates/partials/topbar.html:12
 msgid "Toggle navigation"
 msgstr "Afficher ou masquer la navigation"
 
-#: templates/partials/topbar.html:45
+#: templates/partials/topbar.html:53
 msgid "Theme"
 msgstr "Thème"
 
-#: templates/partials/topbar.html:47
+#: templates/partials/topbar.html:55
 msgid "Light"
 msgstr "Clair"
 
-#: templates/partials/topbar.html:48
+#: templates/partials/topbar.html:56
 msgid "Dark"
 msgstr "Sombre"
 
-#: templates/partials/topbar.html:51
+#: templates/partials/topbar.html:59
 msgid "Export recap (.md)"
 msgstr "Exporter le récapitulatif (.md)"
 
-#: templates/partials/topbar.html:52
+#: templates/partials/topbar.html:60
 msgid "Admin"
 msgstr "Administration"
 
 #: templates/preferences/job_preference.html:7
-msgid ""
-"These are compared against every job post's Location & work arrangement and "
-"Compensation & benefits sections."
+msgid "These are compared against every job post's Location & work arrangement and Compensation & benefits sections."
 msgstr "Ces informations sont comparées aux sections « Lieu et mode de travail » et « Rémunération et avantages » de chaque offre."
 
 #: templates/preferences/job_preference.html:14
@@ -2335,11 +2590,11 @@ msgstr "Les avantages qui comptent pour vous"
 msgid "A job's benefits are matched against this list."
 msgstr "Les avantages d’une offre sont comparés à cette liste."
 
-#: templates/preferences/job_preference.html:90
+#: templates/preferences/job_preference.html:87
 msgid "No benefits recorded yet."
 msgstr "Aucun avantage enregistré pour l’instant."
 
-#: templates/preferences/job_preference.html:101
+#: templates/preferences/job_preference.html:98
 msgid "Add benefit"
 msgstr "Ajouter un avantage"
 
@@ -2462,18 +2717,36 @@ msgstr "et"
 msgid "Re-generate from my profile"
 msgstr "Régénérer depuis mon profil"
 
-#: templates/skills/_skill_category_grid.html:37
+#: templates/skills/_skill_category_grid.html:34
 msgid "Add your first skill"
 msgstr "Ajouter votre première compétence"
 
-#: templates/skills/skill_list.html:9
-msgid "Organize your soft and technical skills by category."
-msgstr "Organisez vos compétences comportementales et techniques par catégorie."
+#: templates/skills/skill_list.html:10
+msgid "How you work with people, grouped by category."
+msgstr "Votre façon de travailler avec les autres, par catégorie."
 
 #: templates/skills/skill_list.html:12
+msgid "The tools, languages and platforms you know, grouped by category."
+msgstr "Les outils, langages et plateformes que vous maîtrisez, par catégorie."
+
+#: templates/skills/skill_list.html:16
 msgid "+ Soft skill"
 msgstr "+ Compétence comportementale"
 
-#: templates/skills/skill_list.html:13
+#: templates/skills/skill_list.html:16
 msgid "+ Technical skill"
 msgstr "+ Compétence technique"
+
+#: templates/skills/skill_list.html:22
+msgid "No soft skills yet. Add your first one to strengthen your recap."
+msgstr "Aucune compétence comportementale pour l’instant. Ajoutez la première pour étoffer votre récapitulatif."
+
+#: templates/skills/skill_list.html:24
+msgid "No technical skills yet. Add the tools and languages you know."
+msgstr "Aucune compétence technique pour l’instant. Ajoutez les outils et langages que vous maîtrisez."
+
+#~ msgid "Organize your soft and technical skills by category."
+#~ msgstr "Organisez vos compétences comportementales et techniques par catégorie."
+
+#~ msgid "Profile sections"
+#~ msgstr "Sections du profil"

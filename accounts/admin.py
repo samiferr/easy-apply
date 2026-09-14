@@ -4,9 +4,20 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from .models import Profile, User
 
 
-class ProfileInline(admin.StackedInline):
+class ProfileInline(admin.TabularInline):
+    """A user has one row per workspace, so this is a list, not a single form."""
+
     model = Profile
-    can_delete = False
+    extra = 0
+    fields = ["name", "language", "headline", "location"]
+    show_change_link = True
+
+
+@admin.register(Profile)
+class ProfileAdmin(admin.ModelAdmin):
+    list_display = ["name", "user", "language", "headline", "created_at"]
+    list_filter = ["language"]
+    search_fields = ["name", "user__email", "headline"]
 
 
 @admin.register(User)

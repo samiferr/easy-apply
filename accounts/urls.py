@@ -12,6 +12,12 @@ urlpatterns = [
     path("logout/confirm/", LogoutView.as_view(), name="logout"),
     path("profile/", views.ProfileView.as_view(), name="profile"),
     path("security/", views.SecurityView.as_view(), name="security"),
+    # Profiles (workspaces)
+    path("profiles/", views.ProfileListView.as_view(), name="profile_list"),
+    path("profiles/new/", views.ProfileCreateView.as_view(), name="profile_create"),
+    path("profiles/<int:pk>/rename/", views.ProfileRenameView.as_view(), name="profile_rename"),
+    path("profiles/<int:pk>/switch/", views.ProfileSwitchView.as_view(), name="profile_switch"),
+    path("profiles/<int:pk>/delete/", views.ProfileDeleteView.as_view(), name="profile_delete"),
     # Password reset / recovery
     path(
         "password-reset/",

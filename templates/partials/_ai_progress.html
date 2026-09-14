@@ -35,9 +35,9 @@ is_terminal, and pauses while the tab is hidden.
         </template>
         <span x-text="label()"></span>
       </p>
-      <p class="mt-0.5 truncate text-sm text-slate-500 dark:text-slate-400" x-text="data.current_step"></p>
+      <p class="mt-0.5 truncate text-sm text-slate-600 dark:text-slate-400" x-text="data.current_step"></p>
     </div>
-    <p class="shrink-0 text-sm font-semibold tabular-nums text-slate-500 dark:text-slate-400"
+    <p class="shrink-0 text-sm font-semibold tabular-nums text-slate-600 dark:text-slate-400"
        x-show="!data.indeterminate && data.state !== 'failed'"
        x-text="data.percent + '%'"></p>
   </div>
@@ -58,7 +58,7 @@ is_terminal, and pauses while the tab is hidden.
   </div>
 
   <div class="mt-2 flex items-center justify-between gap-3" x-show="!data.indeterminate">
-    <p class="text-xs text-slate-500 dark:text-slate-400">
+    <p class="text-xs text-slate-600 dark:text-slate-400">
       <span x-text="data.steps_done"></span> / <span x-text="data.steps_total"></span>
     </p>
   </div>

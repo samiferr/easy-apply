@@ -5,7 +5,7 @@
     <div class="min-w-0">
       <h2 class="section-title">{{ spec.label }}</h2>
       {% if spec.description %}
-        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{{ spec.description }}</p>
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">{{ spec.description }}</p>
       {% endif %}
     </div>
     {% if section and section.is_matched_section and section.elements.exists %}
@@ -19,7 +19,7 @@
   </div>
 
   {% if not section %}
-    <p class="mt-6 text-sm text-slate-500 dark:text-slate-400">
+    <p class="mt-6 text-sm text-slate-600 dark:text-slate-400">
       {% trans "The posting didn't say anything about this." %}
     </p>
 
@@ -58,7 +58,7 @@
           </table>
         </div>
       {% else %}
-        <p class="mt-6 text-sm text-slate-500 dark:text-slate-400">{% trans "Nothing extracted for this section." %}</p>
+        <p class="mt-6 text-sm text-slate-600 dark:text-slate-400">{% trans "Nothing extracted for this section." %}</p>
       {% endif %}
     {% else %}
       {% if section.body %}
@@ -66,7 +66,7 @@
           {% for line in section.body.splitlines %}{% if line.strip %}<p>{{ line }}</p>{% endif %}{% endfor %}
         </div>
       {% else %}
-        <p class="mt-6 text-sm text-slate-500 dark:text-slate-400">{% trans "The posting didn't say anything about this." %}</p>
+        <p class="mt-6 text-sm text-slate-600 dark:text-slate-400">{% trans "The posting didn't say anything about this." %}</p>
       {% endif %}
     {% endif %}
   {% endif %}

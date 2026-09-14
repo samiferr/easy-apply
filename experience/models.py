@@ -1,6 +1,7 @@
-from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.utils.formats import date_format
+from django.utils.translation import gettext_lazy as _
 
 
 class WorkExperience(models.Model):
@@ -10,15 +11,15 @@ class WorkExperience(models.Model):
     FREELANCE = "freelance"
     INTERNSHIP = "internship"
     EMPLOYMENT_TYPE_CHOICES = [
-        (FULL_TIME, "Full-time"),
-        (PART_TIME, "Part-time"),
-        (CONTRACT, "Contract"),
-        (FREELANCE, "Freelance"),
-        (INTERNSHIP, "Internship"),
+        (FULL_TIME, _("Full-time")),
+        (PART_TIME, _("Part-time")),
+        (CONTRACT, _("Contract")),
+        (FREELANCE, _("Freelance")),
+        (INTERNSHIP, _("Internship")),
     ]
 
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="experiences"
+    profile = models.ForeignKey(
+        "accounts.Profile", on_delete=models.CASCADE, related_name="experiences"
     )
     job_title = models.CharField(max_length=150)
     company = models.CharField(max_length=150)
@@ -44,8 +45,18 @@ class WorkExperience(models.Model):
 
     @property
     def duration_label(self):
-        end = "Present" if self.is_current else (self.end_date.strftime("%b %Y") if self.end_date else "—")
-        return f"{self.start_date.strftime('%b %Y')} – {end}"
+        """"Jan 2020 – Present", rendered in the active language.
+
+        Document generation activates the profile's language around this, so a
+        French profile's resume reads "janv. 2020 – Aujourd'hui".
+        """
+        if self.is_current:
+            end = _("Present")
+        elif self.end_date:
+            end = date_format(self.end_date, "M Y")
+        else:
+            end = "—"
+        return f"{date_format(self.start_date, 'M Y')} – {end}"
 
 
 class ExperienceHighlight(models.Model):

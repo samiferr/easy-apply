@@ -1,0 +1,41 @@
+{% extends "base_app.html" %}
+{% load i18n %}
+{% comment %}
+One shared confirmation page for every destructive action in the app, so
+"are you sure?" always looks and behaves the same way instead of a native
+`confirm()` popup (unstyled, unlocalized in some browsers, invisible to
+screen-reader users until it's already open, and easy to click through on
+muscle memory).
+
+Every delete view renders this with the same context contract:
+  page_title   - <title> text (plain string, no SITE_NAME suffix needed here)
+  heading      - the question, e.g. "Delete this degree?"
+  detail       - optional one-line summary of the specific object
+  warning      - optional consequence text ("This can't be undone.", etc.)
+  cancel_url   - where Cancel goes
+  confirm_label - button text, defaults to "Delete"
+{% endcomment %}
+{% block title %}{{ page_title }} · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<div class="mx-auto max-w-lg px-4 py-10 sm:px-6 lg:px-8">
+  <a href="{{ cancel_url }}" class="inline-flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+    {% trans "Cancel" %}
+  </a>
+
+  <div class="card mt-4 p-6 sm:p-8">
+    <div class="flex h-11 w-11 items-center justify-center rounded-full bg-rose-500/10 text-rose-700 dark:text-rose-300">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    </div>
+    <h1 class="card-title mt-4">{{ heading }}</h1>
+    {% if detail %}<p class="mt-1 text-sm font-medium text-slate-700 dark:text-slate-300">{{ detail }}</p>{% endif %}
+    <p class="mt-1 text-sm text-muted">{{ warning|default:_("This can't be undone.") }}</p>
+
+    <form method="post" class="mt-6 flex gap-3">
+      {% csrf_token %}
+      <a href="{{ cancel_url }}" class="btn-secondary flex-1 justify-center">{% trans "Cancel" %}</a>
+      <button type="submit" class="btn-danger flex-1">{{ confirm_label|default:_("Delete") }}</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

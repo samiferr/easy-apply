@@ -8,6 +8,8 @@ from django.views import View
 from .forms import BenefitPreferenceForm, JobPreferenceForm
 from .models import BenefitPreference, get_or_create_preference
 
+CONFIRM_DELETE_TEMPLATE = "core/confirm_delete.html"
+
 
 class JobPreferenceView(LoginRequiredMixin, View):
     """The "Job preferences" profile tab: the scalar form plus the benefit rows."""
@@ -15,20 +17,19 @@ class JobPreferenceView(LoginRequiredMixin, View):
     template_name = "preferences/job_preference.html"
 
     def get_context(self, request, form=None, benefit_form=None):
-        preference = get_or_create_preference(request.user)
+        preference = get_or_create_preference(request.profile)
         return {
             "preference": preference,
             "form": form or JobPreferenceForm(instance=preference),
             "benefit_form": benefit_form or BenefitPreferenceForm(preference=preference),
             "benefits": preference.benefits.all(),
-            "active_tab": "preferences",
         }
 
     def get(self, request):
         return render(request, self.template_name, self.get_context(request))
 
     def post(self, request):
-        preference = get_or_create_preference(request.user)
+        preference = get_or_create_preference(request.profile)
         form = JobPreferenceForm(request.POST, instance=preference)
         if form.is_valid():
             form.save()
@@ -39,7 +40,7 @@ class JobPreferenceView(LoginRequiredMixin, View):
 
 class BenefitCreateView(LoginRequiredMixin, View):
     def post(self, request):
-        preference = get_or_create_preference(request.user)
+        preference = get_or_create_preference(request.profile)
         form = BenefitPreferenceForm(request.POST, preference=preference)
         if form.is_valid():
             benefit = form.save(commit=False)
@@ -57,7 +58,7 @@ class BenefitUpdateView(LoginRequiredMixin, View):
 
     def post(self, request, pk):
         benefit = get_object_or_404(
-            BenefitPreference, pk=pk, preference__user=request.user
+            BenefitPreference, pk=pk, preference__profile=request.profile
         )
         importance = request.POST.get("importance")
         valid = {choice[0] for choice in BenefitPreference.IMPORTANCE_CHOICES}
@@ -68,10 +69,25 @@ class BenefitUpdateView(LoginRequiredMixin, View):
 
 
 class BenefitDeleteView(LoginRequiredMixin, View):
-    def post(self, request, pk):
-        benefit = get_object_or_404(
-            BenefitPreference, pk=pk, preference__user=request.user
+    def get_benefit(self, request, pk):
+        return get_object_or_404(BenefitPreference, pk=pk, preference__profile=request.profile)
+
+    def get(self, request, pk):
+        benefit = self.get_benefit(request, pk)
+        cancel_url = f"{reverse('preferences:detail')}#benefits"
+        return render(
+            request,
+            CONFIRM_DELETE_TEMPLATE,
+            {
+                "page_title": _("Delete this benefit?"),
+                "heading": _("Delete this benefit?"),
+                "detail": benefit.name,
+                "cancel_url": cancel_url,
+            },
         )
+
+    def post(self, request, pk):
+        benefit = self.get_benefit(request, pk)
         name = benefit.name
         benefit.delete()
         messages.info(request, _("Removed “%(name)s”.") % {"name": name})

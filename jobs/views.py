@@ -6,10 +6,10 @@ from django.shortcuts import get_object_or_404, redirect
 from django.template.loader import render_to_string
 from django.urls import reverse_lazy
 from django.utils import timezone
-from django.utils.translation import get_language
 from django.utils.translation import gettext as _
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, View
 
+from core.mixins import ConfirmDeleteMixin
 from core.models import AITask
 from resume.models import TailoredResume
 
@@ -32,7 +32,7 @@ class JobPostListView(LoginRequiredMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        qs = JobPost.objects.filter(user=self.request.user).prefetch_related(
+        qs = JobPost.objects.filter(profile=self.request.profile).prefetch_related(
             "sections__elements"
         )
         query = self.request.GET.get("q", "").strip()
@@ -53,7 +53,7 @@ class JobPostListView(LoginRequiredMixin, ListView):
         ctx["q"] = self.request.GET.get("q", "")
         ctx["status"] = self.request.GET.get("status", "")
         ctx["status_choices"] = JobPost.STATUS_CHOICES
-        ctx["total_count"] = JobPost.objects.filter(user=self.request.user).count()
+        ctx["total_count"] = JobPost.objects.filter(profile=self.request.profile).count()
         return ctx
 
 
@@ -68,9 +68,11 @@ class JobPostCreateView(LoginRequiredMixin, CreateView):
     template_name = "jobs/job_form.html"
 
     def form_valid(self, form):
-        form.instance.user = self.request.user
+        form.instance.profile = self.request.profile
         response = super().form_valid(form)
-        enqueue_job_analysis(self.object, language=get_language() or "en")
+        # The profile's language, not the browser's: a job analyzed in a French
+        # workspace stays French even if the UI is being read in English.
+        enqueue_job_analysis(self.object)
         messages.info(
             self.request,
             _("Analyzing this job post — the sections will fill in as they finish."),
@@ -87,7 +89,7 @@ class JobPostDetailView(LoginRequiredMixin, DetailView):
     context_object_name = "job"
 
     def get_queryset(self):
-        return JobPost.objects.filter(user=self.request.user).prefetch_related(
+        return JobPost.objects.filter(profile=self.request.profile).prefetch_related(
             "sections__elements"
         )
 
@@ -107,12 +109,24 @@ class JobPostDetailView(LoginRequiredMixin, DetailView):
         return ctx
 
 
-class JobPostDeleteView(LoginRequiredMixin, DeleteView):
+class JobPostDeleteView(ConfirmDeleteMixin, LoginRequiredMixin, DeleteView):
     model = JobPost
     success_url = reverse_lazy("jobs:list")
+    cancel_url_name = "jobs:list"
 
     def get_queryset(self):
-        return JobPost.objects.filter(user=self.request.user)
+        return JobPost.objects.filter(profile=self.request.profile)
+
+    def get_heading(self):
+        return _("Delete this job post analysis?")
+
+    def get_detail(self):
+        return self.object.title or self.object.source_url
+
+    def get_warning(self):
+        if TailoredResume.objects.filter(job=self.object).exists():
+            return _("This also deletes the tailored resume written for it. This can't be undone.")
+        return _("This can't be undone.")
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
@@ -125,8 +139,8 @@ class JobPostDeleteView(LoginRequiredMixin, DeleteView):
 
 class JobPostReanalyzeView(LoginRequiredMixin, View):
     def post(self, request, pk):
-        job = get_object_or_404(JobPost, pk=pk, user=request.user)
-        enqueue_job_analysis(job, language=get_language() or "en")
+        job = get_object_or_404(JobPost, pk=pk, profile=request.profile)
+        enqueue_job_analysis(job)
         messages.info(request, _("Re-analyzing this job post."))
         return redirect(job.get_absolute_url())
 
@@ -135,7 +149,7 @@ class JobPostMatchProfileView(LoginRequiredMixin, View):
     """Re-run matching across every section of an already-extracted job."""
 
     def post(self, request, pk):
-        job = get_object_or_404(JobPost, pk=pk, user=request.user)
+        job = get_object_or_404(JobPost, pk=pk, profile=request.profile)
         if not job.sections.exists():
             messages.warning(
                 request, _("Analyze this job post first, then match it to your profile.")
@@ -151,7 +165,7 @@ class JobSectionRematchView(LoginRequiredMixin, View):
 
     def post(self, request, pk, section_pk):
         section = get_object_or_404(
-            JobSection, pk=section_pk, job__pk=pk, job__user=request.user
+            JobSection, pk=section_pk, job__pk=pk, job__profile=request.profile
         )
         enqueue_section_match(section)
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
@@ -183,7 +197,7 @@ class JobAnalysisStateView(LoginRequiredMixin, View):
 
     def get(self, request, pk):
         job = get_object_or_404(
-            JobPost.objects.prefetch_related("sections__elements"), pk=pk, user=request.user
+            JobPost.objects.prefetch_related("sections__elements"), pk=pk, profile=request.profile
         )
         task = AITask.latest_for(job, AITask.JOB_ANALYSIS)
         match_task = AITask.latest_for(job, AITask.JOB_MATCH)
@@ -227,7 +241,7 @@ class JobElementAddToProfileView(LoginRequiredMixin, View):
             JobElement.objects.select_related("section", "section__job"),
             pk=element_pk,
             section__job__pk=pk,
-            section__job__user=request.user,
+            section__job__profile=request.profile,
         )
 
     def _modal_html(self, request, element, target, form):
@@ -246,7 +260,7 @@ class JobElementAddToProfileView(LoginRequiredMixin, View):
                 status=400,
             )
         form = target.form_class(
-            user=request.user, element=element, initial=target.initial_for(element)
+            profile=request.profile, element=element, initial=target.initial_for(element)
         )
         return JsonResponse(
             {"ok": True, "modal_html": self._modal_html(request, element, target, form)}
@@ -261,7 +275,7 @@ class JobElementAddToProfileView(LoginRequiredMixin, View):
                 status=400,
             )
 
-        form = target.form_class(request.POST, user=request.user, element=element)
+        form = target.form_class(request.POST, profile=request.profile, element=element)
         if not form.is_valid():
             # Duplicates and conflicts come back in the modal, never as a 500.
             return JsonResponse(
@@ -293,7 +307,7 @@ class JobElementRematchView(LoginRequiredMixin, View):
             JobElement.objects.select_related("section", "section__job"),
             pk=element_pk,
             section__job__pk=pk,
-            section__job__user=request.user,
+            section__job__profile=request.profile,
         )
         task = enqueue_element_match(element)
         element.refresh_from_db()
@@ -315,7 +329,7 @@ class JobElementRowView(LoginRequiredMixin, View):
             JobElement.objects.select_related("section", "section__job"),
             pk=element_pk,
             section__job__pk=pk,
-            section__job__user=request.user,
+            section__job__profile=request.profile,
         )
         job = element.section.job
         return JsonResponse(

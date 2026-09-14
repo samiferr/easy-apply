@@ -1,21 +1,22 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
+from django.utils.translation import gettext as _
 from django.views.generic import CreateView, DeleteView, TemplateView, UpdateView
+
+from core.mixins import ConfirmDeleteMixin
 
 from .forms import CertificateForm, DegreeForm
 from .models import Certificate, Degree
 
 
 class EducationListView(LoginRequiredMixin, TemplateView):
-    # Tells the shared profile rail which tab is active.
-    extra_context = {"active_tab": "education"}
     template_name = "education/education_list.html"
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["degrees"] = Degree.objects.filter(user=self.request.user)
-        ctx["certificates"] = Certificate.objects.filter(user=self.request.user)
+        ctx["degrees"] = Degree.objects.filter(profile=self.request.profile)
+        ctx["certificates"] = Certificate.objects.filter(profile=self.request.profile)
         return ctx
 
 
@@ -26,12 +27,12 @@ class DegreeFormMixin(LoginRequiredMixin):
     success_url = reverse_lazy("education:list")
 
     def get_queryset(self):
-        return Degree.objects.filter(user=self.request.user)
+        return Degree.objects.filter(profile=self.request.profile)
 
 
 class DegreeCreateView(DegreeFormMixin, CreateView):
     def form_valid(self, form):
-        form.instance.user = self.request.user
+        form.instance.profile = self.request.profile
         messages.success(self.request, f"Added your degree from {form.instance.school}.")
         return super().form_valid(form)
 
@@ -42,12 +43,19 @@ class DegreeUpdateView(DegreeFormMixin, UpdateView):
         return super().form_valid(form)
 
 
-class DegreeDeleteView(LoginRequiredMixin, DeleteView):
+class DegreeDeleteView(ConfirmDeleteMixin, LoginRequiredMixin, DeleteView):
     model = Degree
     success_url = reverse_lazy("education:list")
+    cancel_url_name = "education:list"
 
     def get_queryset(self):
-        return Degree.objects.filter(user=self.request.user)
+        return Degree.objects.filter(profile=self.request.profile)
+
+    def get_heading(self):
+        return _("Delete this degree?")
+
+    def get_detail(self):
+        return f"{self.object.degree} — {self.object.school}"
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
@@ -62,12 +70,12 @@ class CertificateFormMixin(LoginRequiredMixin):
     success_url = reverse_lazy("education:list")
 
     def get_queryset(self):
-        return Certificate.objects.filter(user=self.request.user)
+        return Certificate.objects.filter(profile=self.request.profile)
 
 
 class CertificateCreateView(CertificateFormMixin, CreateView):
     def form_valid(self, form):
-        form.instance.user = self.request.user
+        form.instance.profile = self.request.profile
         messages.success(self.request, f"Added the “{form.instance.name}” certificate.")
         return super().form_valid(form)
 
@@ -78,12 +86,19 @@ class CertificateUpdateView(CertificateFormMixin, UpdateView):
         return super().form_valid(form)
 
 
-class CertificateDeleteView(LoginRequiredMixin, DeleteView):
+class CertificateDeleteView(ConfirmDeleteMixin, LoginRequiredMixin, DeleteView):
     model = Certificate
     success_url = reverse_lazy("education:list")
+    cancel_url_name = "education:list"
 
     def get_queryset(self):
-        return Certificate.objects.filter(user=self.request.user)
+        return Certificate.objects.filter(profile=self.request.profile)
+
+    def get_heading(self):
+        return _("Delete this certificate?")
+
+    def get_detail(self):
+        return f"{self.object.name} — {self.object.issuing_organization}"
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
