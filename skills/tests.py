@@ -35,8 +35,12 @@ class SkillKindPagesTests(TestCase):
         self.assertIn("Mentoring", soft)
         self.assertNotIn("Python", soft)
 
-    def test_neither_page_carries_a_tab_switcher(self):
-        """The sidebar links to both kinds; a second switcher was duplication."""
+    def test_neither_page_carries_a_soft_technical_switcher(self):
+        """The sidebar links to both kinds; a second switcher was duplication.
+
+        The category tabs *within* a page are a different thing — they split
+        one kind's skills, and never offer the other kind.
+        """
         for kind in ("soft", "technical"):
             with self.subTest(kind=kind):
                 body = self.client.get(reverse("skills:list", args=[kind])).content.decode()
@@ -50,6 +54,36 @@ class SkillKindPagesTests(TestCase):
                 self.assertEqual(len(active), 1, "exactly one sidebar row should be active")
                 self.assertIn(expected, active[0].split("</a>")[0])
 
+    def test_each_category_gets_its_own_tab_and_panel(self):
+        """One tab per category the profile has skills in, wired to a panel."""
+        databases = SkillCategory.objects.get_or_create(
+            name="Databases", kind=SkillCategory.TECHNICAL
+        )[0]
+        UserSkill.objects.create(profile=self.profile, category=databases, name="Postgres")
+
+        body = self.client.get(reverse("skills:list", args=["technical"])).content.decode()
+        for category in (self.technical, databases):
+            with self.subTest(category=category.name):
+                self.assertIn(f'id="tab-category-{category.pk}"', body)
+                self.assertIn(f'aria-controls="panel-category-{category.pk}"', body)
+                self.assertIn(f'id="panel-category-{category.pk}"', body)
+                self.assertIn(category.name, body)
+        self.assertIn('role="tablist"', body)
+
+    def test_a_category_with_no_skills_gets_no_tab(self):
+        """The tabs show what you have, the same set the card grid showed."""
+        empty = SkillCategory.objects.get_or_create(
+            name="Cloud & DevOps", kind=SkillCategory.TECHNICAL
+        )[0]
+        body = self.client.get(reverse("skills:list", args=["technical"])).content.decode()
+        self.assertNotIn(f'id="tab-category-{empty.pk}"', body)
+
+    def test_a_kind_with_no_skills_shows_the_empty_state_not_an_empty_strip(self):
+        UserSkill.objects.filter(profile=self.profile, category__kind="soft").delete()
+        body = self.client.get(reverse("skills:list", args=["soft"])).content.decode()
+        self.assertNotIn('role="tablist"', body)
+        self.assertIn("No soft skills yet", body)
+
     def test_an_unknown_kind_is_a_404(self):
         self.assertEqual(self.client.get("/skills/nonsense/").status_code, 404)
 
@@ -57,14 +91,20 @@ class SkillKindPagesTests(TestCase):
         response = self.client.get("/skills/")
         self.assertRedirects(response, reverse("skills:list", args=["technical"]))
 
-    def test_adding_returns_to_that_kinds_page(self):
+    def test_adding_returns_to_that_skills_category_tab(self):
         response = self.client.post(
             reverse("skills:add", args=["soft"]),
             {"category": self.soft.pk, "name": "Listening", "level": UserSkill.ADVANCED},
         )
-        self.assertRedirects(response, reverse("skills:list", args=["soft"]))
+        self.assertRedirects(
+            response,
+            f"{reverse('skills:list', args=['soft'])}#category-{self.soft.pk}",
+        )
 
-    def test_deleting_returns_to_that_kinds_page(self):
+    def test_deleting_returns_to_that_skills_category_tab(self):
         skill = UserSkill.objects.get(name="Python")
         response = self.client.post(reverse("skills:delete", args=[skill.pk]))
-        self.assertRedirects(response, reverse("skills:list", args=["technical"]))
+        self.assertRedirects(
+            response,
+            f"{reverse('skills:list', args=['technical'])}#category-{self.technical.pk}",
+        )

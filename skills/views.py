@@ -20,8 +20,16 @@ def _grouped_by_category(qs):
     return grouped
 
 
-def skills_url(kind: str) -> str:
-    return reverse("skills:list", kwargs={"kind": kind})
+def skills_url(kind: str, category=None) -> str:
+    """The list page for a kind, optionally opening one category's tab.
+
+    The categories are tabs over a single panel, so returning from an add,
+    edit or delete without naming one would drop you on the first tab rather
+    than the skill you just touched. `_skill_category_tabs.html` reads this
+    fragment on load.
+    """
+    url = reverse("skills:list", kwargs={"kind": kind})
+    return f"{url}#category-{category.pk}" if category else url
 
 
 #: Screen titles for the add/edit form, per skill kind. Lazy so the active
@@ -87,7 +95,7 @@ class BaseSkillFormView(SkillKindMixin, LoginRequiredMixin):
         return kwargs
 
     def get_success_url(self):
-        return skills_url(self.get_kind())
+        return skills_url(self.get_kind(), self.object.category)
 
 
 class SkillCreateView(BaseSkillFormView, CreateView):
@@ -110,10 +118,10 @@ class SkillDeleteView(ConfirmDeleteMixin, LoginRequiredMixin, DeleteView):
         return UserSkill.objects.filter(profile=self.request.profile)
 
     def get_success_url(self):
-        return skills_url(self.object.category.kind)
+        return skills_url(self.object.category.kind, self.object.category)
 
     def get_cancel_url(self):
-        return skills_url(self.object.category.kind)
+        return skills_url(self.object.category.kind, self.object.category)
 
     def get_parent_label(self):
         return SkillCategory.KIND_PLURALS[self.object.category.kind]

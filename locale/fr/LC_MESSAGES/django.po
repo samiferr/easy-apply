@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Easy Apply\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-14 02:24+0000\n"
+"POT-Creation-Date: 2026-09-14 03:07+0000\n"
 "PO-Revision-Date: 2026-09-10 01:20+0000\n"
 "Last-Translator: Easy Apply <noreply@easy-apply.app>\n"
 "Language-Team: French <fr@easy-apply.app>\n"
@@ -349,11 +349,11 @@ msgstr "Complétez votre profil"
 msgid "Set your job preferences"
 msgstr "Définissez vos préférences d’emploi"
 
-#: core/views.py:48 skills/views.py:31
+#: core/views.py:48 skills/views.py:39
 msgid "Add a technical skill"
 msgstr "Ajoutez une compétence technique"
 
-#: core/views.py:49 skills/views.py:30
+#: core/views.py:49 skills/views.py:38
 msgid "Add a soft skill"
 msgstr "Ajoutez une compétence comportementale"
 
@@ -1253,15 +1253,15 @@ msgstr "Avancé"
 msgid "Expert"
 msgstr "Expert"
 
-#: skills/views.py:34
+#: skills/views.py:42
 msgid "Edit soft skill"
 msgstr "Modifier la compétence comportementale"
 
-#: skills/views.py:35
+#: skills/views.py:43
 msgid "Edit technical skill"
 msgstr "Modifier la compétence technique"
 
-#: skills/views.py:122
+#: skills/views.py:130
 msgid "Delete this skill?"
 msgstr "Supprimer cette compétence ?"
 
@@ -1450,9 +1450,9 @@ msgid ""
 "A profile is a self-contained workspace, with its own personal info, skills, "
 "experience, education, job preferences, analyzed job posts and resumes."
 msgstr ""
-"Un profil est un espace de travail autonome, avec ses propres "
-"informations personnelles, compétences, expériences, formations, "
-"préférences d’emploi, offres analysées et CV."
+"Un profil est un espace de travail autonome, avec ses propres informations "
+"personnelles, compétences, expériences, formations, préférences d’emploi, "
+"offres analysées et CV."
 
 #: templates/accounts/profile_list.html:12
 msgid ""
@@ -1885,8 +1885,7 @@ msgstr "Ajouter un certificat"
 #: templates/education/certificate_form.html:14
 msgid "A professional certificate, who issued it and how long it lasts."
 msgstr ""
-"Un certificat professionnel, son organisme émetteur et sa durée de "
-"validité."
+"Un certificat professionnel, son organisme émetteur et sa durée de validité."
 
 #: templates/education/degree_form.html:8
 #: templates/education/degree_form.html:13
@@ -1952,8 +1951,8 @@ msgstr "Ajouter une expérience professionnelle"
 #: templates/experience/experience_form.html:14
 msgid "One role per entry, with the highlights you want a recruiter to read."
 msgstr ""
-"Un poste par entrée, avec les points forts que vous voulez faire lire à "
-"un recruteur."
+"Un poste par entrée, avec les points forts que vous voulez faire lire à un "
+"recruteur."
 
 #: templates/experience/experience_form.html:50
 msgid "Highlights"
@@ -3095,8 +3094,8 @@ msgid ""
 "Check that the file is a text-based PDF or DOCX — a scan of a printed page "
 "has no text to read."
 msgstr ""
-"Vérifiez que le fichier est un PDF ou un DOCX contenant du texte — le "
-"scan d’une page imprimée n’a aucun texte à lire."
+"Vérifiez que le fichier est un PDF ou un DOCX contenant du texte — le scan "
+"d’une page imprimée n’a aucun texte à lire."
 
 #: templates/resume/resume_review.html:25
 msgid "Try another file"
@@ -3137,8 +3136,8 @@ msgid ""
 "experience and education. You'll review everything before anything is added."
 msgstr ""
 "Déposez votre CV et l’IA en extrait vos compétences, vos langues, votre "
-"expérience professionnelle et votre formation. Vous vérifiez tout avant "
-"le moindre ajout."
+"expérience professionnelle et votre formation. Vous vérifiez tout avant le "
+"moindre ajout."
 
 #: templates/resume/tailored_list.html:6
 msgid "One resume per job post, written for that specific posting."
@@ -3205,7 +3204,21 @@ msgstr "et"
 msgid "Re-generate from my profile"
 msgstr "Régénérer depuis mon profil"
 
-#: templates/skills/_skill_category_grid.html:34
+#: templates/skills/_skill_category_tabs.html:45
+msgid "Skill categories"
+msgstr "Catégories de compétences"
+
+#: templates/skills/_skill_category_tabs.html:77
+#, python-format
+msgid "Edit %(name)s"
+msgstr "Modifier %(name)s"
+
+#: templates/skills/_skill_category_tabs.html:80
+#, python-format
+msgid "Delete %(name)s"
+msgstr "Supprimer %(name)s"
+
+#: templates/skills/_skill_category_tabs.html:96
 msgid "Add your first skill"
 msgstr "Ajouter votre première compétence"
 
@@ -3241,13 +3254,13 @@ msgstr "+ Compétence comportementale"
 msgid "+ Technical skill"
 msgstr "+ Compétence technique"
 
-#: templates/skills/skill_list.html:23
+#: templates/skills/skill_list.html:21
 msgid "No soft skills yet. Add your first one to strengthen your recap."
 msgstr ""
 "Aucune compétence comportementale pour l’instant. Ajoutez la première pour "
 "étoffer votre récapitulatif."
 
-#: templates/skills/skill_list.html:25
+#: templates/skills/skill_list.html:23
 msgid "No technical skills yet. Add the tools and languages you know."
 msgstr ""
 "Aucune compétence technique pour l’instant. Ajoutez les outils et langages "

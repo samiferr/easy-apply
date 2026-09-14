@@ -166,6 +166,36 @@
     @apply badge bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300;
   }
 
+  /* --- Tabs ------------------------------------------------------------- */
+  /* A horizontal strip of tabs over one shared panel, used where a screen's
+     content splits into named groups that are read one at a time (the skill
+     categories). Like the sidebar and the settings nav, the active tab is a
+     tinted pill rather than an underline or a boxed tab — the shell has no
+     dividing rules and this is what carries the structure everywhere else.
+
+     The strip scrolls sideways instead of wrapping, so the panel below it
+     never shifts down as categories come and go. */
+  .tab-strip {
+    @apply flex gap-1 overflow-x-auto pb-1;
+  }
+  .tab-strip-item {
+    @apply flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium
+      text-slate-600 transition hover:bg-slate-900/5 hover:text-slate-900
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500
+      dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white;
+  }
+  .tab-strip-item-active {
+    @apply bg-brand-600/10 font-semibold text-brand-700 hover:bg-brand-600/10
+      hover:text-brand-700 dark:bg-brand-400/15 dark:text-brand-300
+      dark:hover:bg-brand-400/15 dark:hover:text-brand-300;
+  }
+  /* How many rows are behind a tab, so an empty-looking strip still tells you
+     where everything is. */
+  .tab-count {
+    @apply rounded-full bg-slate-900/10 px-1.5 text-xs font-semibold tabular-nums
+      text-slate-600 dark:bg-white/10 dark:text-slate-300;
+  }
+
   /* --- Page shell ------------------------------------------------------- */
   /* Every application screen renders inside this one container, so the
      breadcrumb, the title and the subtitle land in exactly the same place on
@@ -218,15 +248,18 @@
   }
 
   /* --- Headings --------------------------------------------------------- */
+  /* Sizes come from the `heading-*` scale in `tailwind.config.js`, which is
+     Tailwind's body scale plus 30%. Never hard-code a heading size here or in
+     a template — use a `heading-*` step so every heading moves together. */
   /* The one heading class for a page that has a page header — which is every
      screen in the app, plus the legal pages. The header in `base_app.html`
      writes the tag, so position, size and weight cannot drift between
      screens. */
   .page-title {
-    @apply text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl dark:text-white;
+    @apply text-heading-2xl font-bold tracking-tight text-slate-900 sm:text-heading-3xl dark:text-white;
   }
   .section-title {
-    @apply text-lg font-semibold tracking-tight text-slate-900 dark:text-white;
+    @apply text-heading-lg font-semibold tracking-tight text-slate-900 dark:text-white;
   }
   /* The line under a page title. */
   .page-lead {
@@ -238,7 +271,7 @@
      sets its scale — a responsive bump here would make short headings feel
      oversized in a max-w-md column. */
   .card-title {
-    @apply text-xl font-bold text-slate-900 dark:text-white;
+    @apply text-heading-xl font-bold text-slate-900 dark:text-white;
   }
 
   /* --- Legal pages ------------------------------------------------------ */
@@ -248,7 +281,7 @@
     @apply measure text-slate-700 dark:text-slate-300;
   }
   .legal-prose h2 {
-    @apply mt-10 text-xl font-bold tracking-tight text-slate-900 dark:text-white;
+    @apply mt-10 text-heading-xl font-bold tracking-tight text-slate-900 dark:text-white;
   }
   .legal-prose p {
     @apply mt-4 leading-relaxed;

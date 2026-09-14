@@ -378,19 +378,64 @@ Every screen's `<h1>` uses one of two shared classes rather than a hand-typed
 
 - **`.page-title`** — the heading rendered by the page header above, so it is
   every screen that has one: dashboard, lists, detail views, add/edit forms,
-  delete confirmations, legal pages, account settings. `text-2xl`, stepping up
-  to `text-3xl` at `sm:`. No page writes this tag itself.
+  delete confirmations, legal pages, account settings. `heading-2xl`, stepping
+  up to `heading-3xl` at `sm:`. No page writes this tag itself.
 - **`.card-title`** — the heading inside a narrow single-purpose card that has
   no page header of its own: log in, register, password reset. One size down
-  (`text-xl`, no responsive step) because the card's own width sets the scale,
-  not the viewport — a responsive bump here would make a short heading look
-  oversized in a `max-w-md` column.
+  (`heading-xl`, no responsive step) because the card's own width sets the
+  scale, not the viewport — a responsive bump here would make a short heading
+  look oversized in a `max-w-md` column.
 
 Both are declared once in `static/src/input.css`; no page defines its own
 heading size. Because the header owns the `<h1>`, a screen also cannot end up
 with two of them — `resume_review.html` previously carried a second `<h1>` in
 each of its short-message states, which is the kind of drift the shared header
 exists to catch.
+
+#### Headings sit 30% above the body scale
+
+Every heading size comes from the `heading-*` scale in `tailwind.config.js`,
+which is Tailwind's own scale multiplied by 1.3 — size and leading together,
+so a heading's type block keeps its proportions and a title that wraps to two
+lines does not crowd itself. `heading-2xl` is `text-2xl` × 1.3, and so on down
+the scale.
+
+The ratio is stated once, there, rather than as `text-[1.95rem]` at each call
+site, so changing it again is one edit. **Never hard-code a heading size** in
+`input.css` or a template: reach for a `heading-*` step, and every heading in
+the app moves together. `<h1>`–`<h3>` are all on it — the shared classes
+above, the `legal-prose h2` rule, and the handful of headings that still carry
+their size inline (the landing page, the security tab, section headings inside
+cards).
+
+## Skills: one tab per category
+
+The soft- and technical-skills screens split their skills into a tab per
+category, over a single panel, rather than the grid of half-width category
+cards they used to show. The tabs are the categories the profile actually has
+skills in — the same set the grid showed — so a profile with nothing recorded
+yet still gets the plain empty state rather than a strip of empty tabs.
+
+`templates/skills/_skill_category_tabs.html` owns it, with the `.tab-strip`
+component in `static/src/input.css`. Three things are worth knowing:
+
+- **State lives in the URL fragment** (`#category-<pk>`), written with
+  `history.replaceState` so it neither stacks history entries nor makes the
+  browser jump to an element. `skills.views.skills_url` builds the same
+  fragment, so adding, editing or deleting a skill returns you to the category
+  you were working in instead of dropping you on the first tab.
+- **The fragment deliberately matches no element id.** Panels are
+  `panel-category-<pk>`, tabs are `tab-category-<pk>`; if the fragment matched
+  either, restoring it on load would scroll the page.
+- **A hash change is not always a page load.** Following a link to another tab
+  on the page you are already on is a same-document navigation: nothing
+  reloads, so the component listens for `hashchange` as well as reading the
+  fragment on init. Without that the fragment would change and the tabs would
+  not — the one bug this feature actually shipped with in review.
+
+Keyboard behaviour follows the WAI-ARIA tabs pattern: the strip is a single
+tab stop, arrow keys move between tabs and take focus with them, Home and End
+jump to the ends.
 
 ## Confirming a delete
 

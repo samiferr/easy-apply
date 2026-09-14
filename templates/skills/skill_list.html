@@ -18,8 +18,8 @@
 
 {% block profile_content %}
 {% if kind == "soft" %}
-  {% include "skills/_skill_category_grid.html" with grouped=grouped kind=kind empty_message=_("No soft skills yet. Add your first one to strengthen your recap.") %}
+  {% include "skills/_skill_category_tabs.html" with grouped=grouped kind=kind empty_message=_("No soft skills yet. Add your first one to strengthen your recap.") %}
 {% else %}
-  {% include "skills/_skill_category_grid.html" with grouped=grouped kind=kind empty_message=_("No technical skills yet. Add the tools and languages you know.") %}
+  {% include "skills/_skill_category_tabs.html" with grouped=grouped kind=kind empty_message=_("No technical skills yet. Add the tools and languages you know.") %}
 {% endif %}
 {% endblock %}
