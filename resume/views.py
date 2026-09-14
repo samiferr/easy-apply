@@ -183,6 +183,13 @@ class TailoredResumeDeleteView(TailoredResumeMixin, View):
                 "heading": _("Delete this tailored resume?"),
                 "detail": tailored_resume.job.title or tailored_resume.job.source_url,
                 "cancel_url": reverse("resume:tailored", args=[job_pk]),
+                "parent_crumbs": [
+                    {"label": _("Tailored resumes"), "url": reverse("resume:tailored_list")},
+                    {
+                        "label": tailored_resume.job.title or _("Untitled role"),
+                        "url": reverse("resume:tailored", args=[job_pk]),
+                    },
+                ],
             },
         )
 

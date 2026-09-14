@@ -1,32 +1,41 @@
 {% extends "base_app.html" %}
 {% load i18n %}
 {% block title %}Review your resume · {{ SITE_NAME }}{% endblock %}
-{% block content %}
-<div class="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
-  <a href="{% url 'accounts:profile' %}" class="inline-flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200">
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
-    Back to profile
-  </a>
+{% block breadcrumb %}
+  {% url 'resume:upload' as resume_upload_url %}
+  {% include "partials/_crumb.html" with crumb_label=_("Import from resume") crumb_url=resume_upload_url only %}
+  {% include "partials/_crumb.html" with crumb_label=_("Review") only %}
+{% endblock %}
+{% block page_title %}
+  {% if resume_import.status == "failed" %}{% trans "We couldn't read that resume" %}
+  {% elif resume_import.status == "applied" %}{% trans "Already imported" %}
+  {% else %}{% trans "Review what we found" %}{% endif %}
+{% endblock %}
+{% block page_subtitle %}
+  {% if resume_import.status == "failed" %}{{ resume_import.error_message }}
+  {% elif resume_import.status == "applied" %}{% trans "You can upload another resume anytime to add more." %}
+  {% else %}{% trans "Uncheck anything you don't want. Items you already have are unchecked by default." %}{% endif %}
+{% endblock %}
 
+{% block content %}
+<div class="max-w-3xl">
   {% if resume_import.status == "failed" %}
-    <div class="card mt-4 border-rose-200 p-6 dark:border-rose-900/60 sm:p-8">
-      <h1 class="card-title text-rose-700 dark:text-rose-400">{% trans "We couldn't read that resume" %}</h1>
-      <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">{{ resume_import.error_message }}</p>
+    <div class="card border-rose-200 p-6 dark:border-rose-900/60 sm:p-8">
+      <p class="text-sm text-slate-600 dark:text-slate-300">{% trans "Check that the file is a text-based PDF or DOCX — a scan of a printed page has no text to read." %}</p>
       <a href="{% url 'resume:upload' %}" class="btn-primary mt-4 inline-flex">{% trans "Try another file" %}</a>
     </div>
 
   {% elif resume_import.status == "applied" %}
-    <div class="card mt-4 p-6 text-center sm:p-8">
+    <div class="card p-6 text-center sm:p-8">
       <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" /></svg>
       </div>
-      <h1 class="card-title mt-4">{% trans "This resume has already been imported" %}</h1>
-      <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">{% trans "You can upload another resume anytime to add more." %}</p>
+      <p class="mt-4 text-sm text-slate-600 dark:text-slate-400">{% trans "This resume has already been imported." %}</p>
       <a href="{% url 'accounts:profile' %}" class="btn-primary mt-4 inline-flex">{% trans "Back to profile" %}</a>
     </div>
 
   {% elif not sections or not sections.profile_fields and not sections.soft_skills and not sections.technical_skills and not sections.languages and not sections.experience and not sections.degrees and not sections.certificates %}
-    <div class="card mt-4 p-8 text-center sm:p-10">
+    <div class="card p-8 text-center sm:p-10">
       <p class="text-sm text-slate-600 dark:text-slate-400">
         We couldn't find anything new to add from that resume — your profile may already have everything it found.
       </p>
@@ -34,20 +43,12 @@
     </div>
 
   {% else %}
-    <div class="mt-4 flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
-      <div>
-        <h1 class="page-title">{% trans "Review what we found" %}</h1>
-        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
-          Uncheck anything you don't want. Items you already have are unchecked by default.
-        </p>
-      </div>
-      <div class="flex gap-3 text-sm font-semibold">
-        <button type="button" id="select-all-btn" class="text-brand-600 hover:text-brand-700 dark:text-brand-400">{% trans "Select all" %}</button>
-        <button type="button" id="deselect-all-btn" class="text-slate-600 hover:text-slate-900 dark:text-slate-400">{% trans "Deselect all" %}</button>
-      </div>
+    <div class="flex gap-3 text-sm font-semibold">
+      <button type="button" id="select-all-btn" class="text-brand-600 hover:text-brand-700 dark:text-brand-400">{% trans "Select all" %}</button>
+      <button type="button" id="deselect-all-btn" class="text-slate-600 hover:text-slate-900 dark:text-slate-400">{% trans "Deselect all" %}</button>
     </div>
 
-    <form method="post" class="mt-6 space-y-6">
+    <form method="post" class="mt-4 space-y-6">
       {% csrf_token %}
 
       {% if sections.profile_fields %}

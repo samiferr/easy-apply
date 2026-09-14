@@ -2,15 +2,14 @@
 {% load i18n static %}
 {% block title %}{% trans "Dashboard" %} · {{ SITE_NAME }}{% endblock %}
 
-{% block content %}
-<div class="mx-auto w-full max-w-7xl px-4 pb-12 sm:px-6 lg:px-8">
-  <h1 class="page-title">{% blocktrans with name=user.get_short_name %}Welcome back, {{ name }}{% endblocktrans %}</h1>
-  <p class="page-lead">
-    {% trans "Analyze a job post, then see how each requirement lines up with your profile." %}
-  </p>
+{% block breadcrumb_root %}<span class="breadcrumb-current" aria-current="page">{% trans "Dashboard" %}</span>{% endblock %}
+{% block page_title %}{% blocktrans with name=user.get_short_name %}Welcome back, {{ name }}{% endblocktrans %}{% endblock %}
+{% block page_subtitle %}{% trans "Analyze a job post, then see how each requirement lines up with your profile." %}{% endblock %}
 
+{% block content %}
+<div>
   <!-- Quick links -->
-  <div class="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
     <a href="{% url 'jobs:add' %}" class="card-interactive group p-5">
       <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600 transition group-hover:bg-brand-600 group-hover:text-white dark:bg-brand-950/60 dark:text-brand-300">
         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35M11 8v6M8 11h6"/></svg>

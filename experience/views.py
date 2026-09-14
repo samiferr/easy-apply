@@ -2,7 +2,7 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
-from django.utils.translation import gettext as _
+from django.utils.translation import gettext as _, gettext_lazy
 from django.views import View
 from django.views.generic import DeleteView, ListView
 
@@ -82,6 +82,7 @@ class ExperienceDeleteView(ConfirmDeleteMixin, LoginRequiredMixin, DeleteView):
     model = WorkExperience
     success_url = reverse_lazy("experience:list")
     cancel_url_name = "experience:list"
+    parent_label = gettext_lazy("Work experience")
 
     def get_queryset(self):
         return WorkExperience.objects.filter(profile=self.request.profile)

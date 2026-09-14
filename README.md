@@ -282,6 +282,66 @@ is `sticky` rather than `fixed` and the content column needs no matching
 padding. Under `md` the sidebar leaves the flow, becomes a `surface` drawer
 over a scrim, and rejoins the canvas at `md` and up.
 
+### Every page wears the same header
+
+Breadcrumb, title, subtitle — in that order, in the same place, on every
+screen. It is rendered **once**, in `templates/base_app.html`, and a page only
+fills blocks:
+
+```django
+{% block breadcrumb %}
+  {% url 'jobs:list' as jobs_list_url %}
+  {% include "partials/_crumb.html" with crumb_label=_("Job posts") crumb_url=jobs_list_url only %}
+  {% include "partials/_crumb.html" with crumb_label=_("Analyze a job post") only %}
+{% endblock %}
+{% block page_title %}{% trans "Analyze a job post" %}{% endblock %}
+{% block page_subtitle %}{% trans "Paste the link to a job posting…" %}{% endblock %}
+{% block page_actions %}<a href="…" class="btn-primary">…</a>{% endblock %}
+```
+
+| Block | What goes in it |
+| --- | --- |
+| `breadcrumb` | the crumbs after "Dashboard", one `partials/_crumb.html` each |
+| `breadcrumb_root` | override only to make the root crumb the current page (the dashboard does) |
+| `page_title` | the `<h1>`, the one on the page |
+| `page_subtitle` | one line saying what the screen is for |
+| `page_actions` | the screen's primary buttons, right-aligned on the title row |
+| `page_title_badge` / `page_meta` | optional extras beside and under the title (a status badge, a link out) |
+| `content` | everything below the header |
+
+`partials/_crumb.html` takes `crumb_label` and, for an ancestor, `crumb_url`;
+the last crumb has no URL and renders as `aria-current="page"` text. Pass
+`only` so a previous crumb's URL can't leak into the next one, and resolve
+URLs with `{% url … as … %}` first — `{% include %}` arguments take variables,
+not tags.
+
+Two rules keep the header from moving:
+
+- **Nothing renders above it.** Flash messages sit *below* the header, not
+  between the top bar and the breadcrumb; they come and go, and anything above
+  the breadcrumb would shift it every time one appeared.
+- **One container, one width.** Every screen lives in `.page-shell`
+  (`max-w-7xl`), so the title starts on the same pixel whether the page is a
+  wide list or a narrow form. A form caps itself with `max-w-2xl` and **no**
+  `mx-auto`, so it stays left-aligned under its own title instead of drifting
+  to the middle of the column.
+
+This replaced a set of per-page `← Back to …` links that each sat in their own
+spot, and per-page containers that ranged from `max-w-lg` to `max-w-7xl` — so
+the title jumped horizontally as you moved between a list, its add form and
+its delete confirmation. Add, edit and delete screens are pages like any
+other, and now say so.
+
+`partials/profile_base.html` and `accounts/settings_base.html` are thin shells
+on top of this: they add a content column and a tab nav respectively, and fill
+the shared crumb their screens have in common. Legal pages are public, so they
+can't extend `base_app.html`; `legal/_legal_base.html` builds the same header
+from the same `.page-shell` / `.page-header` / `.breadcrumb` classes, taking
+its title from `LegalPageView.page_title` so the `<h1>` and the breadcrumb
+cannot disagree. The marketing landing page and the auth cards (log in,
+register, password reset) have no breadcrumb trail to show and keep their own
+centred layouts.
+
 ### Contrast is measured, not estimated
 
 Every pair the app actually renders was computed against WCAG 2.2: 4.5:1 for
@@ -316,19 +376,21 @@ the sRGB relative-luminance formula in WCAG 2.2.
 Every screen's `<h1>` uses one of two shared classes rather than a hand-typed
 `text-2xl font-bold ...` that quietly drifts from page to page:
 
-- **`.page-title`** — the heading of a full-width page: the dashboard, every
-  list/detail screen, legal pages, account settings. `text-2xl`, stepping up
-  to `text-3xl` at `sm:`.
-- **`.card-title`** — the heading inside a narrower single-purpose card: an
-  add/edit form, the resume-upload intro, a delete confirmation. One size down
+- **`.page-title`** — the heading rendered by the page header above, so it is
+  every screen that has one: dashboard, lists, detail views, add/edit forms,
+  delete confirmations, legal pages, account settings. `text-2xl`, stepping up
+  to `text-3xl` at `sm:`. No page writes this tag itself.
+- **`.card-title`** — the heading inside a narrow single-purpose card that has
+  no page header of its own: log in, register, password reset. One size down
   (`text-xl`, no responsive step) because the card's own width sets the scale,
   not the viewport — a responsive bump here would make a short heading look
-  oversized in a `max-w-lg` column.
+  oversized in a `max-w-md` column.
 
 Both are declared once in `static/src/input.css`; no page defines its own
-heading size. (Two short-message states inside `resume_review.html` had no
-size class at all before this — the browser's default `<h1>` size — which is
-the kind of drift the shared classes exist to catch.)
+heading size. Because the header owns the `<h1>`, a screen also cannot end up
+with two of them — `resume_review.html` previously carried a second `<h1>` in
+each of its short-message states, which is the kind of drift the shared header
+exists to catch.
 
 ## Confirming a delete
 
@@ -339,12 +401,18 @@ and easy to click through on muscle memory.
 
 `templates/core/confirm_delete.html` is the one template every delete view
 renders, via a small context contract (`heading`, `detail`, `warning`,
-`cancel_url`, `confirm_label`). `core.mixins.ConfirmDeleteMixin` supplies it
-for the `DeleteView`-based ones (mix it in before `DeleteView`; override
-`get_heading`/`get_detail`/`cancel_url_name`); the handful of plain `View`
-subclasses (profile, tailored resume, benefit) render it directly from their
-own `get()`. Either way, GET shows the page and changes nothing; only POST
-deletes.
+`cancel_url`, `parent_crumbs`, `confirm_label`). It is a page like any other:
+the question is its `page_title`, the consequence is its subtitle, and
+`parent_crumbs` — a list of `{"label", "url"}` mappings — is the breadcrumb
+trail back to wherever Cancel goes.
+
+`core.mixins.ConfirmDeleteMixin` supplies all of it for the `DeleteView`-based
+ones (mix it in before `DeleteView`; override
+`get_heading`/`get_detail`/`cancel_url_name`, and set `parent_label` for the
+crumb — or override `get_parent_crumbs` when the trail is deeper than one
+screen). The handful of plain `View` subclasses (profile, tailored resume,
+benefit) render it directly from their own `get()`. Either way, GET shows the
+page and changes nothing; only POST deletes.
 
 A couple of these carry a sharper warning than "This can't be undone" because
 the delete cascades: removing a job post also removes the tailored resume
@@ -355,9 +423,10 @@ preference and analyzed post recorded under it. Both are computed in
 One pitfall worth flagging for future views like this: a translatable string
 assigned as a **class attribute** (`warning = _("...")`) is evaluated once, at
 import time, in whichever language happens to be active then — not per
-request. It has to be returned from a method (or left to the template's own
+request. Either return it from a method, wrap it in `gettext_lazy` (what the
+`parent_label` attributes do), or leave it to the template's own
 `{{ warning|default:_("...") }}` fallback, which *does* re-evaluate per
-request) instead.
+request.
 
 ## AI job post analysis
 

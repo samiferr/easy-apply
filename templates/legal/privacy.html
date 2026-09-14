@@ -1,7 +1,6 @@
 {% extends "legal/_legal_base.html" %}
 {% load i18n %}
 {% block title %}{% trans "Privacy Policy" %} · {{ SITE_NAME }}{% endblock %}
-{% block legal_title %}{% trans "Privacy Policy" %}{% endblock %}
 {% block legal_body %}
 <p>{% blocktrans with name=LEGAL_ENTITY.name %}This policy explains what {{ name }} collects when you use {{ SITE_NAME }}, why, and what control you have over it.{% endblocktrans %}</p>
 

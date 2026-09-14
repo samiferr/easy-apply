@@ -263,6 +263,10 @@ class ProfileDeleteView(LoginRequiredMixin, View):
                     "This can't be undone."
                 ),
                 "cancel_url": reverse("accounts:profile_list"),
+                "parent_crumbs": [
+                    {"label": _("Account settings"), "url": reverse("accounts:profile")},
+                    {"label": _("Profiles"), "url": reverse("accounts:profile_list")},
+                ],
             },
         )
 

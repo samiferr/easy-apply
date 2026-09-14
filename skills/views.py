@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import Http404
 from django.urls import reverse
-from django.utils.translation import gettext as _
+from django.utils.translation import gettext as _, gettext_lazy
 from django.views.generic import CreateView, DeleteView, TemplateView, UpdateView
 
 from core.mixins import ConfirmDeleteMixin
@@ -24,6 +24,18 @@ def skills_url(kind: str) -> str:
     return reverse("skills:list", kwargs={"kind": kind})
 
 
+#: Screen titles for the add/edit form, per skill kind. Lazy so the active
+#: language is the request's, not whichever was current at import time.
+ADD_LABELS = {
+    SkillCategory.SOFT: gettext_lazy("Add a soft skill"),
+    SkillCategory.TECHNICAL: gettext_lazy("Add a technical skill"),
+}
+EDIT_LABELS = {
+    SkillCategory.SOFT: gettext_lazy("Edit soft skill"),
+    SkillCategory.TECHNICAL: gettext_lazy("Edit technical skill"),
+}
+
+
 class SkillKindMixin:
     """Soft and technical skills are two screens, one per sidebar entry.
 
@@ -41,6 +53,10 @@ class SkillKindMixin:
         ctx = super().get_context_data(**kwargs)
         ctx["kind"] = self.get_kind()
         ctx["kind_label"] = SkillCategory.KIND_PLURALS[ctx["kind"]]
+        # Whole sentences, not "Add a " + a translated noun: the article and
+        # the word order differ per language.
+        ctx["add_label"] = ADD_LABELS[ctx["kind"]]
+        ctx["edit_label"] = EDIT_LABELS[ctx["kind"]]
         return ctx
 
 
@@ -98,6 +114,9 @@ class SkillDeleteView(ConfirmDeleteMixin, LoginRequiredMixin, DeleteView):
 
     def get_cancel_url(self):
         return skills_url(self.object.category.kind)
+
+    def get_parent_label(self):
+        return SkillCategory.KIND_PLURALS[self.object.category.kind]
 
     def get_heading(self):
         return _("Delete this skill?")

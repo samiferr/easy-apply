@@ -1,7 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
-from django.utils.translation import gettext as _
+from django.utils.translation import gettext as _, gettext_lazy
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
 from core.mixins import ConfirmDeleteMixin
@@ -50,6 +50,7 @@ class LanguageDeleteView(ConfirmDeleteMixin, LoginRequiredMixin, DeleteView):
     model = UserLanguage
     success_url = reverse_lazy("languages:list")
     cancel_url_name = "languages:list"
+    parent_label = gettext_lazy("Languages")
 
     def get_queryset(self):
         return UserLanguage.objects.filter(profile=self.request.profile)

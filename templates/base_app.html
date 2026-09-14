@@ -28,11 +28,44 @@ Below `md` the sidebar leaves the flow and becomes an off-canvas drawer.
     <div class="flex min-h-svh min-w-0 flex-1 flex-col">
       {% include "partials/topbar.html" %}
 
+      {% comment %}
+      The page shell. Breadcrumb, title and subtitle are rendered here, once,
+      for every screen in the app — a page only fills the blocks — so they
+      cannot drift between a list, a detail view, an add/edit form or a delete
+      confirmation. Messages sit *below* the header rather than above it: they
+      come and go, and anything above the breadcrumb would move it.
+      {% endcomment %}
       <main id="main-content" class="flex-1">
-        <div class="mx-auto w-full max-w-7xl px-4 pt-6 sm:px-6 lg:px-8">
-          {% include "partials/messages.html" %}
+        <div class="page-shell">
+          <header class="page-header">
+            <nav aria-label="{% trans 'Breadcrumb' %}">
+              <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                  {% block breadcrumb_root %}
+                    <a href="{% url 'core:dashboard' %}" class="breadcrumb-link">{% trans "Dashboard" %}</a>
+                  {% endblock %}
+                </li>
+                {% block breadcrumb %}{% endblock %}
+              </ol>
+            </nav>
+
+            <div class="page-header-row">
+              <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+                  <h1 class="page-title">{% block page_title %}{% endblock %}</h1>
+                  {% block page_title_badge %}{% endblock %}
+                </div>
+                <p class="page-lead">{% block page_subtitle %}{% endblock %}</p>
+                {% block page_meta %}{% endblock %}
+              </div>
+              <div class="page-actions">{% block page_actions %}{% endblock %}</div>
+            </div>
+          </header>
+
+          {% if messages %}<div class="mb-6">{% include "partials/messages.html" %}</div>{% endif %}
+
+          {% block content %}{% endblock %}
         </div>
-        {% block content %}{% endblock %}
       </main>
 
       {% include "partials/app_footer.html" %}
