@@ -2,8 +2,11 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
+from django.utils.translation import gettext as _
 from django.views import View
 from django.views.generic import DeleteView, ListView
+
+from core.mixins import ConfirmDeleteMixin
 
 from .forms import HighlightFormSet, WorkExperienceForm
 from .models import WorkExperience
@@ -75,12 +78,19 @@ class ExperienceUpdateView(BaseExperienceFormView):
         return "Work experience updated."
 
 
-class ExperienceDeleteView(LoginRequiredMixin, DeleteView):
+class ExperienceDeleteView(ConfirmDeleteMixin, LoginRequiredMixin, DeleteView):
     model = WorkExperience
     success_url = reverse_lazy("experience:list")
+    cancel_url_name = "experience:list"
 
     def get_queryset(self):
         return WorkExperience.objects.filter(profile=self.request.profile)
+
+    def get_heading(self):
+        return _("Delete this role?")
+
+    def get_detail(self):
+        return f"{self.object.job_title} — {self.object.company}"
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()

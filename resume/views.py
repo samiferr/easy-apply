@@ -173,6 +173,19 @@ class TailoredResumeMarkdownView(TailoredResumeMixin, View):
 
 
 class TailoredResumeDeleteView(TailoredResumeMixin, View):
+    def get(self, request, job_pk):
+        tailored_resume = self.get_tailored_resume(job_pk)
+        return render(
+            request,
+            "core/confirm_delete.html",
+            {
+                "page_title": _("Delete this tailored resume?"),
+                "heading": _("Delete this tailored resume?"),
+                "detail": tailored_resume.job.title or tailored_resume.job.source_url,
+                "cancel_url": reverse("resume:tailored", args=[job_pk]),
+            },
+        )
+
     def post(self, request, job_pk):
         tailored_resume = self.get_tailored_resume(job_pk)
         tailored_resume.delete()

@@ -9,6 +9,7 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, View
 
+from core.mixins import ConfirmDeleteMixin
 from core.models import AITask
 from resume.models import TailoredResume
 
@@ -108,12 +109,24 @@ class JobPostDetailView(LoginRequiredMixin, DetailView):
         return ctx
 
 
-class JobPostDeleteView(LoginRequiredMixin, DeleteView):
+class JobPostDeleteView(ConfirmDeleteMixin, LoginRequiredMixin, DeleteView):
     model = JobPost
     success_url = reverse_lazy("jobs:list")
+    cancel_url_name = "jobs:list"
 
     def get_queryset(self):
         return JobPost.objects.filter(profile=self.request.profile)
+
+    def get_heading(self):
+        return _("Delete this job post analysis?")
+
+    def get_detail(self):
+        return self.object.title or self.object.source_url
+
+    def get_warning(self):
+        if TailoredResume.objects.filter(job=self.object).exists():
+            return _("This also deletes the tailored resume written for it. This can't be undone.")
+        return _("This can't be undone.")
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()

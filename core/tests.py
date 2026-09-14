@@ -7,6 +7,7 @@ from django.urls import reverse
 from accounts.models import Profile
 from jobs.models import JobPost
 from jobs.services.importer import apply_analysis
+from resume.models import TailoredResume
 
 User = get_user_model()
 
@@ -273,3 +274,207 @@ class ProfileCompletionVisibilityTests(TestCase):
         self.assertNotContains(response, ">Profile completion<")
         self.assertNotContains(response, "% complete")
         self.assertNotContains(self.client.get(reverse("accounts:profile")), "% complete")
+
+
+class ConfirmDeleteTests(TestCase):
+    """Every destructive action gets a real confirmation page instead of a
+    native `confirm()` popup: GET shows the page and changes nothing, POST
+    (only) performs the delete."""
+
+    def setUp(self):
+        self.profile = make_profile("del@example.com")
+        self.client.force_login(self.profile.user)
+
+    def assertConfirmPage(self, response, *, contains=()):
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "core/confirm_delete.html")
+        self.assertContains(response, "btn-danger")
+        for needle in contains:
+            self.assertContains(response, needle)
+
+    def test_skill_delete_has_a_confirm_page(self):
+        from skills.models import SkillCategory, UserSkill
+
+        category = SkillCategory.objects.filter(kind=SkillCategory.TECHNICAL).first()
+        skill = UserSkill.objects.create(profile=self.profile, category=category, name="Rust")
+        url = reverse("skills:delete", args=[skill.pk])
+
+        response = self.client.get(url)
+        self.assertConfirmPage(response, contains=["Rust"])
+        self.assertTrue(UserSkill.objects.filter(pk=skill.pk).exists())
+
+        response = self.client.post(url)
+        self.assertRedirects(response, reverse("skills:list", args=["technical"]))
+        self.assertFalse(UserSkill.objects.filter(pk=skill.pk).exists())
+
+    def test_language_delete_has_a_confirm_page(self):
+        from languages.models import Language, UserLanguage
+
+        language = Language.objects.create(name="Klingon")
+        ul = UserLanguage.objects.create(
+            profile=self.profile, language=language, proficiency=UserLanguage.FLUENT
+        )
+        url = reverse("languages:delete", args=[ul.pk])
+
+        response = self.client.get(url)
+        self.assertConfirmPage(response, contains=["Klingon"])
+        self.assertTrue(UserLanguage.objects.filter(pk=ul.pk).exists())
+
+        response = self.client.post(url)
+        self.assertRedirects(response, reverse("languages:list"))
+        self.assertFalse(UserLanguage.objects.filter(pk=ul.pk).exists())
+
+    def test_degree_delete_has_a_confirm_page(self):
+        from education.models import Degree
+
+        degree = Degree.objects.create(profile=self.profile, school="McGill", degree="BSc")
+        url = reverse("education:degree_delete", args=[degree.pk])
+
+        response = self.client.get(url)
+        self.assertConfirmPage(response, contains=["McGill"])
+        self.assertTrue(Degree.objects.filter(pk=degree.pk).exists())
+
+        response = self.client.post(url)
+        self.assertRedirects(response, reverse("education:list"))
+        self.assertFalse(Degree.objects.filter(pk=degree.pk).exists())
+
+    def test_certificate_delete_has_a_confirm_page(self):
+        from education.models import Certificate
+
+        cert = Certificate.objects.create(
+            profile=self.profile, name="AWS SAA", issuing_organization="Amazon"
+        )
+        url = reverse("education:certificate_delete", args=[cert.pk])
+
+        response = self.client.get(url)
+        self.assertConfirmPage(response, contains=["AWS SAA"])
+        self.assertTrue(Certificate.objects.filter(pk=cert.pk).exists())
+
+        response = self.client.post(url)
+        self.assertRedirects(response, reverse("education:list"))
+        self.assertFalse(Certificate.objects.filter(pk=cert.pk).exists())
+
+    def test_experience_delete_has_a_confirm_page(self):
+        from datetime import date
+
+        from experience.models import WorkExperience
+
+        exp = WorkExperience.objects.create(
+            profile=self.profile, job_title="Dev", company="Acme",
+            start_date=date(2020, 1, 1), is_current=True,
+        )
+        url = reverse("experience:delete", args=[exp.pk])
+
+        response = self.client.get(url)
+        self.assertConfirmPage(response, contains=["Acme"])
+        self.assertTrue(WorkExperience.objects.filter(pk=exp.pk).exists())
+
+        response = self.client.post(url)
+        self.assertRedirects(response, reverse("experience:list"))
+        self.assertFalse(WorkExperience.objects.filter(pk=exp.pk).exists())
+
+    def test_job_post_delete_has_a_confirm_page(self):
+        job = JobPost.objects.create(
+            profile=self.profile, source_url="https://x.test/j", title="Backend Engineer"
+        )
+        url = reverse("jobs:delete", args=[job.pk])
+
+        response = self.client.get(url)
+        self.assertConfirmPage(response, contains=["Backend Engineer"])
+        self.assertTrue(JobPost.objects.filter(pk=job.pk).exists())
+
+        response = self.client.post(url)
+        self.assertRedirects(response, reverse("jobs:list"))
+        self.assertFalse(JobPost.objects.filter(pk=job.pk).exists())
+
+    def test_job_post_delete_warns_about_its_tailored_resume(self):
+        job = JobPost.objects.create(profile=self.profile, source_url="https://x.test/j")
+        TailoredResume.objects.create(profile=self.profile, job=job, markdown="# CV")
+        response = self.client.get(reverse("jobs:delete", args=[job.pk]))
+        self.assertContains(response, "tailored resume")
+
+    def test_deleting_a_job_post_cascades_to_its_tailored_resume(self):
+        job = JobPost.objects.create(profile=self.profile, source_url="https://x.test/j")
+        TailoredResume.objects.create(profile=self.profile, job=job, markdown="# CV")
+        self.client.post(reverse("jobs:delete", args=[job.pk]))
+        self.assertFalse(TailoredResume.objects.filter(job_id=job.pk).exists())
+
+    def test_tailored_resume_delete_has_a_confirm_page(self):
+        job = JobPost.objects.create(
+            profile=self.profile, source_url="https://x.test/j", title="Data Analyst"
+        )
+        TailoredResume.objects.create(profile=self.profile, job=job, markdown="# CV")
+        url = reverse("resume:tailored_delete", args=[job.pk])
+
+        response = self.client.get(url)
+        self.assertConfirmPage(response, contains=["Data Analyst"])
+        self.assertTrue(TailoredResume.objects.filter(job=job).exists())
+
+        response = self.client.post(url)
+        self.assertRedirects(response, reverse("jobs:detail", args=[job.pk]))
+        self.assertFalse(TailoredResume.objects.filter(job=job).exists())
+
+    def test_benefit_delete_has_a_confirm_page(self):
+        from preferences.models import BenefitPreference, get_or_create_preference
+
+        preference = get_or_create_preference(self.profile)
+        benefit = BenefitPreference.objects.create(preference=preference, name="Gym membership")
+        url = reverse("preferences:benefit_delete", args=[benefit.pk])
+
+        response = self.client.get(url)
+        self.assertConfirmPage(response, contains=["Gym membership"])
+        self.assertTrue(BenefitPreference.objects.filter(pk=benefit.pk).exists())
+
+        response = self.client.post(url)
+        self.assertRedirects(response, f"{reverse('preferences:detail')}#benefits")
+        self.assertFalse(BenefitPreference.objects.filter(pk=benefit.pk).exists())
+
+    def test_profile_delete_has_a_confirm_page(self):
+        second = Profile.objects.create(user=self.profile.user, name="Second", language="en")
+        url = reverse("accounts:profile_delete", args=[second.pk])
+
+        response = self.client.get(url)
+        self.assertConfirmPage(response, contains=["Second"])
+        self.assertTrue(Profile.objects.filter(pk=second.pk).exists())
+
+        response = self.client.post(url)
+        self.assertRedirects(response, reverse("accounts:profile_list"))
+        self.assertFalse(Profile.objects.filter(pk=second.pk).exists())
+
+    def test_the_last_profile_shows_no_confirm_page(self):
+        """Nothing to confirm — deleting it can only fail, so GET redirects
+        straight to the same error post() gives, instead of a doomed button."""
+        url = reverse("accounts:profile_delete", args=[self.profile.pk])
+        response = self.client.get(url, follow=True)
+        self.assertRedirects(response, reverse("accounts:profile_list"))
+        self.assertContains(response, "only profile")
+        self.assertTrue(Profile.objects.filter(pk=self.profile.pk).exists())
+
+    def test_confirm_page_text_follows_the_request_language(self):
+        """Regression guard: a translatable string assigned as a class
+        attribute (`warning = _("...")`) is evaluated once, at import time,
+        in whatever language happens to be active then — not per request.
+        Every piece of text on this page must come from a method or the
+        template, both of which re-evaluate on each request."""
+        from skills.models import SkillCategory, UserSkill
+
+        category = SkillCategory.objects.filter(kind=SkillCategory.TECHNICAL).first()
+        skill = UserSkill.objects.create(profile=self.profile, category=category, name="Rust")
+        self.client.cookies["django_language"] = "fr"
+
+        body = self.client.get(reverse("skills:delete", args=[skill.pk])).content.decode()
+        self.assertIn("Supprimer cette compétence", body)
+        self.assertIn("Cette action est irréversible", body)
+        self.assertNotIn("This can't be undone.", body)
+
+    def test_delete_links_are_not_bare_get_forms(self):
+        """Regression guard: the trigger must be a plain link to the confirm
+        page, not a POST form with a JS confirm() (unstyled, easy to click
+        through, invisible to assistive tech until the dialog is already open)."""
+        from skills.models import SkillCategory, UserSkill
+
+        category = SkillCategory.objects.filter(kind=SkillCategory.TECHNICAL).first()
+        skill = UserSkill.objects.create(profile=self.profile, category=category, name="Go")
+        body = self.client.get(reverse("skills:list", args=["technical"])).content.decode()
+        self.assertNotIn("onsubmit=\"return confirm(", body)
+        self.assertIn(f'href="{reverse("skills:delete", args=[skill.pk])}"', body)

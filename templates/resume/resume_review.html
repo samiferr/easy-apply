@@ -10,7 +10,7 @@
 
   {% if resume_import.status == "failed" %}
     <div class="card mt-4 border-rose-200 p-6 dark:border-rose-900/60 sm:p-8">
-      <h1 class="font-semibold text-rose-700 dark:text-rose-400">{% trans "We couldn't read that resume" %}</h1>
+      <h1 class="card-title text-rose-700 dark:text-rose-400">{% trans "We couldn't read that resume" %}</h1>
       <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">{{ resume_import.error_message }}</p>
       <a href="{% url 'resume:upload' %}" class="btn-primary mt-4 inline-flex">{% trans "Try another file" %}</a>
     </div>
@@ -20,7 +20,7 @@
       <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" /></svg>
       </div>
-      <h1 class="mt-4 font-semibold text-slate-900 dark:text-white">{% trans "This resume has already been imported" %}</h1>
+      <h1 class="card-title mt-4">{% trans "This resume has already been imported" %}</h1>
       <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">{% trans "You can upload another resume anytime to add more." %}</p>
       <a href="{% url 'accounts:profile' %}" class="btn-primary mt-4 inline-flex">{% trans "Back to profile" %}</a>
     </div>
@@ -36,7 +36,7 @@
   {% else %}
     <div class="mt-4 flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
       <div>
-        <h1 class="text-2xl font-bold text-slate-900 dark:text-white">{% trans "Review what we found" %}</h1>
+        <h1 class="page-title">{% trans "Review what we found" %}</h1>
         <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
           Uncheck anything you don't want. Items you already have are unchecked by default.
         </p>

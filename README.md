@@ -311,6 +311,54 @@ the sRGB relative-luminance formula in WCAG 2.2.
   `sr-only` rather than `display: none`, which would have left ten unnamed
   icon links.
 
+### One heading class per context, everywhere
+
+Every screen's `<h1>` uses one of two shared classes rather than a hand-typed
+`text-2xl font-bold ...` that quietly drifts from page to page:
+
+- **`.page-title`** — the heading of a full-width page: the dashboard, every
+  list/detail screen, legal pages, account settings. `text-2xl`, stepping up
+  to `text-3xl` at `sm:`.
+- **`.card-title`** — the heading inside a narrower single-purpose card: an
+  add/edit form, the resume-upload intro, a delete confirmation. One size down
+  (`text-xl`, no responsive step) because the card's own width sets the scale,
+  not the viewport — a responsive bump here would make a short heading look
+  oversized in a `max-w-lg` column.
+
+Both are declared once in `static/src/input.css`; no page defines its own
+heading size. (Two short-message states inside `resume_review.html` had no
+size class at all before this — the browser's default `<h1>` size — which is
+the kind of drift the shared classes exist to catch.)
+
+## Confirming a delete
+
+Every destructive action — removing a skill, a job post, a whole profile —
+shows the same confirmation page instead of a browser-native `confirm()`
+popup, which is unstyled, not screen-reader-visible until it's already open,
+and easy to click through on muscle memory.
+
+`templates/core/confirm_delete.html` is the one template every delete view
+renders, via a small context contract (`heading`, `detail`, `warning`,
+`cancel_url`, `confirm_label`). `core.mixins.ConfirmDeleteMixin` supplies it
+for the `DeleteView`-based ones (mix it in before `DeleteView`; override
+`get_heading`/`get_detail`/`cancel_url_name`); the handful of plain `View`
+subclasses (profile, tailored resume, benefit) render it directly from their
+own `get()`. Either way, GET shows the page and changes nothing; only POST
+deletes.
+
+A couple of these carry a sharper warning than "This can't be undone" because
+the delete cascades: removing a job post also removes the tailored resume
+written for it, and removing a profile takes every skill, experience, job
+preference and analyzed post recorded under it. Both are computed in
+`get_warning()` from the actual related rows, not hard-coded.
+
+One pitfall worth flagging for future views like this: a translatable string
+assigned as a **class attribute** (`warning = _("...")`) is evaluated once, at
+import time, in whichever language happens to be active then — not per
+request. It has to be returned from a method (or left to the template's own
+`{{ warning|default:_("...") }}` fallback, which *does* re-evaluate per
+request) instead.
+
 ## AI job post analysis
 
 Under `/jobs/`, a user pastes a job posting URL (or, as a fallback, the

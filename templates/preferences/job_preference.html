@@ -78,12 +78,9 @@
               </td>
               <td class="pr-4 text-slate-600 dark:text-slate-400">{{ benefit.notes|default:"—" }}</td>
               <td class="text-right">
-                <form method="post" action="{% url 'preferences:benefit_delete' benefit.pk %}">
-                  {% csrf_token %}
-                  <button type="submit" class="rounded-lg p-1.5 text-slate-600 dark:text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40" aria-label="{% trans 'Remove' %}">
-                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
-                  </button>
-                </form>
+                <a href="{% url 'preferences:benefit_delete' benefit.pk %}" class="inline-block rounded-lg p-1.5 text-slate-600 dark:text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40" aria-label="{% trans 'Remove' %}">
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                </a>
               </td>
             </tr>
           {% empty %}

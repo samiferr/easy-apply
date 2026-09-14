@@ -98,10 +98,7 @@
                 {% csrf_token %}
                 <button type="submit" class="btn-secondary !px-3 !py-1.5 !text-xs">{% trans "Re-analyze" %}</button>
               </form>
-              <form method="post" action="{% url 'jobs:delete' job.pk %}" onsubmit="return confirm('{% trans "Delete this job post analysis?" %}');">
-                {% csrf_token %}
-                <button type="submit" class="btn-danger !px-3 !py-1.5 !text-xs">{% trans "Delete" %}</button>
-              </form>
+              <a href="{% url 'jobs:delete' job.pk %}" class="btn-danger !px-3 !py-1.5 !text-xs">{% trans "Delete" %}</a>
             </div>
           </div>
         </article>

@@ -240,6 +240,32 @@ class ProfileDeleteView(LoginRequiredMixin, View):
     and the account-level "delete my account" button is the real way out.
     """
 
+    def get(self, request, pk):
+        profile = get_object_or_404(Profile, pk=pk, user=request.user)
+        if not Profile.objects.filter(user=request.user).exclude(pk=profile.pk).exists():
+            # Same guard as post(): showing a confirm page for a delete that
+            # can only fail would just be a second click before the same error.
+            messages.error(
+                request,
+                _("You can't delete your only profile — create another one first."),
+            )
+            return redirect("accounts:profile_list")
+
+        return render(
+            request,
+            "core/confirm_delete.html",
+            {
+                "page_title": _("Delete this profile?"),
+                "heading": _("Delete “%(name)s”?") % {"name": profile.name},
+                "warning": _(
+                    "This deletes everything recorded in it — skills, experience, "
+                    "education, job preferences, analyzed job posts and resumes. "
+                    "This can't be undone."
+                ),
+                "cancel_url": reverse("accounts:profile_list"),
+            },
+        )
+
     def post(self, request, pk):
         profile = get_object_or_404(Profile, pk=pk, user=request.user)
         remaining = Profile.objects.filter(user=request.user).exclude(pk=profile.pk)

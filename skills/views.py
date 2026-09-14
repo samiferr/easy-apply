@@ -3,9 +3,11 @@ from itertools import groupby
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import Http404
-from django.shortcuts import redirect
 from django.urls import reverse
+from django.utils.translation import gettext as _
 from django.views.generic import CreateView, DeleteView, TemplateView, UpdateView
+
+from core.mixins import ConfirmDeleteMixin
 
 from .forms import UserSkillForm
 from .models import SkillCategory, UserSkill
@@ -85,7 +87,7 @@ class SkillUpdateView(BaseSkillFormView, UpdateView):
         return super().form_valid(form)
 
 
-class SkillDeleteView(LoginRequiredMixin, DeleteView):
+class SkillDeleteView(ConfirmDeleteMixin, LoginRequiredMixin, DeleteView):
     model = UserSkill
 
     def get_queryset(self):
@@ -94,13 +96,18 @@ class SkillDeleteView(LoginRequiredMixin, DeleteView):
     def get_success_url(self):
         return skills_url(self.object.category.kind)
 
+    def get_cancel_url(self):
+        return skills_url(self.object.category.kind)
+
+    def get_heading(self):
+        return _("Delete this skill?")
+
+    def get_detail(self):
+        return f"{self.object.name} — {self.object.get_level_display()}"
+
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
         name = self.object.name
         response = super().post(request, *args, **kwargs)
         messages.info(request, f"Removed “{name}” from your skills.")
         return response
-
-    def get(self, request, *args, **kwargs):
-        # No confirmation page: deletion is triggered from a small inline form/modal.
-        return redirect(skills_url(self.get_object().category.kind))

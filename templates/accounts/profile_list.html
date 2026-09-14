@@ -47,11 +47,7 @@
             {% endif %}
             <a href="{% url 'accounts:profile_rename' profile.pk %}" class="btn-secondary">{% trans "Rename" %}</a>
             {% if profiles|length > 1 %}
-              <form method="post" action="{% url 'accounts:profile_delete' profile.pk %}"
-                    onsubmit="return confirm('{% trans "Delete this profile and everything recorded in it? This can't be undone." %}');">
-                {% csrf_token %}
-                <button type="submit" class="btn-danger">{% trans "Delete" %}</button>
-              </form>
+              <a href="{% url 'accounts:profile_delete' profile.pk %}" class="btn-danger">{% trans "Delete" %}</a>
             {% endif %}
           </div>
         </li>

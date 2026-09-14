@@ -167,6 +167,9 @@
   }
 
   /* --- Headings --------------------------------------------------------- */
+  /* The one heading class for a full-width page (dashboard, list/detail
+     screens, legal pages, settings). Every such page uses it so position,
+     size and weight never drift between screens. */
   .page-title {
     @apply text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl dark:text-white;
   }
@@ -176,6 +179,14 @@
   /* The line under a page title. */
   .page-lead {
     @apply measure mt-2 text-slate-600 dark:text-slate-400;
+  }
+  /* The heading inside a narrower single-purpose card: add/edit forms, the
+     resume upload intro, a delete confirmation. One size down from
+     `.page-title` because the card itself, not the viewport, sets its scale —
+     a responsive bump here would make short headings feel oversized in a
+     max-w-lg/2xl column. */
+  .card-title {
+    @apply text-xl font-bold text-slate-900 dark:text-white;
   }
 
   /* --- Legal pages ------------------------------------------------------ */

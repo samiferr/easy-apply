@@ -8,6 +8,8 @@ from django.views import View
 from .forms import BenefitPreferenceForm, JobPreferenceForm
 from .models import BenefitPreference, get_or_create_preference
 
+CONFIRM_DELETE_TEMPLATE = "core/confirm_delete.html"
+
 
 class JobPreferenceView(LoginRequiredMixin, View):
     """The "Job preferences" profile tab: the scalar form plus the benefit rows."""
@@ -67,10 +69,25 @@ class BenefitUpdateView(LoginRequiredMixin, View):
 
 
 class BenefitDeleteView(LoginRequiredMixin, View):
-    def post(self, request, pk):
-        benefit = get_object_or_404(
-            BenefitPreference, pk=pk, preference__profile=request.profile
+    def get_benefit(self, request, pk):
+        return get_object_or_404(BenefitPreference, pk=pk, preference__profile=request.profile)
+
+    def get(self, request, pk):
+        benefit = self.get_benefit(request, pk)
+        cancel_url = f"{reverse('preferences:detail')}#benefits"
+        return render(
+            request,
+            CONFIRM_DELETE_TEMPLATE,
+            {
+                "page_title": _("Delete this benefit?"),
+                "heading": _("Delete this benefit?"),
+                "detail": benefit.name,
+                "cancel_url": cancel_url,
+            },
         )
+
+    def post(self, request, pk):
+        benefit = self.get_benefit(request, pk)
         name = benefit.name
         benefit.delete()
         messages.info(request, _("Removed “%(name)s”.") % {"name": name})
