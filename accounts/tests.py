@@ -163,7 +163,7 @@ class ProfileDeletionTests(TestCase):
 
     def test_deleting_a_profile_takes_its_content_with_it(self):
         second = Profile.objects.create(user=self.user, name="Second", language="en")
-        JobPost.objects.create(profile=second, source_url="https://x.test/j")
+        JobPost.objects.create(profile=second)
         self.client.post(reverse("accounts:profile_delete", args=[second.pk]))
         self.assertFalse(Profile.objects.filter(pk=second.pk).exists())
         self.assertFalse(JobPost.objects.filter(profile_id=second.pk).exists())
@@ -199,9 +199,7 @@ class ProfileIsolationTests(TestCase):
 
     def test_content_created_in_one_profile_is_absent_from_the_other(self):
         UserSkill.objects.create(profile=self.backend, category=self.category, name="Python")
-        JobPost.objects.create(
-            profile=self.backend, source_url="https://x.test/backend", title="Backend Engineer"
-        )
+        JobPost.objects.create(profile=self.backend, title="Backend Engineer")
 
         self.activate(self.analyst)
         skills = self.client.get(reverse("skills:list", args=["technical"])).content.decode()
@@ -219,7 +217,7 @@ class ProfileIsolationTests(TestCase):
         )
 
     def test_a_job_from_another_profile_is_not_reachable(self):
-        job = JobPost.objects.create(profile=self.backend, source_url="https://x.test/j")
+        job = JobPost.objects.create(profile=self.backend)
         self.activate(self.analyst)
         self.assertEqual(self.client.get(job.get_absolute_url()).status_code, 404)
 

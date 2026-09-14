@@ -78,7 +78,6 @@ class TailoredResumeTestMixin:
         self.profile.save()
         self.job = JobPost.objects.create(
             profile=self.profile,
-            source_url="https://example.com/job",
             status=JobPost.STATUS_COMPLETED,
             title="Senior Backend Engineer",
             company_name="Globex",

@@ -10,11 +10,6 @@ module.exports = {
   ],
   theme: {
     extend: {
-      screens: {
-        // Small phones: 390px and under can't fit the wordmark next to the
-        // profile, language and account controls.
-        xs: "460px",
-      },
       fontFamily: {
         sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
       },
@@ -74,8 +69,6 @@ module.exports = {
         // a wider, softer ambient one.
         card: "0 1px 2px 0 rgb(15 23 42 / 0.04), 0 2px 8px -2px rgb(15 23 42 / 0.06)",
         "card-hover": "0 1px 2px 0 rgb(15 23 42 / 0.05), 0 8px 24px -6px rgb(15 23 42 / 0.12)",
-        // The sticky top bar only casts a shadow once content slides under it.
-        bar: "0 1px 3px 0 rgb(15 23 42 / 0.06), 0 8px 20px -12px rgb(15 23 42 / 0.14)",
       },
     },
   },

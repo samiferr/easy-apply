@@ -86,7 +86,7 @@ class AuthenticatedPagesTests(TestCase):
         self.assertEqual(self.client.get(reverse("core:dashboard")).status_code, 200)
 
     def test_job_detail_renders_all_thirteen_sections(self):
-        job = JobPost.objects.create(profile=self.profile, source_url="https://x.test/j")
+        job = JobPost.objects.create(profile=self.profile)
         apply_analysis(
             job,
             {
@@ -124,8 +124,8 @@ class DashboardChartTests(TestCase):
         self.assertTrue(all(bar["percent"] == 0 for bar in chart["bars"]))
 
     def test_chart_counts_jobs_for_the_current_month(self):
-        JobPost.objects.create(profile=self.profile, source_url="https://x.test/a")
-        JobPost.objects.create(profile=self.profile, source_url="https://x.test/b")
+        JobPost.objects.create(profile=self.profile)
+        JobPost.objects.create(profile=self.profile)
         chart = self.client.get(reverse("core:dashboard")).context["chart"]
         self.assertTrue(chart["has_data"])
         self.assertEqual(chart["total"], 2)
@@ -159,7 +159,7 @@ class FrenchCatalogueTests(TestCase):
 
     def test_job_sections_are_translated(self):
         self.client.force_login(self.user)
-        job = JobPost.objects.create(profile=self.profile, source_url="https://x.test/j")
+        job = JobPost.objects.create(profile=self.profile)
         apply_analysis(job, {"title": "X", "sections": [{"key": "overview", "body": "b", "elements": []}]}, "raw")
         body = self.client.get(job.get_absolute_url()).content.decode()
         for needle in ["Vue d’ensemble", "Rémunération et avantages", "Signaux d’alerte possibles"]:
@@ -206,6 +206,27 @@ class ResponsiveContractTests(TestCase):
                     self.assertTrue(
                         css, f"{type(form).__name__}.{name} has no CSS class"
                     )
+
+    def test_the_shell_has_no_top_bar_and_the_sidebar_carries_the_account_controls(self):
+        """The sidebar is the app's only chrome: everything the top bar used to
+        hold has to be reachable from inside it, or it is unreachable."""
+        body = self.client.get(reverse("core:dashboard")).content.decode()
+        sidebar = body.split('id="app-sidebar"', 1)
+        self.assertEqual(len(sidebar), 2, "the app shell must render the sidebar")
+        sidebar = sidebar[1].split("</aside>", 1)[0]
+
+        for needle in [
+            reverse("accounts:profile"),          # personal info
+            reverse("accounts:profile_list"),     # profiles
+            reverse("core:export_preview"),       # recap export
+            reverse("accounts:logout_confirm"),   # log out
+            reverse("set_language"),              # FR / EN
+            "toggleTheme()",                      # theme
+        ]:
+            self.assertIn(needle, sidebar, f"the sidebar is missing {needle}")
+
+        # The drawer opens from a floating button, not from a bar spanning the top.
+        self.assertIn("Open navigation", body)
 
     def test_the_screen_reader_chart_table_is_wrapped(self):
         """sr-only on a <table> does not clamp its height (display:table treats
@@ -378,9 +399,7 @@ class ConfirmDeleteTests(TestCase):
         self.assertFalse(WorkExperience.objects.filter(pk=exp.pk).exists())
 
     def test_job_post_delete_has_a_confirm_page(self):
-        job = JobPost.objects.create(
-            profile=self.profile, source_url="https://x.test/j", title="Backend Engineer"
-        )
+        job = JobPost.objects.create(profile=self.profile, title="Backend Engineer")
         url = reverse("jobs:delete", args=[job.pk])
 
         response = self.client.get(url)
@@ -392,21 +411,19 @@ class ConfirmDeleteTests(TestCase):
         self.assertFalse(JobPost.objects.filter(pk=job.pk).exists())
 
     def test_job_post_delete_warns_about_its_tailored_resume(self):
-        job = JobPost.objects.create(profile=self.profile, source_url="https://x.test/j")
+        job = JobPost.objects.create(profile=self.profile)
         TailoredResume.objects.create(profile=self.profile, job=job, markdown="# CV")
         response = self.client.get(reverse("jobs:delete", args=[job.pk]))
         self.assertContains(response, "tailored resume")
 
     def test_deleting_a_job_post_cascades_to_its_tailored_resume(self):
-        job = JobPost.objects.create(profile=self.profile, source_url="https://x.test/j")
+        job = JobPost.objects.create(profile=self.profile)
         TailoredResume.objects.create(profile=self.profile, job=job, markdown="# CV")
         self.client.post(reverse("jobs:delete", args=[job.pk]))
         self.assertFalse(TailoredResume.objects.filter(job_id=job.pk).exists())
 
     def test_tailored_resume_delete_has_a_confirm_page(self):
-        job = JobPost.objects.create(
-            profile=self.profile, source_url="https://x.test/j", title="Data Analyst"
-        )
+        job = JobPost.objects.create(profile=self.profile, title="Data Analyst")
         TailoredResume.objects.create(profile=self.profile, job=job, markdown="# CV")
         url = reverse("resume:tailored_delete", args=[job.pk])
 

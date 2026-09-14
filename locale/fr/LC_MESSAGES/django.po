@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Easy Apply\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-14 03:07+0000\n"
+"POT-Creation-Date: 2026-09-14 04:08+0000\n"
 "PO-Revision-Date: 2026-09-10 01:20+0000\n"
 "Last-Translator: Easy Apply <noreply@easy-apply.app>\n"
 "Language-Team: French <fr@easy-apply.app>\n"
@@ -44,7 +44,7 @@ msgid "You already have a profile with that name."
 msgstr "Vous avez déjà un profil portant ce nom."
 
 #: accounts/forms.py:159 accounts/models.py:77 jobs/profile_targets.py:88
-#: templates/partials/footer.html:33
+#: templates/partials/footer.html:33 templates/partials/user_menu.html:41
 msgid "Language"
 msgstr "Langue"
 
@@ -169,8 +169,8 @@ msgstr "Paramètres du compte"
 #: templates/accounts/profile_list.html:4
 #: templates/accounts/profile_list.html:5
 #: templates/accounts/settings_base.html:27
-#: templates/partials/profile_switcher.html:23
-#: templates/partials/topbar.html:51
+#: templates/partials/profile_switcher.html:27
+#: templates/partials/user_menu.html:31
 msgid "Profiles"
 msgstr "Profils"
 
@@ -195,29 +195,29 @@ msgstr "Analyse de correspondance"
 msgid "Resume generation"
 msgstr "Génération du CV"
 
-#: core/models.py:33 jobs/tasks.py:207 jobs/tasks.py:273 resume/tasks.py:61
+#: core/models.py:33 jobs/tasks.py:201 jobs/tasks.py:267 resume/tasks.py:61
 #: resume/tasks.py:128 templates/core/dashboard.html:142
-#: templates/jobs/job_detail.html:155
+#: templates/jobs/job_detail.html:149
 msgid "Queued"
 msgstr "En attente"
 
 #: core/models.py:34 templates/core/dashboard.html:142
-#: templates/jobs/job_detail.html:155
+#: templates/jobs/job_detail.html:149
 msgid "Running"
 msgstr "En cours"
 
 #: core/models.py:35 templates/core/dashboard.html:143
-#: templates/jobs/job_detail.html:156
+#: templates/jobs/job_detail.html:150
 msgid "Done"
 msgstr "Terminé"
 
 #: core/models.py:36 templates/core/dashboard.html:143
-#: templates/jobs/_status_badge.html:5 templates/jobs/job_detail.html:156
+#: templates/jobs/_status_badge.html:5 templates/jobs/job_detail.html:150
 msgid "Failed"
 msgstr "Échec"
 
 #: core/models.py:37 templates/core/dashboard.html:144
-#: templates/jobs/job_detail.html:157
+#: templates/jobs/job_detail.html:151
 msgid "Canceled"
 msgstr "Annulé"
 
@@ -256,7 +256,7 @@ msgstr "Compétences techniques"
 #: core/utils.py:85 jobs/sections.py:125 languages/views.py:53
 #: templates/core/home.html:39 templates/languages/language_form.html:6
 #: templates/languages/language_list.html:4
-#: templates/languages/language_list.html:5 templates/partials/sidebar.html:70
+#: templates/languages/language_list.html:5 templates/partials/sidebar.html:84
 #: templates/resume/resume_review.html:95
 msgid "Languages"
 msgstr "Langues"
@@ -268,7 +268,7 @@ msgstr "Expérience professionnelle"
 #: core/utils.py:109 education/views.py:50 education/views.py:94
 #: templates/education/certificate_form.html:6
 #: templates/education/degree_form.html:6
-#: templates/education/education_list.html:4 templates/partials/sidebar.html:58
+#: templates/education/education_list.html:4 templates/partials/sidebar.html:72
 #: templates/resume/resume_review.html:131
 msgid "Education"
 msgstr "Formation"
@@ -428,50 +428,50 @@ msgstr "Sur site"
 msgid "Not specified"
 msgstr "Non précisé"
 
-#: jobs/models.py:177
+#: jobs/models.py:175
 msgid "Not matched yet"
 msgstr "Pas encore comparé"
 
-#: jobs/models.py:178
+#: jobs/models.py:176
 msgid "Matching…"
 msgstr "Comparaison en cours…"
 
-#: jobs/models.py:179
+#: jobs/models.py:177
 msgid "Matched"
 msgstr "Comparé"
 
-#: jobs/models.py:180
+#: jobs/models.py:178
 msgid "Matching failed"
 msgstr "Échec de la comparaison"
 
-#: jobs/models.py:193
+#: jobs/models.py:191
 msgid "job section"
 msgstr "section d’offre"
 
-#: jobs/models.py:194
+#: jobs/models.py:192
 msgid "job sections"
 msgstr "sections d’offre"
 
-#: jobs/models.py:247 templates/core/home.html:45
+#: jobs/models.py:245 templates/core/home.html:45
 #: templates/jobs/_match_badge.html:8
 msgid "Strong match"
 msgstr "Correspondance forte"
 
-#: jobs/models.py:248 templates/core/home.html:49
+#: jobs/models.py:246 templates/core/home.html:49
 #: templates/jobs/_match_badge.html:10
 msgid "Partial match"
 msgstr "Correspondance partielle"
 
-#: jobs/models.py:249 templates/core/home.html:53
+#: jobs/models.py:247 templates/core/home.html:53
 #: templates/jobs/_match_badge.html:12
 msgid "Not covered"
 msgstr "Non couvert"
 
-#: jobs/models.py:268
+#: jobs/models.py:266
 msgid "job element"
 msgstr "élément d’offre"
 
-#: jobs/models.py:269
+#: jobs/models.py:267
 msgid "job elements"
 msgstr "éléments d’offre"
 
@@ -743,121 +743,133 @@ msgstr "Signaux d’alerte possibles"
 msgid "Things worth a second look before you apply."
 msgstr "Points à examiner de plus près avant de postuler."
 
-#: jobs/tasks.py:49
-msgid "Fetching the job posting"
-msgstr "Récupération de l’offre"
-
-#: jobs/tasks.py:69
-msgid "Reading the posting"
+#: jobs/tasks.py:48
+msgid "Reading the job posting"
 msgstr "Lecture de l’offre"
 
-#: jobs/tasks.py:93
+#: jobs/tasks.py:55
+msgid "This job post has no description text to analyze."
+msgstr "Cette offre ne contient aucun texte à analyser."
+
+#: jobs/tasks.py:63
+msgid "Read the posting"
+msgstr "Offre lue"
+
+#: jobs/tasks.py:87
 msgid "Extracting the job's sections"
 msgstr "Extraction des sections de l’offre"
 
-#: jobs/tasks.py:107
+#: jobs/tasks.py:101
 msgid "Something unexpected went wrong analyzing this job post."
 msgstr "Une erreur inattendue est survenue lors de l’analyse de cette offre."
 
-#: jobs/tasks.py:121
+#: jobs/tasks.py:115
 msgid "Sections extracted"
 msgstr "Sections extraites"
 
-#: jobs/tasks.py:150 jobs/tasks.py:255
+#: jobs/tasks.py:144 jobs/tasks.py:249
 #, python-format
 msgid "Matching %(section)s"
 msgstr "Comparaison : %(section)s"
 
-#: jobs/tasks.py:161 jobs/tasks.py:169
+#: jobs/tasks.py:155 jobs/tasks.py:163
 #, python-format
 msgid "%(section)s failed"
 msgstr "Échec : %(section)s"
 
-#: jobs/tasks.py:166
+#: jobs/tasks.py:160
 msgid "Something unexpected went wrong matching this section."
 msgstr ""
 "Une erreur inattendue est survenue lors de la comparaison de cette section."
 
-#: jobs/tasks.py:173
+#: jobs/tasks.py:167
 #, python-format
 msgid "Matched %(section)s"
 msgstr "Comparé : %(section)s"
 
-#: jobs/tasks.py:191
+#: jobs/tasks.py:185
 msgid "Every section failed to match. Please try again."
 msgstr "Aucune section n’a pu être comparée. Veuillez réessayer."
 
-#: jobs/tasks.py:193
+#: jobs/tasks.py:187
 msgid "Analysis complete"
 msgstr "Analyse terminée"
 
-#: jobs/tasks.py:298
+#: jobs/tasks.py:292
 msgid "That item no longer exists."
 msgstr "Cet élément n’existe plus."
 
-#: jobs/tasks.py:302 jobs/tasks.py:330
+#: jobs/tasks.py:296 jobs/tasks.py:324
 msgid "Re-evaluating this item"
 msgstr "Réévaluation de cet élément"
 
-#: jobs/tasks.py:315
+#: jobs/tasks.py:309
 msgid "Something unexpected went wrong re-evaluating this item."
 msgstr ""
 "Une erreur inattendue est survenue lors de la réévaluation de cet élément."
 
-#: jobs/tasks.py:319
+#: jobs/tasks.py:313
 msgid "Re-evaluated"
 msgstr "Réévalué"
 
-#: jobs/views.py:78
+#: jobs/views.py:77
 msgid "Analyzing this job post — the sections will fill in as they finish."
 msgstr ""
 "Analyse de l’offre en cours — les sections se rempliront au fur et à mesure."
 
-#: jobs/views.py:116 templates/jobs/job_detail.html:7
+#: jobs/views.py:115 templates/jobs/job_detail.html:7
 #: templates/jobs/job_form.html:6 templates/jobs/job_list.html:3
 #: templates/jobs/job_list.html:5 templates/jobs/job_list.html:6
 #: templates/legal/privacy.html:15
 msgid "Job posts"
 msgstr "Offres d’emploi"
 
-#: jobs/views.py:122
+#: jobs/views.py:121
 msgid "Delete this job post analysis?"
 msgstr "Supprimer l’analyse de cette offre ?"
 
-#: jobs/views.py:129
+#: jobs/views.py:124 jobs/views.py:135 resume/views.py:184 resume/views.py:189
+#: templates/core/dashboard.html:75 templates/jobs/job_detail.html:8
+#: templates/jobs/job_detail.html:10 templates/jobs/job_list.html:42
+#: templates/resume/tailored_list.html:16
+#: templates/resume/tailored_resume.html:7
+msgid "Untitled role"
+msgstr "Poste sans titre"
+
+#: jobs/views.py:128
 msgid ""
 "This also deletes the tailored resume written for it. This can't be undone."
 msgstr ""
 "Cela supprime aussi le CV personnalisé rédigé pour cette offre. Cette action "
 "est irréversible."
 
-#: jobs/views.py:130 templates/core/confirm_delete.html:32
+#: jobs/views.py:129 templates/core/confirm_delete.html:32
 msgid "This can't be undone."
 msgstr "Cette action est irréversible."
 
-#: jobs/views.py:136
+#: jobs/views.py:135
 #, python-format
 msgid "Deleted “%(title)s”."
 msgstr "« %(title)s » a été supprimé."
 
-#: jobs/views.py:145
+#: jobs/views.py:144
 msgid "Re-analyzing this job post."
 msgstr "Nouvelle analyse de cette offre en cours."
 
-#: jobs/views.py:156
+#: jobs/views.py:155
 msgid "Analyze this job post first, then match it to your profile."
 msgstr "Analysez d’abord cette offre, puis comparez-la à votre profil."
 
-#: jobs/views.py:160
+#: jobs/views.py:159
 msgid "Matching this job against your profile."
 msgstr "Comparaison de cette offre avec votre profil en cours."
 
-#: jobs/views.py:182
+#: jobs/views.py:181
 #, python-format
 msgid "Re-matching %(section)s."
 msgstr "Nouvelle comparaison : %(section)s."
 
-#: jobs/views.py:260 jobs/views.py:275
+#: jobs/views.py:259 jobs/views.py:274
 msgid "This section can't be added to your profile."
 msgstr "Cette section ne peut pas être ajoutée à votre profil."
 
@@ -1109,7 +1121,7 @@ msgid "Delete this benefit?"
 msgstr "Supprimer cet avantage ?"
 
 #: preferences/views.py:86 templates/core/dashboard.html:43
-#: templates/partials/sidebar.html:50
+#: templates/partials/sidebar.html:64
 #: templates/preferences/job_preference.html:3
 #: templates/preferences/job_preference.html:4
 #: templates/preferences/job_preference.html:5
@@ -1201,19 +1213,12 @@ msgstr "Vos modifications ont été enregistrées."
 msgid "Delete this tailored resume?"
 msgstr "Supprimer ce CV personnalisé ?"
 
-#: resume/views.py:187 templates/partials/sidebar.html:82
+#: resume/views.py:187 templates/partials/sidebar.html:96
 #: templates/resume/tailored_list.html:3 templates/resume/tailored_list.html:4
 #: templates/resume/tailored_list.html:5
 #: templates/resume/tailored_resume.html:6
 msgid "Tailored resumes"
 msgstr "CV personnalisés"
-
-#: resume/views.py:189 templates/jobs/job_detail.html:8
-#: templates/jobs/job_detail.html:10 templates/jobs/job_list.html:42
-#: templates/resume/tailored_list.html:16
-#: templates/resume/tailored_resume.html:7
-msgid "Untitled role"
-msgstr "Poste sans titre"
 
 #: resume/views.py:199
 msgid "Deleted the tailored resume for this job."
@@ -1227,12 +1232,12 @@ msgstr "Compétence comportementale"
 msgid "Technical skill"
 msgstr "Compétence technique"
 
-#: skills/models.py:14 templates/partials/sidebar.html:66
+#: skills/models.py:14 templates/partials/sidebar.html:80
 #: templates/resume/resume_review.html:75
 msgid "Soft skills"
 msgstr "Compétences comportementales"
 
-#: skills/models.py:15 templates/partials/sidebar.html:62
+#: skills/models.py:15 templates/partials/sidebar.html:76
 #: templates/resume/resume_review.html:83
 msgid "Technical skills"
 msgstr "Compétences techniques"
@@ -1299,13 +1304,14 @@ msgstr ""
 #: templates/education/certificate_form.html:47
 #: templates/education/degree_form.html:48
 #: templates/experience/experience_form.html:95
-#: templates/jobs/_add_to_profile_modal.html:44 templates/jobs/job_form.html:36
+#: templates/jobs/_add_to_profile_modal.html:44 templates/jobs/job_form.html:26
 #: templates/languages/language_form.html:29
 #: templates/resume/resume_upload.html:34 templates/skills/skill_form.html:37
 msgid "Cancel"
 msgstr "Annuler"
 
-#: templates/accounts/logout_confirm.html:11 templates/partials/topbar.html:63
+#: templates/accounts/logout_confirm.html:11
+#: templates/partials/user_menu.html:49
 msgid "Log out"
 msgstr "Se déconnecter"
 
@@ -1383,7 +1389,7 @@ msgstr ""
 "Importez-le et l’IA remplira vos compétences, votre expérience et votre "
 "formation."
 
-#: templates/accounts/profile.html:15 templates/partials/sidebar.html:78
+#: templates/accounts/profile.html:15 templates/partials/sidebar.html:92
 #: templates/resume/resume_review.html:6 templates/resume/resume_upload.html:4
 #: templates/resume/resume_upload.html:5
 msgid "Import from resume"
@@ -1484,7 +1490,7 @@ msgstr "Renommer"
 #: templates/education/education_list.html:32
 #: templates/education/education_list.html:74
 #: templates/experience/experience_list.html:29
-#: templates/jobs/job_detail.html:40 templates/jobs/job_list.html:96
+#: templates/jobs/job_detail.html:34 templates/jobs/job_list.html:96
 #: templates/resume/tailored_resume.html:49
 msgid "Delete"
 msgstr "Supprimer"
@@ -1561,7 +1567,8 @@ msgstr ""
 "Gérez vos profils, leurs informations personnelles et la sécurité de votre "
 "compte."
 
-#: templates/accounts/settings_base.html:26 templates/partials/topbar.html:50
+#: templates/accounts/settings_base.html:26
+#: templates/partials/user_menu.html:30
 msgid "Personal info"
 msgstr "Informations personnelles"
 
@@ -1570,16 +1577,20 @@ msgstr "Informations personnelles"
 msgid "Export recap"
 msgstr "Exporter le récapitulatif"
 
-#: templates/base_app.html:19 templates/base_public.html:8
+#: templates/base_app.html:24 templates/base_public.html:8
 msgid "Skip to content"
 msgstr "Aller au contenu"
 
-#: templates/base_app.html:42 templates/legal/_legal_base.html:13
+#: templates/base_app.html:37
+msgid "Open navigation"
+msgstr "Ouvrir la navigation"
+
+#: templates/base_app.html:58 templates/legal/_legal_base.html:13
 msgid "Breadcrumb"
 msgstr "Fil d’Ariane"
 
-#: templates/base_app.html:46 templates/core/dashboard.html:3
-#: templates/core/dashboard.html:5 templates/partials/sidebar.html:30
+#: templates/base_app.html:62 templates/core/dashboard.html:3
+#: templates/core/dashboard.html:5 templates/partials/sidebar.html:44
 msgid "Dashboard"
 msgstr "Tableau de bord"
 
@@ -1604,7 +1615,7 @@ msgstr "Aucune offre analysée ce mois-ci pour l’instant."
 
 #: templates/core/_jobs_chart.html:44 templates/core/dashboard.html:17
 #: templates/jobs/job_form.html:7 templates/jobs/job_form.html:9
-#: templates/jobs/job_list.html:8 templates/partials/sidebar.html:42
+#: templates/jobs/job_list.html:8 templates/partials/sidebar.html:56
 msgid "Analyze a job post"
 msgstr "Analyser une offre"
 
@@ -1630,8 +1641,8 @@ msgstr ""
 "profil."
 
 #: templates/core/dashboard.html:18
-msgid "Paste a URL or the description text."
-msgstr "Collez une URL ou le texte de l’offre."
+msgid "Paste the job description text."
+msgstr "Collez le texte de l’offre."
 
 #: templates/core/dashboard.html:24
 msgid "Import a resume"
@@ -1759,11 +1770,11 @@ msgstr "Collez une offre"
 
 #: templates/core/home.html:88
 msgid ""
-"A URL or the raw text. We break it into 13 fixed sections and evaluate every "
+"Paste the description. We break it into 13 fixed sections and evaluate every "
 "requirement against your profile, one at a time."
 msgstr ""
-"Une URL ou le texte brut. Nous la découpons en 13 sections fixes et évaluons "
-"chaque exigence au regard de votre profil, une par une."
+"Collez le texte de l’offre. Nous la découpons en 13 sections fixes et "
+"évaluons chaque exigence au regard de votre profil, une par une."
 
 #: templates/core/home.html:98
 msgid "Get your tailored resume"
@@ -2089,35 +2100,31 @@ msgstr "En attente"
 msgid "Job post"
 msgstr "Offre d’emploi"
 
-#: templates/jobs/job_detail.html:15
-msgid "View original posting"
-msgstr "Voir l’offre d’origine"
-
-#: templates/jobs/job_detail.html:24
+#: templates/jobs/job_detail.html:18
 msgid "Re-match to my profile"
 msgstr "Comparer à nouveau à mon profil"
 
-#: templates/jobs/job_detail.html:24
+#: templates/jobs/job_detail.html:18
 msgid "Match to my profile"
 msgstr "Comparer à mon profil"
 
-#: templates/jobs/job_detail.html:28
+#: templates/jobs/job_detail.html:22
 msgid "Tailored resume"
 msgstr "CV personnalisé"
 
-#: templates/jobs/job_detail.html:32
+#: templates/jobs/job_detail.html:26
 msgid "Generate tailored resume"
 msgstr "Générer un CV personnalisé"
 
-#: templates/jobs/job_detail.html:38 templates/jobs/job_list.html:94
+#: templates/jobs/job_detail.html:32 templates/jobs/job_list.html:94
 msgid "Re-analyze"
 msgstr "Analyser à nouveau"
 
-#: templates/jobs/job_detail.html:57
+#: templates/jobs/job_detail.html:51
 msgid "This analysis predates the new section breakdown"
 msgstr "Cette analyse est antérieure au nouveau découpage en sections"
 
-#: templates/jobs/job_detail.html:59
+#: templates/jobs/job_detail.html:53
 msgid ""
 "Re-analyze this job post to get the full 13-section breakdown and per-"
 "requirement matching."
@@ -2125,53 +2132,45 @@ msgstr ""
 "Relancez l’analyse de cette offre pour obtenir le découpage complet en 13 "
 "sections et la comparaison exigence par exigence."
 
-#: templates/jobs/job_detail.html:63
+#: templates/jobs/job_detail.html:57
 msgid "Re-analyze this job post"
 msgstr "Analyser à nouveau cette offre"
 
-#: templates/jobs/job_detail.html:70
+#: templates/jobs/job_detail.html:64
 msgid "Analysis failed"
 msgstr "Échec de l’analyse"
 
-#: templates/jobs/job_detail.html:74 templates/partials/_ai_progress.html:72
+#: templates/jobs/job_detail.html:68 templates/partials/_ai_progress.html:72
 msgid "Try again"
 msgstr "Réessayer"
 
-#: templates/jobs/job_detail.html:83
+#: templates/jobs/job_detail.html:77
 msgid "Profile match"
 msgstr "Correspondance avec le profil"
 
-#: templates/jobs/job_detail.html:90 templates/jobs/job_list.html:71
+#: templates/jobs/job_detail.html:84 templates/jobs/job_list.html:71
 msgid "strong"
 msgstr "forte"
 
-#: templates/jobs/job_detail.html:91 templates/jobs/job_list.html:72
+#: templates/jobs/job_detail.html:85 templates/jobs/job_list.html:72
 msgid "partial"
 msgstr "partielle"
 
-#: templates/jobs/job_detail.html:92 templates/jobs/job_list.html:73
+#: templates/jobs/job_detail.html:86 templates/jobs/job_list.html:73
 msgid "not covered"
 msgstr "non couvert"
 
-#: templates/jobs/job_detail.html:99
+#: templates/jobs/job_detail.html:93
 msgid "Job sections"
 msgstr "Sections de l’offre"
 
 #: templates/jobs/job_form.html:10
 msgid ""
-"Paste the link to a job posting. AI will read it and structure it into "
+"Paste the job description. AI will read it and structure it into "
 "responsibilities, must-haves, nice-to-haves, compensation, location and more."
 msgstr ""
-"Collez le lien d’une offre d’emploi. L’IA la lit et la structure en "
+"Collez le texte de l’offre d’emploi. L’IA la lit et la structure en "
 "responsabilités, indispensables, atouts, rémunération, lieu et bien plus."
-
-#: templates/jobs/job_form.html:27
-msgid "+ Paste the job description instead"
-msgstr "+ Coller plutôt le texte de l’offre"
-
-#: templates/jobs/job_form.html:28
-msgid "− Hide pasted text"
-msgstr "− Masquer le texte collé"
 
 #: templates/jobs/job_list.html:7
 #, python-format
@@ -2210,7 +2209,7 @@ msgstr "Ajoutée il y a %(when)s"
 msgid "Open"
 msgstr "Ouvrir"
 
-#: templates/jobs/job_list.html:90 templates/partials/sidebar.html:75
+#: templates/jobs/job_list.html:90 templates/partials/sidebar.html:89
 msgid "Resume"
 msgstr "CV"
 
@@ -2245,10 +2244,10 @@ msgstr "Aucune offre pour l’instant"
 
 #: templates/jobs/job_list.html:126
 msgid ""
-"Paste a job posting URL and we'll break it into sections and check each "
+"Paste a job description and we'll break it into sections and check each "
 "requirement against your profile."
 msgstr ""
-"Collez l’URL d’une offre : nous la découperons en sections et comparerons "
+"Collez le texte d’une offre : nous la découperons en sections et comparerons "
 "chaque exigence à votre profil."
 
 #: templates/languages/language_form.html:8
@@ -2940,19 +2939,23 @@ msgstr "Conçu pour vous aider à décrocher votre prochain poste."
 msgid "Dismiss"
 msgstr "Fermer"
 
-#: templates/partials/profile_switcher.html:11
+#: templates/partials/profile_switcher.html:15
 msgid "Switch profile"
 msgstr "Changer de profil"
 
-#: templates/partials/profile_switcher.html:24
+#: templates/partials/profile_switcher.html:19
+msgid "Workspace"
+msgstr "Espace de travail"
+
+#: templates/partials/profile_switcher.html:28
 msgid "Each profile keeps its own jobs, skills and resumes."
 msgstr "Chaque profil conserve ses propres offres, compétences et CV."
 
-#: templates/partials/profile_switcher.html:41
+#: templates/partials/profile_switcher.html:45
 msgid "New profile…"
 msgstr "Nouveau profil…"
 
-#: templates/partials/profile_switcher.html:42
+#: templates/partials/profile_switcher.html:46
 msgid "Manage profiles"
 msgstr "Gérer les profils"
 
@@ -2964,59 +2967,59 @@ msgstr "Basculer le mode sombre"
 msgid "Go to dashboard"
 msgstr "Aller au tableau de bord"
 
-#: templates/partials/sidebar.html:26
+#: templates/partials/sidebar.html:35
+msgid "Close navigation"
+msgstr "Fermer la navigation"
+
+#: templates/partials/sidebar.html:40
 msgid "Main navigation"
 msgstr "Navigation principale"
 
-#: templates/partials/sidebar.html:35
+#: templates/partials/sidebar.html:49
 msgid "Jobs"
 msgstr "Offres"
 
-#: templates/partials/sidebar.html:38
+#: templates/partials/sidebar.html:52
 msgid "Job list"
 msgstr "Liste des offres"
 
-#: templates/partials/sidebar.html:47 templates/resume/resume_review.html:56
+#: templates/partials/sidebar.html:61 templates/resume/resume_review.html:56
 msgid "Profile"
 msgstr "Profil"
 
-#: templates/partials/sidebar.html:54
+#: templates/partials/sidebar.html:68
 msgid "Experience"
 msgstr "Expérience"
 
-#: templates/partials/sidebar.html:90
+#: templates/partials/sidebar.html:114
 msgid "Expand sidebar"
 msgstr "Déployer le menu"
 
-#: templates/partials/sidebar.html:90
+#: templates/partials/sidebar.html:114
 msgid "Collapse sidebar"
 msgstr "Réduire le menu"
 
-#: templates/partials/sidebar.html:93
+#: templates/partials/sidebar.html:117
 msgid "Collapse"
 msgstr "Réduire"
 
-#: templates/partials/topbar.html:12
-msgid "Toggle navigation"
-msgstr "Afficher ou masquer la navigation"
-
-#: templates/partials/topbar.html:53
+#: templates/partials/user_menu.html:33
 msgid "Theme"
 msgstr "Thème"
 
-#: templates/partials/topbar.html:55
+#: templates/partials/user_menu.html:35
 msgid "Light"
 msgstr "Clair"
 
-#: templates/partials/topbar.html:56
+#: templates/partials/user_menu.html:36
 msgid "Dark"
 msgstr "Sombre"
 
-#: templates/partials/topbar.html:59
+#: templates/partials/user_menu.html:45
 msgid "Export recap (.md)"
 msgstr "Exporter le récapitulatif (.md)"
 
-#: templates/partials/topbar.html:60
+#: templates/partials/user_menu.html:46
 msgid "Admin"
 msgstr "Administration"
 
@@ -3208,17 +3211,17 @@ msgstr "Régénérer depuis mon profil"
 msgid "Skill categories"
 msgstr "Catégories de compétences"
 
-#: templates/skills/_skill_category_tabs.html:77
+#: templates/skills/_skill_category_tabs.html:86
 #, python-format
 msgid "Edit %(name)s"
 msgstr "Modifier %(name)s"
 
-#: templates/skills/_skill_category_tabs.html:80
+#: templates/skills/_skill_category_tabs.html:89
 #, python-format
 msgid "Delete %(name)s"
 msgstr "Supprimer %(name)s"
 
-#: templates/skills/_skill_category_tabs.html:96
+#: templates/skills/_skill_category_tabs.html:105
 msgid "Add your first skill"
 msgstr "Ajouter votre première compétence"
 

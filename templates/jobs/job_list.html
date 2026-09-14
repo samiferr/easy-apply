@@ -123,7 +123,7 @@
       {% else %}
         <h2 class="section-title">{% trans "No job posts yet" %}</h2>
         <p class="mx-auto mt-2 max-w-md text-slate-600 dark:text-slate-400">
-          {% trans "Paste a job posting URL and we'll break it into sections and check each requirement against your profile." %}
+          {% trans "Paste a job description and we'll break it into sections and check each requirement against your profile." %}
         </p>
         <a href="{% url 'jobs:add' %}" class="btn-primary mt-6">{% trans "Analyze your first job post" %}</a>
       {% endif %}

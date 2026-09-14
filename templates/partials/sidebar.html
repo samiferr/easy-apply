@@ -1,26 +1,40 @@
 {% load i18n %}
 {% comment %}
-Application sidebar. No right-hand border: it sits on the same canvas as the
-content, and the active row's tinted pill is what carries the structure.
+Application sidebar — the app's only chrome. There is no top bar: the account
+controls that used to live in one (workspace switcher, user menu, language and
+theme) sit in the account block pinned to the bottom of this column, next to
+the navigation they belong with.
+
+No right-hand border: it sits on the same canvas as the content, and the active
+row's tinted pill is what carries the structure.
 
 Desktop: a `sticky` flex item, collapsible (state persisted in localStorage by
-the `appShell` component in base_app.html). Under `md` it leaves the flow and
-becomes a `fixed` off-canvas drawer over the scrim.
+the `appShell` component in base_app.html); collapsed, every row keeps its
+accessible name and the pop-up menus keep working. Under `md` it leaves the
+flow and becomes a `fixed` off-canvas drawer over the scrim, opened by the
+floating button in base_app.html.
 {% endcomment %}
-<aside
+<aside id="app-sidebar"
   class="fixed inset-y-0 left-0 z-50 flex w-64 shrink-0 flex-col bg-surface shadow-card-hover transition-[width,transform] duration-200
     md:sticky md:top-0 md:z-30 md:h-svh md:translate-x-0 md:bg-canvas md:shadow-none"
   :class="[collapsed ? 'md:w-[4.75rem]' : 'md:w-64', mobileOpen ? 'translate-x-0' : '-translate-x-full']"
 >
   <!-- Brand -->
-  <div class="flex h-16 shrink-0 items-center px-4">
+  <div class="flex h-16 shrink-0 items-center gap-2 px-4">
     <a href="{% url 'core:dashboard' %}" aria-label="{{ SITE_NAME }}"
-       class="flex items-center gap-2.5 overflow-hidden rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
+       class="flex min-w-0 items-center gap-2.5 overflow-hidden rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
       <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white shadow-sm">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" /></svg>
       </span>
       <span x-show="!collapsed" x-cloak class="truncate text-lg font-bold tracking-tight text-slate-900 dark:text-white">{{ SITE_NAME }}</span>
     </a>
+
+    <!-- Close the drawer (mobile only — desktop collapses instead) -->
+    <button type="button" @click="mobileOpen = false"
+      class="ms-auto rounded-lg p-2 text-slate-600 transition hover:bg-slate-900/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 md:hidden dark:text-slate-300 dark:hover:bg-white/10"
+      aria-label="{% trans 'Close navigation' %}">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
   </div>
 
   <nav class="flex-1 space-y-6 overflow-y-auto px-3 pb-4" aria-label="{% trans 'Main navigation' %}">
@@ -84,9 +98,18 @@ becomes a `fixed` off-canvas drawer over the scrim.
     </div>
   </nav>
 
-  <!-- Collapse toggle (desktop only) -->
-  <div class="hidden shrink-0 p-3 md:block">
-    <button type="button" @click="toggleCollapsed()" class="nav-side w-full"
+  {% comment %}
+  The account block. Everything the top bar used to hold, in the corner the eye
+  goes to last: which workspace you are in, and who you are signed in as. Both
+  menus open *upwards* from their row, so they stay on screen at the bottom of
+  the column and keep working when the sidebar is collapsed to icons.
+  {% endcomment %}
+  <div class="shrink-0 space-y-1 px-3 pb-3">
+    {% include "partials/profile_switcher.html" %}
+    {% include "partials/user_menu.html" %}
+
+    <!-- Collapse toggle (desktop only) -->
+    <button type="button" @click="toggleCollapsed()" class="nav-side hidden w-full md:flex"
       :aria-label="collapsed ? '{% trans "Expand sidebar" %}' : '{% trans "Collapse sidebar" %}'"
       :aria-expanded="!collapsed">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0 transition-transform" :class="collapsed && 'rotate-180'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>

@@ -41,7 +41,6 @@ class JobPostListView(LoginRequiredMixin, ListView):
                 Q(title__icontains=query)
                 | Q(company_name__icontains=query)
                 | Q(location__icontains=query)
-                | Q(source_url__icontains=query)
             )
         status = self.request.GET.get("status", "").strip()
         if status in dict(JobPost.STATUS_CHOICES):
@@ -122,7 +121,7 @@ class JobPostDeleteView(ConfirmDeleteMixin, LoginRequiredMixin, DeleteView):
         return _("Delete this job post analysis?")
 
     def get_detail(self):
-        return self.object.title or self.object.source_url
+        return self.object.title or _("Untitled role")
 
     def get_warning(self):
         if TailoredResume.objects.filter(job=self.object).exists():
@@ -133,7 +132,7 @@ class JobPostDeleteView(ConfirmDeleteMixin, LoginRequiredMixin, DeleteView):
         self.object = self.get_object()
         messages.info(
             request,
-            _("Deleted “%(title)s”.") % {"title": self.object.title or self.object.source_url},
+            _("Deleted “%(title)s”.") % {"title": self.object.title or _("Untitled role")},
         )
         return super().post(request, *args, **kwargs)
 
