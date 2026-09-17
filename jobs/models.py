@@ -38,7 +38,6 @@ class JobPost(models.Model):
     profile = models.ForeignKey(
         "accounts.Profile", on_delete=models.CASCADE, related_name="job_posts"
     )
-    source_url = models.URLField(max_length=1000)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
     error_message = models.TextField(blank=True)
 
@@ -92,11 +91,10 @@ class JobPost(models.Model):
         ),
     )
     raw_text = models.TextField(blank=True)
-    manual_text = models.TextField(
-        blank=True, help_text="Job description pasted by hand instead of fetched from the URL."
+    description_text = models.TextField(
+        blank=True, help_text="The job description text the analysis was run on."
     )
     ai_model = models.CharField(max_length=100, blank=True)
-    fetched_at = models.DateTimeField(null=True, blank=True)
     analyzed_at = models.DateTimeField(null=True, blank=True)
     profile_matched_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -106,7 +104,7 @@ class JobPost(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return self.title or self.source_url
+        return self.title or f"Job post #{self.pk}"
 
     def get_absolute_url(self):
         return reverse("jobs:detail", args=[self.pk])

@@ -20,6 +20,13 @@ from jobs.services.importer import apply_analysis, normalize_sections
 from preferences.models import get_or_create_preference
 from skills.models import SkillCategory, UserSkill
 
+JOB_TEXT = (
+    "Senior Backend Engineer at Acme. You will design and ship Python "
+    "services, own the payments API, mentor engineers and work with product. "
+    "Requirements: 5+ years of Python, PostgreSQL, Celery and cloud "
+    "infrastructure. Remote-friendly, salary 90k-120k EUR."
+)
+
 User = get_user_model()
 
 
@@ -96,7 +103,7 @@ class NormalizeSectionsTests(TestCase):
 class ApplyAnalysisTests(TestCase):
     def setUp(self):
         self.profile = make_profile("a@example.com")
-        self.job = JobPost.objects.create(profile=self.profile, source_url="https://x.test/j")
+        self.job = JobPost.objects.create(profile=self.profile)
 
     def test_only_valid_sections_are_created(self):
         data = ai_payload(sections=[
@@ -160,7 +167,7 @@ class ProfileSliceTests(TestCase):
 class EmptySliceShortCircuitTests(TestCase):
     def setUp(self):
         self.profile = make_profile("c@example.com")
-        self.job = JobPost.objects.create(profile=self.profile, source_url="https://x.test/j")
+        self.job = JobPost.objects.create(profile=self.profile)
         apply_analysis(self.job, ai_payload(), "raw")
 
     def test_empty_slice_never_calls_the_api(self):
@@ -204,6 +211,37 @@ class EmptySliceShortCircuitTests(TestCase):
         self.assertEqual(section.match_state, JobSection.DONE)
 
 
+class ReadJobTextTests(TestCase):
+    """Step 1 of the pipeline reads the pasted text and never touches the network."""
+
+    def setUp(self):
+        self.profile = make_profile("read@example.com")
+
+    def test_it_hands_the_pasted_description_to_the_next_step(self):
+        from jobs.tasks import read_job_text
+
+        job = JobPost.objects.create(profile=self.profile, description_text=f"  {JOB_TEXT}  ")
+        task = AITask.start_for(self.profile, AITask.JOB_ANALYSIS, job, steps_total=2)
+        payload = read_job_text.run(job.pk, task.pk)
+
+        self.assertFalse(payload["failed"])
+        self.assertEqual(payload["raw_text"], JOB_TEXT)
+        job.refresh_from_db()
+        self.assertEqual(job.status, JobPost.STATUS_PROCESSING)
+
+    def test_a_job_with_no_text_fails_with_a_message_instead_of_raising(self):
+        from jobs.tasks import read_job_text
+
+        job = JobPost.objects.create(profile=self.profile, description_text="")
+        task = AITask.start_for(self.profile, AITask.JOB_ANALYSIS, job, steps_total=2)
+        payload = read_job_text.run(job.pk, task.pk)
+
+        self.assertTrue(payload["failed"])
+        job.refresh_from_db()
+        self.assertEqual(job.status, JobPost.STATUS_FAILED)
+        self.assertTrue(job.error_message, "the user must be told why")
+
+
 @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
 class ViewsNeverCallAITests(TestCase):
     def setUp(self):
@@ -211,12 +249,12 @@ class ViewsNeverCallAITests(TestCase):
         self.client.force_login(self.profile.user)
 
     def test_submitting_a_job_enqueues_and_redirects(self):
-        with patch("jobs.tasks.fetch_job_text.apply_async") as _fetch, \
+        with patch("jobs.tasks.read_job_text.apply_async") as _read, \
              patch("celery.canvas._chain.apply_async") as chain_apply:
             chain_apply.return_value = type("R", (), {"id": "fake-id"})()
             response = self.client.post(
                 reverse("jobs:add"),
-                {"source_url": "https://x.test/job", "manual_text": "Some job text"},
+                {"description_text": JOB_TEXT},
             )
         self.assertEqual(response.status_code, 302)
         job = JobPost.objects.get()
@@ -224,8 +262,25 @@ class ViewsNeverCallAITests(TestCase):
         self.assertIsNotNone(task, "submitting a job must create an AITask")
         self.assertEqual(task.state, AITask.QUEUED)
 
+    def test_the_pasted_text_is_what_gets_stored(self):
+        with patch("jobs.tasks.read_job_text.apply_async"), \
+             patch("celery.canvas._chain.apply_async") as chain_apply:
+            chain_apply.return_value = type("R", (), {"id": "fake-id"})()
+            self.client.post(reverse("jobs:add"), {"description_text": JOB_TEXT})
+        self.assertEqual(JobPost.objects.get().description_text, JOB_TEXT)
+
+    def test_a_job_post_cannot_be_submitted_without_its_text(self):
+        """There is no URL to fall back on — an empty or stub paste is the one
+        thing the form has to catch, since the pipeline has nothing to read."""
+        for payload in [{}, {"description_text": "   "}, {"description_text": "Backend dev"}]:
+            with self.subTest(payload=payload):
+                response = self.client.post(reverse("jobs:add"), payload)
+                self.assertEqual(response.status_code, 200, "the form must redisplay")
+                self.assertTrue(response.context["form"].errors)
+                self.assertFalse(JobPost.objects.exists())
+
     def test_task_status_endpoint_is_owner_scoped(self):
-        job = JobPost.objects.create(profile=self.profile, source_url="https://x.test/j")
+        job = JobPost.objects.create(profile=self.profile)
         task = AITask.start_for(self.profile, AITask.JOB_ANALYSIS, job, steps_total=3)
         response = self.client.get(reverse("core:task_status", args=[task.pk]))
         self.assertEqual(response.status_code, 200)
@@ -241,7 +296,7 @@ class ViewsNeverCallAITests(TestCase):
 class AITaskProgressTests(TestCase):
     def setUp(self):
         self.profile = make_profile("f@example.com")
-        self.job = JobPost.objects.create(profile=self.profile, source_url="https://x.test/j")
+        self.job = JobPost.objects.create(profile=self.profile)
 
     def test_single_step_task_is_indeterminate(self):
         task = AITask.start_for(self.profile, AITask.TAILORED_RESUME, self.job, steps_total=1)
@@ -289,7 +344,7 @@ class BrokerDownTests(TestCase):
     def test_enqueue_does_not_raise_when_the_broker_is_down(self):
         from jobs.tasks import enqueue_job_analysis
 
-        job = JobPost.objects.create(profile=self.profile, source_url="https://x.test/j")
+        job = JobPost.objects.create(profile=self.profile)
         # The message is stored already translated, so pin the language rather
         # than depending on whatever a previous test left active.
         with translation.override("en"), self._broker_down():
@@ -306,7 +361,7 @@ class BrokerDownTests(TestCase):
         with self._broker_down():
             response = self.client.post(
                 reverse("jobs:add"),
-                {"source_url": "https://x.test/job", "manual_text": "Some job text"},
+                {"description_text": JOB_TEXT},
             )
         self.assertEqual(response.status_code, 302)
 
@@ -321,7 +376,7 @@ class ProfileLanguageTests(TestCase):
 
     def setUp(self):
         self.profile = make_profile("lang@example.com", language="fr", name="Analyste")
-        self.job = JobPost.objects.create(profile=self.profile, source_url="https://x.test/j")
+        self.job = JobPost.objects.create(profile=self.profile)
         apply_analysis(self.job, ai_payload(), "raw", language="fr")
 
     def test_extraction_asks_for_the_profile_language(self):
@@ -382,7 +437,7 @@ class ProfileLanguageTests(TestCase):
         english = Profile.objects.create(
             user=self.profile.user, name="Backend", language="en"
         )
-        english_job = JobPost.objects.create(profile=english, source_url="https://x.test/j2")
+        english_job = JobPost.objects.create(profile=english)
         apply_analysis(english_job, ai_payload(), "raw", language="en")
 
         seen = []

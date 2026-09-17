@@ -27,8 +27,8 @@ call made inside it.
   profiles switches the interface language with them. Working in another
   language means creating another profile, which is what keeps a profile's
   content from ever ending up half-translated.
-- **AI job post analysis** — paste a job posting URL (or the description
-  text) and DeepSeek breaks it into a **fixed set of 13 sections**
+- **AI job post analysis** — paste the job description text and DeepSeek
+  breaks it into a **fixed set of 13 sections**
   (Overview, Company, Location & work arrangement, Compensation & benefits,
   How to Apply, Responsibilities, Required/Desirable Technical Skills,
   Desirable Soft Skills, Languages, Education & Certifications, Worth
@@ -74,8 +74,8 @@ call made inside it.
   with a custom email-based user model.
 - **Responsive, accessible UI** built with Tailwind CSS and Alpine.js
   (light/dark mode, mobile navigation, accessible forms, toast messages).
-  The shell is borderless — sidebar, top bar and content share one canvas —
-  capped at 96rem and centred, and every foreground/background pair in it is
+  The shell is borderless and has no top bar — the sidebar is the app's only
+  chrome and shares one canvas with the content — capped at 96rem and centred, and every foreground/background pair in it is
   measured against WCAG 2.2 rather than eyeballed. See **Design system** below.
 
 ## Tech stack
@@ -95,8 +95,8 @@ config/         Django project settings, root URLconf
 accounts/       Custom user model, the Profile (workspace) model, profile
                 CRUD/switching, auth & security views
 jobs/           Job post analysis: the fixed section enum (sections.py), the
-                add-to-profile registry (profile_targets.py), URL fetcher,
-                prompts, importer, matcher and Celery tasks
+                add-to-profile registry (profile_targets.py), prompts,
+                importer, matcher and Celery tasks
 resume/         Resume upload -> AI parsing -> review -> profile auto-fill,
                 plus job-tailored resumes (Markdown draft -> edit -> PDF)
 skills/         Soft/technical skill categories and per-profile skills
@@ -192,7 +192,8 @@ python manage.py makemessages -l fr    # requires gettext
 python manage.py compilemessages -l fr
 ```
 
-The language switcher in the top bar posts to Django's `set_language` view and
+The language switcher in the sidebar's user menu posts to Django's
+`set_language` view and
 stores the choice in the `django_language` cookie, so no URL changes. That
 switcher only changes the *interface*: what the AI answers in comes from the
 active profile (see **Profiles** below).
@@ -202,8 +203,8 @@ active profile (see **Profiles** below).
 Register an account at `/accounts/register/` — the form asks which language
 your first profile works in — then explore the dashboard, add a few
 skills/languages/experience/education entries, and download your recap from
-the dashboard or `/recap/preview/`. Add a second profile from the switcher in
-the top bar to see the workspaces stay separate.
+the dashboard or `/recap/preview/`. Add a second profile from the switcher at
+the foot of the sidebar to see the workspaces stay separate.
 
 ## Profiles (workspaces)
 
@@ -263,24 +264,35 @@ themes follow it — no `bg-white dark:bg-slate-900` pair on every element.
 
 | Token | Light | Dark | Used for |
 | --- | --- | --- | --- |
-| `canvas` | slate-100 | slate-950 | the app background — sidebar, top bar and content all sit on it |
+| `canvas` | slate-100 | slate-950 | the app background — the sidebar and the content both sit on it |
 | `surface` | white | slate-900 | cards, menus, inputs |
 | `surface-sunken` | slate-100 | slate-800 | wells, progress tracks, code |
 | `line` | slate-200 | slate-800 | decorative rules and dividers |
 | `line-strong` | `#7f8fa5` | `#59687c` | the boundary that *identifies* a form control |
 
-### The shell has no dividing rules
+### The shell has no top bar and no dividing rules
 
-The sidebar, the top bar and the content are one continuous surface. Structure
-comes from spacing, from the cards the content sits in, and from the active
-nav row's tinted pill. The one place a line would still be doing work — a
-sticky top bar with content sliding under it — gets a shadow instead, and only
-once something has actually scrolled (`scrolled` on the `appShell` component).
+The sidebar and the content are one continuous surface. Structure comes from
+spacing, from the cards the content sits in, and from the active nav row's
+tinted pill.
+
+There is **no top bar**: the sidebar is the app's only chrome. Navigation runs
+down the top of the column, and the account block pinned to its foot carries
+what a bar would have — the workspace switcher
+(`partials/profile_switcher.html`) and the user menu
+(`partials/user_menu.html`: personal info, profiles, theme, the FR/EN language
+switcher, the recap export, admin and log out). Both panels open *upwards*, so
+they stay on screen and keep working when the sidebar is collapsed to icons.
+Nothing spans the width of the screen, so a page begins with its own
+breadcrumb.
 
 Layout is a flex row inside a centred `max-w-shell` container, so the sidebar
 is `sticky` rather than `fixed` and the content column needs no matching
 padding. Under `md` the sidebar leaves the flow, becomes a `surface` drawer
-over a scrim, and rejoins the canvas at `md` and up.
+over a scrim, and rejoins the canvas at `md` and up. The drawer's opener is a
+single floating button in the corner — the only chrome that overlays content —
+and `main` carries matching top padding below `md` so nothing starts beneath
+it.
 
 ### Every page wears the same header
 
@@ -295,7 +307,7 @@ fills blocks:
   {% include "partials/_crumb.html" with crumb_label=_("Analyze a job post") only %}
 {% endblock %}
 {% block page_title %}{% trans "Analyze a job post" %}{% endblock %}
-{% block page_subtitle %}{% trans "Paste the link to a job posting…" %}{% endblock %}
+{% block page_subtitle %}{% trans "Paste the job description…" %}{% endblock %}
 {% block page_actions %}<a href="…" class="btn-primary">…</a>{% endblock %}
 ```
 
@@ -317,8 +329,8 @@ not tags.
 
 Two rules keep the header from moving:
 
-- **Nothing renders above it.** Flash messages sit *below* the header, not
-  between the top bar and the breadcrumb; they come and go, and anything above
+- **Nothing renders above it.** With no top bar, the breadcrumb is the first
+  thing on the page; flash messages sit *below* the header, and anything above
   the breadcrumb would shift it every time one appeared.
 - **One container, one width.** Every screen lives in `.page-shell`
   (`max-w-7xl`), so the title starts on the same pixel whether the page is a
@@ -475,25 +487,24 @@ request.
 
 ## AI job post analysis
 
-Under `/jobs/`, a user pastes a job posting URL (or, as a fallback, the
-description text directly — useful for sites that block scrapers or require
-JavaScript). Submitting **enqueues** the analysis and redirects straight to the
-detail page, which shows live progress; the request never waits on an AI call.
+Under `/jobs/`, a user pastes the job description text — that text is the only
+input; the app never fetches a URL, so nothing depends on a careers site
+allowing scrapers or rendering without JavaScript. Submitting **enqueues** the
+analysis and redirects straight to the detail page, which shows live progress;
+the request never waits on an AI call.
 
 ### The pipeline
 
 ```
 chord(
-  chain(fetch_job_text → extract_job_sections),
+  chain(read_job_text → extract_job_sections),
   group(match_job_section × one per matched section),
 ) → finalize_job_analysis
 ```
 
-1. **`services/fetcher.py`** fetches the URL server-side and extracts readable
-   text. Since this fetches arbitrary user-supplied URLs from the server, it
-   includes SSRF protections: only `http(s)`, every resolved IP — including on
-   each redirect hop — checked against private/loopback/link-local/reserved
-   ranges, and a size-capped response body.
+1. **`read_job_text`** takes the pasted description off the `JobPost` and
+   hands it to the pipeline. There is no network call in this step — and, with
+   no server-side URL fetching anywhere in the app, no SSRF surface to defend.
 2. **`services/deepseek_client.py`** holds three separate prompts, kept apart
    so each call carries the smallest possible payload: extraction, per-section
    matching, and single-element matching.

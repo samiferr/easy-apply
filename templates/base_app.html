@@ -5,37 +5,52 @@
   {% block extra_head %}{% endblock %}
 </head>
 {% comment %}
-The shell is one continuous surface: sidebar, top bar and content all sit on the
-same canvas with no dividing rules between them. Structure comes from spacing,
-from the cards the content sits in, and — for the top bar — from a shadow that
-only appears once something has scrolled underneath it.
+The shell is one continuous surface: sidebar and content sit on the same canvas
+with no dividing rules between them. Structure comes from spacing and from the
+cards the content sits in.
+
+There is no top bar. The sidebar is the app's only chrome: navigation at the
+top, and — in the account block at its foot — the workspace switcher and the
+user menu (account screens, theme, language, export, log out) the bar used to
+hold. Nothing spans the width of the screen, so a page begins with its own
+breadcrumb and title.
 
 Layout is a plain flex row inside a centred, capped container, so the sidebar is
 `sticky` rather than `fixed` and the content column needs no matching padding.
-Below `md` the sidebar leaves the flow and becomes an off-canvas drawer.
+Below `md` the sidebar leaves the flow and becomes an off-canvas drawer, opened
+by the one floating button below — the only chrome that overlays the content.
 {% endcomment %}
-<body class="min-h-full bg-canvas font-sans" x-data="appShell()"
-      @scroll.window="scrolled = window.scrollY > 4">
+<body class="min-h-full bg-canvas font-sans" x-data="appShell()">
   <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:z-[60] focus:m-3 focus:rounded-lg focus:bg-brand-600 focus:px-4 focus:py-2 focus:font-semibold focus:text-white">{% trans "Skip to content" %}</a>
 
   <div class="mx-auto flex w-full max-w-shell">
     {% include "partials/sidebar.html" %}
+
+    {% comment %}
+    The drawer's opener. A single floating control rather than a bar: it takes
+    the corner it needs and leaves the rest of the width to the page. `main`
+    carries matching top padding under `md` so nothing starts beneath it.
+    {% endcomment %}
+    <button type="button" @click="mobileOpen = true" x-show="!mobileOpen"
+      class="fixed left-3 top-3 z-40 flex h-11 w-11 items-center justify-center rounded-xl bg-surface text-slate-700 shadow-card-hover ring-1 ring-slate-900/5 transition hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 md:hidden dark:text-slate-200 dark:ring-white/10 dark:hover:text-white"
+      aria-label="{% trans 'Open navigation' %}" :aria-expanded="mobileOpen" aria-controls="app-sidebar">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" /></svg>
+    </button>
 
     <!-- Mobile scrim -->
     <div x-show="mobileOpen" x-cloak x-transition.opacity @click="mobileOpen = false"
          class="fixed inset-0 z-40 bg-slate-950/60 md:hidden" aria-hidden="true"></div>
 
     <div class="flex min-h-svh min-w-0 flex-1 flex-col">
-      {% include "partials/topbar.html" %}
-
       {% comment %}
       The page shell. Breadcrumb, title and subtitle are rendered here, once,
       for every screen in the app — a page only fills the blocks — so they
       cannot drift between a list, a detail view, an add/edit form or a delete
-      confirmation. Messages sit *below* the header rather than above it: they
-      come and go, and anything above the breadcrumb would move it.
+      confirmation. With the top bar gone the breadcrumb is the first thing on
+      the page. Messages sit *below* the header rather than above it: they come
+      and go, and anything above the breadcrumb would move it.
       {% endcomment %}
-      <main id="main-content" class="flex-1">
+      <main id="main-content" class="flex-1 pt-12 md:pt-0">
         <div class="page-shell">
           <header class="page-header">
             <nav aria-label="{% trans 'Breadcrumb' %}">
@@ -78,9 +93,6 @@ Below `md` the sidebar leaves the flow and becomes an off-canvas drawer.
       return {
         collapsed: localStorage.sidebarCollapsed === "1",
         mobileOpen: false,
-        // Drives the top bar's shadow: with no border, this is what separates
-        // the bar from content passing beneath it.
-        scrolled: window.scrollY > 4,
         toggleCollapsed() {
           this.collapsed = !this.collapsed;
           localStorage.sidebarCollapsed = this.collapsed ? "1" : "0";

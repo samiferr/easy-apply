@@ -106,10 +106,9 @@ an entry with an empty body and no elements.
 """
 
 
-def analyze_job_text(raw_text: str, source_url: str = "", language: str = "en") -> dict:
+def analyze_job_text(raw_text: str, language: str = "en") -> dict:
     truncated = raw_text[:18000]
     user_content = (
-        f"Job posting URL: {source_url or '(pasted manually)'}\n\n"
         f"{language_clause(language)}\n\n"
         f"--- Job posting text ---\n{truncated}"
     )

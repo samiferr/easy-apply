@@ -1,7 +1,7 @@
 """Background job-analysis pipeline.
 
     chord(
-        chain(fetch_job_text -> extract_job_sections),
+        chain(read_job_text -> extract_job_sections),
         group(match_job_section for each matched section),
     ) -> finalize_job_analysis
 
@@ -12,7 +12,6 @@ section never poisons the chord (spec §7.3).
 import logging
 
 from celery import chain, chord, group, shared_task
-from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from core.ai import AIServiceError
@@ -21,7 +20,6 @@ from core.tasks import dispatch, fail_task, get_task, guard, is_retryable
 
 from .models import JobElement, JobPost, JobSection
 from .services.deepseek_client import analyze_job_text
-from .services.fetcher import JobFetchError, fetch_job_post_text
 from .services.importer import apply_analysis, matched_sections_for
 from .services.matcher import (
     finalize_job_match,
@@ -35,38 +33,34 @@ RETRY_KWARGS = {"max_retries": 3, "countdown": 5}
 
 
 # ---------------------------------------------------------------------------
-# Step 1 — fetch
+# Step 1 — read the pasted posting
 # ---------------------------------------------------------------------------
-@shared_task(bind=True, soft_time_limit=120)
+@shared_task(bind=True, soft_time_limit=60)
 @guard
-def fetch_job_text(self, job_id: int, task_id: int) -> dict:
+def read_job_text(self, job_id: int, task_id: int) -> dict:
+    """The posting is always text the user pasted — nothing is fetched."""
     task = get_task(task_id)
     job = JobPost.objects.filter(pk=job_id).first()
     if job is None:
         return {"job_id": job_id, "task_id": task_id, "failed": True}
 
     if task:
-        task.mark_running(_("Fetching the job posting"))
+        task.mark_running(_("Reading the job posting"))
     job.status = JobPost.STATUS_PROCESSING
     job.error_message = ""
     job.save(update_fields=["status", "error_message"])
 
-    try:
-        if job.manual_text.strip():
-            raw_text = job.manual_text.strip()
-        else:
-            raw_text = fetch_job_post_text(job.source_url)
-    except JobFetchError as exc:
+    raw_text = job.description_text.strip()
+    if not raw_text:
+        message = _("This job post has no description text to analyze.")
         job.status = JobPost.STATUS_FAILED
-        job.error_message = str(exc)
+        job.error_message = message
         job.save(update_fields=["status", "error_message"])
-        fail_task(task, str(exc))
+        fail_task(task, message)
         return {"job_id": job_id, "task_id": task_id, "failed": True}
 
-    job.fetched_at = timezone.now()
-    job.save(update_fields=["fetched_at"])
     if task:
-        task.advance(_("Reading the posting"))
+        task.advance(_("Read the posting"))
     return {"job_id": job_id, "task_id": task_id, "raw_text": raw_text, "failed": False}
 
 
@@ -93,7 +87,7 @@ def extract_job_sections(self, payload: dict) -> dict:
         task.set_step(_("Extracting the job's sections"))
 
     try:
-        data = analyze_job_text(payload.get("raw_text", ""), job.source_url, language=language)
+        data = analyze_job_text(payload.get("raw_text", ""), language=language)
     except AIServiceError as exc:
         if is_retryable(exc) and self.request.retries < RETRY_KWARGS["max_retries"]:
             raise self.retry(exc=exc, countdown=5 * (2**self.request.retries))
@@ -198,7 +192,7 @@ def finalize_job_analysis(self, results, job_id: int, task_id: int) -> dict:
 # Public entry points — the only things views call
 # ---------------------------------------------------------------------------
 def enqueue_job_analysis(job: JobPost) -> AITask:
-    """Kick off the full pipeline: fetch -> extract -> match every section."""
+    """Kick off the full pipeline: read -> extract -> match every section."""
     task = AITask.start_for(
         job.profile,
         AITask.JOB_ANALYSIS,
@@ -211,7 +205,7 @@ def enqueue_job_analysis(job: JobPost) -> AITask:
     job.save(update_fields=["status", "error_message"])
 
     workflow = chain(
-        fetch_job_text.s(job.pk, task.pk),
+        read_job_text.s(job.pk, task.pk),
         extract_job_sections.s(),
         _dispatch_section_matches.s(),
     )

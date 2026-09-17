@@ -21,8 +21,8 @@ class JobSectionInline(admin.TabularInline):
 class JobPostAdmin(admin.ModelAdmin):
     list_display = ["title", "company_name", "profile", "status", "work_arrangement", "created_at"]
     list_filter = ["status", "work_arrangement"]
-    search_fields = ["title", "company_name", "source_url", "profile__user__email"]
-    readonly_fields = ["raw_text", "created_at", "updated_at", "fetched_at", "analyzed_at"]
+    search_fields = ["title", "company_name", "profile__user__email"]
+    readonly_fields = ["raw_text", "created_at", "updated_at", "analyzed_at"]
     inlines = [JobSectionInline]
 
 
