@@ -45,6 +45,9 @@ INSTALLED_APPS = [
     "resume",
     "preferences",
     "legal",
+    # The staff portal: plans, quotas, flags, audit trail and operations. It
+    # reads every other app, so it is listed last.
+    "staffportal",
 ]
 
 MIDDLEWARE = [
@@ -55,6 +58,14 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    # Swaps request.user over for a "sign in as" session and ends it when the
+    # window expires — before anything downstream reads request.user.
+    "staffportal.middleware.ImpersonationMiddleware",
+    # Closes the product to everyone but staff when an operator flips the
+    # switch in the portal.
+    "staffportal.middleware.MaintenanceModeMiddleware",
+    # Throttled last_seen_at write, for the portal's active-user metrics.
+    "staffportal.middleware.LastSeenMiddleware",
     # Resolves request.profile — every content query is scoped to it.
     "core.middleware.ActiveProfileMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
@@ -76,6 +87,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "core.context_processors.site_context",
                 "core.context_processors.active_profile",
+                "staffportal.context_processors.portal_banners",
             ],
         },
     },
@@ -189,6 +201,14 @@ DEFAULT_FROM_EMAIL = config(
 PASSWORD_RESET_TIMEOUT = 60 * 60 * 24 * 3
 
 SITE_NAME = "Easy Apply"
+
+# --- Staff portal ---------------------------------------------------------
+# Only set this to True when a reverse proxy in front of the app *overwrites*
+# X-Forwarded-For. Trusting it otherwise lets any caller forge the IP address
+# recorded in the audit trail.
+STAFF_PORTAL_TRUST_X_FORWARDED_FOR = config(
+    "STAFF_PORTAL_TRUST_X_FORWARDED_FOR", default=False, cast=bool
+)
 
 # DeepSeek API (used by the `jobs` app to structure job postings into
 # relational data). Leave DEEPSEEK_API_KEY empty to disable AI analysis —

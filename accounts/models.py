@@ -11,6 +11,11 @@ class User(AbstractUser):
 
     username = None
     email = models.EmailField("email address", unique=True)
+    # Maintained by `staffportal.middleware.LastSeenMiddleware`, throttled to
+    # one write every few minutes. `last_login` alone cannot answer "is this
+    # account still being used" — someone who signed in once in March and has
+    # worked in the app daily since reads as a single visit.
+    last_seen_at = models.DateTimeField(null=True, blank=True, editable=False)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []

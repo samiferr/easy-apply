@@ -1,0 +1,73 @@
+{% extends "staffportal/base.html" %}
+{% load staffportal %}
+{% block breadcrumb %}{% include "partials/_crumb.html" with crumb_label="Plans &amp; revenue" only %}{% endblock %}
+{% block page_actions %}
+  {% if "billing.manage" in portal_capabilities %}<a href="{% url 'staffportal:plan_create' %}" class="btn-primary">+ New plan</a>{% endif %}
+  <a href="{% url 'staffportal:subscription_list' %}" class="btn-secondary">Subscriptions</a>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    {% include "staffportal/partials/_metric.html" with label="MRR" value=revenue.mrr_display unit="/mo" %}
+    {% include "staffportal/partials/_metric.html" with label="ARR" value=revenue.arr_display unit="/yr" %}
+    {% include "staffportal/partials/_metric.html" with label="ARPA" value=revenue.arpa_display hint="Average revenue per paying account." %}
+    {% include "staffportal/partials/_metric.html" with label="Trials open" value=revenue.trialing hint=revenue.past_due|stringformat:"s"|add:" past due" %}
+  </div>
+
+  <div class="card overflow-x-auto p-5">
+    <h2 class="section-title">Plans</h2>
+    <table class="data-table data-table-wide mt-4">
+      <thead>
+        <tr><th>Plan</th><th>Price</th><th class="text-right">Subscribers</th><th>Allowances</th><th>State</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for plan in plans %}
+          <tr>
+            <td>
+              <span class="font-medium text-slate-900 dark:text-white">{{ plan.name }}</span>
+              {% if plan.tagline %}<p class="text-muted">{{ plan.tagline }}</p>{% endif %}
+            </td>
+            <td class="tabular-nums">{{ plan.price_display }}{% if plan.trial_days %}<p class="text-muted">{{ plan.trial_days }}-day trial</p>{% endif %}</td>
+            <td class="text-right tabular-nums">{{ plan.subscriber_count }}</td>
+            <td class="text-muted">
+              {{ plan.max_profiles|default_if_none:"∞" }} profiles ·
+              {{ plan.monthly_job_analyses|default_if_none:"∞" }} analyses ·
+              {{ plan.monthly_tailored_resumes|default_if_none:"∞" }} resumes
+            </td>
+            <td>
+              {% if plan.is_default %}<span class="badge badge-strong">Default</span>{% endif %}
+              {% if not plan.is_active %}<span class="badge badge-none">Inactive</span>{% endif %}
+              {% if plan.is_public %}<span class="badge badge-pending">Public</span>{% endif %}
+            </td>
+            <td class="text-right">
+              {% if "billing.manage" in portal_capabilities %}
+                <a href="{% url 'staffportal:plan_update' plan.pk %}" class="text-sm font-semibold text-brand-700 dark:text-brand-400">Edit</a>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6" class="py-8 text-center text-muted">No plans yet. Run <code class="rounded bg-surface-sunken px-1.5 py-0.5">manage.py seed_saas</code> or add one.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if breakdown %}
+  <div class="card p-5">
+    <h2 class="section-title">Where the revenue comes from</h2>
+    <ul class="mt-4 space-y-3">
+      {% for row in breakdown %}
+        <li>
+          <div class="flex items-baseline justify-between text-sm">
+            <span class="font-medium text-slate-900 dark:text-white">{{ row.name }}</span>
+            <span class="tabular-nums text-muted">{{ row.count }} subscriber{{ row.count|pluralize }} · {{ row.mrr_display }}/mo</span>
+          </div>
+          <div class="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-surface-sunken"><div class="h-full rounded-full bg-brand-500" style="width: {{ row.percent }}%"></div></div>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

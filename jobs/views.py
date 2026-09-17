@@ -12,6 +12,8 @@ from django.views.generic import CreateView, DeleteView, DetailView, ListView, V
 from core.mixins import ConfirmDeleteMixin
 from core.models import AITask
 from resume.models import TailoredResume
+from staffportal.models import UsageMetric
+from staffportal.services import quotas
 
 from .forms import JobAnalysisForm
 from .models import JobElement, JobPost, JobSection
@@ -67,11 +69,20 @@ class JobPostCreateView(LoginRequiredMixin, CreateView):
     template_name = "jobs/job_form.html"
 
     def form_valid(self, form):
+        # Checked before the row is written: an analysis the plan does not allow
+        # should not leave a half-created job post behind. `form_invalid` keeps
+        # the pasted posting on screen rather than throwing it away.
+        blocked = quotas.blocked_message(self.request.user, UsageMetric.JOB_ANALYSIS)
+        if blocked:
+            messages.error(self.request, blocked)
+            return self.form_invalid(form)
+
         form.instance.profile = self.request.profile
         response = super().form_valid(form)
         # The profile's language, not the browser's: a job analyzed in a French
         # workspace stays French even if the UI is being read in English.
         enqueue_job_analysis(self.object)
+        quotas.consume(self.request.user, UsageMetric.JOB_ANALYSIS)
         messages.info(
             self.request,
             _("Analyzing this job post — the sections will fill in as they finish."),
@@ -140,7 +151,14 @@ class JobPostDeleteView(ConfirmDeleteMixin, LoginRequiredMixin, DeleteView):
 class JobPostReanalyzeView(LoginRequiredMixin, View):
     def post(self, request, pk):
         job = get_object_or_404(JobPost, pk=pk, profile=request.profile)
+        # A re-analysis is a second trip to the AI provider, so it costs the
+        # same as the first one and is metered the same way.
+        blocked = quotas.blocked_message(request.user, UsageMetric.JOB_ANALYSIS)
+        if blocked:
+            messages.error(request, blocked)
+            return redirect(job.get_absolute_url())
         enqueue_job_analysis(job)
+        quotas.consume(request.user, UsageMetric.JOB_ANALYSIS)
         messages.info(request, _("Re-analyzing this job post."))
         return redirect(job.get_absolute_url())
 
@@ -154,6 +172,12 @@ class JobPostMatchProfileView(LoginRequiredMixin, View):
             messages.warning(
                 request, _("Analyze this job post first, then match it to your profile.")
             )
+            return redirect(job.get_absolute_url())
+        # Matching is part of the analysis the account was already charged for,
+        # so only the kill switch applies here — not the quota.
+        unavailable = quotas.ai_unavailable_message()
+        if unavailable:
+            messages.error(request, unavailable)
             return redirect(job.get_absolute_url())
         enqueue_full_match(job)
         messages.info(request, _("Matching this job against your profile."))

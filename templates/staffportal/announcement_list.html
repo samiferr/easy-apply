@@ -1,0 +1,38 @@
+{% extends "staffportal/base.html" %}
+{% load staffportal %}
+{% block breadcrumb %}{% include "partials/_crumb.html" with crumb_label="Announcements" only %}{% endblock %}
+{% block page_actions %}
+  {% if "announcements.manage" in portal_capabilities %}<a href="{% url 'staffportal:announcement_create' %}" class="btn-primary">+ New announcement</a>{% endif %}
+{% endblock %}
+{% block content %}
+<div class="space-y-4">
+  <div class="card p-4 text-sm text-muted">Live announcements appear as a banner at the top of every in-app screen for their audience. Translated content is your responsibility — write in the language your customers read.</div>
+  <div class="card overflow-x-auto p-5">
+    <table class="data-table data-table-wide">
+      <thead><tr><th>Title</th><th>Level</th><th>Audience</th><th>Window</th><th>State</th><th></th></tr></thead>
+      <tbody>
+        {% for announcement in announcements %}
+          <tr>
+            <td>
+              <span class="font-medium text-slate-900 dark:text-white">{{ announcement.title }}</span>
+              {% if announcement.body %}<p class="max-w-md truncate text-muted">{{ announcement.body }}</p>{% endif %}
+            </td>
+            <td><span class="badge {% if announcement.level == 'critical' %}badge-danger{% elif announcement.level == 'warning' %}badge-partial{% elif announcement.level == 'success' %}badge-strong{% else %}badge-pending{% endif %}">{{ announcement.get_level_display }}</span></td>
+            <td>{{ announcement.get_audience_display }}</td>
+            <td class="text-muted">{{ announcement.starts_at|date:"Y-m-d H:i" }} → {{ announcement.ends_at|date:"Y-m-d H:i"|default:"open" }}</td>
+            <td>{% if announcement.is_live %}<span class="badge badge-strong">Live</span>{% else %}<span class="badge badge-none">Not showing</span>{% endif %}</td>
+            <td class="text-right">
+              {% if "announcements.manage" in portal_capabilities %}
+                <a href="{% url 'staffportal:announcement_update' announcement.pk %}" class="text-sm font-semibold text-brand-700 dark:text-brand-400">Edit</a>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6" class="py-8 text-center text-muted">Nothing announced.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "staffportal/partials/_pagination.html" %}
+</div>
+{% endblock %}

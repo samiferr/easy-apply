@@ -1,0 +1,51 @@
+{% extends "staffportal/base.html" %}
+{% block breadcrumb %}
+  {% url 'staffportal:user_list' as user_list_url %}
+  {% include "partials/_crumb.html" with crumb_label="Accounts" crumb_url=user_list_url only %}
+  {% include "partials/_crumb.html" with crumb_label="Delete" only %}
+{% endblock %}
+
+{% block content %}
+{% comment %}
+Erasure under GDPR Art. 17. Typing the address in full is the guard: a delete
+one click from a list row is a delete that eventually lands on the wrong
+account, and there is no undo behind this button.
+{% endcomment %}
+<div class="card max-w-2xl border-l-4 border-rose-500 p-8">
+  <h2 class="card-title">Delete {{ account.email }}?</h2>
+
+  {% if blocked %}
+    <p class="mt-4 text-sm text-rose-700 dark:text-rose-300">This is a superuser account. Only another superuser can delete it.</p>
+    <a href="{% url 'staffportal:user_detail' account.pk %}" class="btn-secondary mt-6">Back</a>
+  {% else %}
+    <p class="mt-4 text-slate-700 dark:text-slate-300">
+      This permanently removes the account and everything under it —
+      {{ profile_count }} profile{{ profile_count|pluralize }},
+      {{ job_post_count }} analyzed job post{{ job_post_count|pluralize }},
+      every tailored resume, résumé upload and skill they recorded.
+    </p>
+    <p class="mt-3 text-sm text-muted">
+      The audit entry survives the deletion, so the record of who deleted it and
+      why remains. Nothing else does — there is no undo.
+    </p>
+
+    <form method="post" class="mt-6 space-y-4">
+      {% csrf_token %}
+      <div>
+        <label for="confirm_email" class="field-label">Type <strong>{{ account.email }}</strong> to confirm</label>
+        <input type="text" id="confirm_email" name="confirm_email" autocomplete="off" required
+               class="block w-full rounded-lg border border-line-strong bg-surface px-3.5 py-2.5 text-sm text-slate-900 shadow-sm dark:text-slate-100" />
+      </div>
+      <div>
+        <label for="reason" class="field-label">Reason (audited)</label>
+        <input type="text" id="reason" name="reason" placeholder="e.g. erasure request, ticket #931"
+               class="block w-full rounded-lg border border-line-strong bg-surface px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-500 shadow-sm dark:text-slate-100" />
+      </div>
+      <div class="flex gap-2">
+        <button type="submit" class="btn-danger">Delete permanently</button>
+        <a href="{% url 'staffportal:user_detail' account.pk %}" class="btn-secondary">Cancel</a>
+      </div>
+    </form>
+  {% endif %}
+</div>
+{% endblock %}

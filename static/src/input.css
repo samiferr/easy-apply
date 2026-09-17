@@ -151,6 +151,14 @@
   .data-table tbody td {
     @apply border-b border-line/70 py-3 align-top text-slate-700 dark:text-slate-300;
   }
+  /* The staff portal's tables run to six columns. Without a gutter a
+     right-aligned number sits flush against the next column's text and the two
+     read as one value. The app's own two tables are narrow enough not to need
+     it, so it is a modifier rather than a change to the base. */
+  .data-table-wide thead th,
+  .data-table-wide tbody td {
+    @apply pe-6 last:pe-0;
+  }
 
   /* --- Match verdict badges -------------------------------------------- */
   .badge-strong {
@@ -164,6 +172,11 @@
   }
   .badge-pending {
     @apply badge bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300;
+  }
+  /* The fourth verdict: something is wrong. Used by the staff portal for failed
+     jobs, failing health checks and suspended accounts. */
+  .badge-danger {
+    @apply badge bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300;
   }
 
   /* --- Tabs ------------------------------------------------------------- */

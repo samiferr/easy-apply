@@ -1,0 +1,133 @@
+{% load staffportal %}
+{% comment %}
+Portal navigation. Every group is filtered by capability, so a viewer's sidebar
+is short rather than full of rows that 403. The view enforces it regardless —
+this only keeps the UI honest about what is reachable.
+{% endcomment %}
+{% can "billing.manage" as can_billing %}
+{% can "flags.manage" as can_flags %}
+{% can "operations.manage" as can_ops %}
+{% can "audit.view" as can_audit %}
+{% can "team.manage" as can_team %}
+{% can "users.impersonate" as can_impersonate %}
+<aside id="portal-sidebar"
+  class="fixed inset-y-0 left-0 z-50 flex w-64 shrink-0 flex-col bg-surface shadow-card-hover transition-[width,transform] duration-200
+    md:sticky md:top-0 md:z-30 md:h-svh md:translate-x-0 md:bg-canvas md:shadow-none"
+  :class="[collapsed ? 'md:w-[4.75rem]' : 'md:w-64', mobileOpen ? 'translate-x-0' : '-translate-x-full']">
+
+  <div class="flex h-16 shrink-0 items-center gap-2 px-4">
+    <a href="{% url 'staffportal:dashboard' %}" class="flex min-w-0 items-center gap-2.5 overflow-hidden rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
+      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-white shadow-sm dark:bg-white dark:text-slate-900">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.4 9.3-8 10-4.6-.7-8-5-8-10V6l8-4z"/><path d="M9 12l2 2 4-4"/></svg>
+      </span>
+      <span x-show="!collapsed" x-cloak class="min-w-0">
+        <span class="block truncate text-sm font-bold tracking-tight text-slate-900 dark:text-white">Operator console</span>
+        <span class="block truncate text-xs text-muted">{{ SITE_NAME }}</span>
+      </span>
+    </a>
+    <button type="button" @click="mobileOpen = false" class="ms-auto rounded-lg p-2 text-slate-600 md:hidden dark:text-slate-300" aria-label="Close navigation">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+
+  <nav class="flex-1 space-y-6 overflow-y-auto px-3 pb-4" aria-label="Portal navigation">
+    <div class="space-y-1">
+      <a href="{% url 'staffportal:dashboard' %}" class="nav-side {% if section == 'dashboard' %}nav-side-active{% endif %}">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+        <span :class="collapsed && 'sr-only'">Overview</span>
+      </a>
+    </div>
+
+    <div class="space-y-1">
+      <p x-show="!collapsed" x-cloak class="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Customers</p>
+      <a href="{% url 'staffportal:user_list' %}" class="nav-side {% if section == 'users' %}nav-side-active{% endif %}">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/></svg>
+        <span :class="collapsed && 'sr-only'">Accounts</span>
+      </a>
+      {% if can_impersonate or can_audit %}
+      <a href="{% url 'staffportal:impersonation_log' %}" class="nav-side">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        <span :class="collapsed && 'sr-only'">Impersonation log</span>
+      </a>
+      {% endif %}
+    </div>
+
+    <div class="space-y-1">
+      <p x-show="!collapsed" x-cloak class="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Revenue</p>
+      <a href="{% url 'staffportal:billing' %}" class="nav-side {% if section == 'billing' %}nav-side-active{% endif %}">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+        <span :class="collapsed && 'sr-only'">Plans &amp; revenue</span>
+      </a>
+      <a href="{% url 'staffportal:subscription_list' %}" class="nav-side">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+        <span :class="collapsed && 'sr-only'">Subscriptions</span>
+      </a>
+    </div>
+
+    <div class="space-y-1">
+      <p x-show="!collapsed" x-cloak class="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Product</p>
+      <a href="{% url 'staffportal:flag_list' %}" class="nav-side {% if section == 'flags' %}nav-side-active{% endif %}">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/></svg>
+        <span :class="collapsed && 'sr-only'">Feature flags</span>
+      </a>
+      <a href="{% url 'staffportal:announcement_list' %}" class="nav-side {% if section == 'announcements' %}nav-side-active{% endif %}">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 11-5.8-1.6"/></svg>
+        <span :class="collapsed && 'sr-only'">Announcements</span>
+      </a>
+    </div>
+
+    <div class="space-y-1">
+      <p x-show="!collapsed" x-cloak class="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Operations</p>
+      <a href="{% url 'staffportal:health' %}" class="nav-side {% if section == 'operations' %}nav-side-active{% endif %}">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        <span :class="collapsed && 'sr-only'">System health</span>
+      </a>
+      <a href="{% url 'staffportal:task_list' %}" class="nav-side">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        <span :class="collapsed && 'sr-only'">AI queue</span>
+      </a>
+      {% if can_ops %}
+      <a href="{% url 'staffportal:settings' %}" class="nav-side">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9v0c.14.35.38.65.69.86.31.2.67.31 1.04.31H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        <span :class="collapsed && 'sr-only'">Runtime settings</span>
+      </a>
+      {% endif %}
+    </div>
+
+    <div class="space-y-1">
+      <p x-show="!collapsed" x-cloak class="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Trust</p>
+      {% if can_audit %}
+      <a href="{% url 'staffportal:audit_list' %}" class="nav-side {% if section == 'audit' %}nav-side-active{% endif %}">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8"/></svg>
+        <span :class="collapsed && 'sr-only'">Audit log</span>
+      </a>
+      {% endif %}
+      {% if can_team %}
+      <a href="{% url 'staffportal:team_list' %}" class="nav-side {% if section == 'team' %}nav-side-active{% endif %}">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        <span :class="collapsed && 'sr-only'">Portal access</span>
+      </a>
+      {% endif %}
+    </div>
+  </nav>
+
+  <div class="shrink-0 space-y-1 px-3 pb-3">
+    <div class="rounded-xl bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-300" x-show="!collapsed" x-cloak>
+      <p class="font-semibold">{{ portal_role }}</p>
+      <p class="mt-0.5 opacity-80">Actions here affect real customer accounts.</p>
+    </div>
+    <a href="{% url 'core:dashboard' %}" class="nav-side">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      <span :class="collapsed && 'sr-only'">Back to the app</span>
+    </a>
+    <button type="button" @click="toggleTheme()" class="nav-side w-full">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+      <span :class="collapsed && 'sr-only'">Theme</span>
+    </button>
+    <button type="button" @click="toggleCollapsed()" class="nav-side hidden w-full md:flex"
+      :aria-label="collapsed ? 'Expand sidebar' : 'Collapse sidebar'" :aria-expanded="!collapsed">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0 transition-transform" :class="collapsed && 'rotate-180'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      <span :class="collapsed && 'sr-only'">Collapse</span>
+    </button>
+  </div>
+</aside>

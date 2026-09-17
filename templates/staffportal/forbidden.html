@@ -1,0 +1,18 @@
+{% extends "staffportal/base.html" %}
+{% block page_title %}Not your call{% endblock %}
+{% block content %}
+<div class="card max-w-2xl p-8">
+  <p class="text-slate-700 dark:text-slate-300">
+    Your role is <strong>{{ role_label }}</strong>, which does not include
+    <strong>{{ capability_label|lower }}</strong>.
+  </p>
+  <p class="mt-4 text-sm text-muted">
+    This is least privilege doing its job, not a bug. If you need it for the work
+    you are doing, a superuser can change your role under Portal access — and
+    that change is itself audited.
+  </p>
+  <div class="mt-6 flex gap-2">
+    <a href="{% url 'staffportal:dashboard' %}" class="btn-primary">Back to the overview</a>
+  </div>
+</div>
+{% endblock %}

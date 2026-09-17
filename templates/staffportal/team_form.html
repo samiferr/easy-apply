@@ -1,0 +1,10 @@
+{% extends "staffportal/base.html" %}
+{% block breadcrumb %}
+  {% url 'staffportal:team_list' as list_url %}
+  {% include "partials/_crumb.html" with crumb_label="Portal access" crumb_url=list_url only %}
+  {% include "partials/_crumb.html" with crumb_label=page_title only %}
+{% endblock %}
+{% block content %}
+  {% url 'staffportal:team_list' as cancel_url %}
+  {% include "staffportal/partials/_form_card.html" with submit_label="Save role" cancel_url=cancel_url %}
+{% endblock %}

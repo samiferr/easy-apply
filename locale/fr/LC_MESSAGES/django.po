@@ -1215,7 +1215,7 @@ msgstr "Supprimer ce CV personnalisé ?"
 
 #: resume/views.py:187 templates/partials/sidebar.html:96
 #: templates/resume/tailored_list.html:3 templates/resume/tailored_list.html:4
-#: templates/resume/tailored_list.html:5
+#: staffportal/models.py:81 templates/resume/tailored_list.html:5
 #: templates/resume/tailored_resume.html:6
 msgid "Tailored resumes"
 msgstr "CV personnalisés"
@@ -3268,3 +3268,70 @@ msgid "No technical skills yet. Add the tools and languages you know."
 msgstr ""
 "Aucune compétence technique pour l’instant. Ajoutez les outils et langages "
 "que vous maîtrisez."
+
+#: accounts/views.py:50
+msgid "New sign-ups are paused right now. Please check back shortly."
+msgstr ""
+"Les nouvelles inscriptions sont suspendues pour le moment. Merci de "
+"réessayer bientôt."
+
+#: staffportal/models.py:80
+msgid "Job analyses"
+msgstr "Analyses d’offres"
+
+#: staffportal/models.py:82
+msgid "Resume imports"
+msgstr "Imports de CV"
+
+#: staffportal/services/quotas.py:120
+msgid ""
+"AI features are temporarily unavailable while we carry out maintenance. "
+"Please try again shortly."
+msgstr ""
+"Les fonctionnalités d’IA sont temporairement indisponibles pendant une "
+"maintenance. Merci de réessayer dans quelques instants."
+
+#: staffportal/services/quotas.py:136
+msgid "Your plan doesn't include this feature. Upgrade to use it."
+msgstr ""
+"Votre forfait n’inclut pas cette fonctionnalité. Passez à un forfait "
+"supérieur pour l’utiliser."
+
+#: staffportal/services/quotas.py:138
+#, python-format
+msgid ""
+"You've used all %(limit)s of this month's %(label)s. Your allowance resets "
+"at the start of your next billing period."
+msgstr ""
+"Vous avez utilisé les %(limit)s %(label)s de ce mois. Votre quota est "
+"réinitialisé au début de votre prochaine période de facturation."
+
+#: staffportal/services/quotas.py:150
+#, python-format
+msgid ""
+"Your plan allows %(limit)s profile(s). Delete one, or upgrade, to add "
+"another."
+msgstr ""
+"Votre forfait autorise %(limit)s profil(s). Supprimez-en un, ou passez à un "
+"forfait supérieur, pour en ajouter un autre."
+
+#: templates/partials/_portal_banners.html:59
+msgid "Learn more"
+msgstr "En savoir plus"
+
+#: templates/staffportal/maintenance.html:17
+msgid "Back shortly"
+msgstr "De retour bientôt"
+
+#: templates/staffportal/maintenance.html:26
+msgid "We're carrying out maintenance"
+msgstr "Nous effectuons une maintenance"
+
+#: templates/staffportal/maintenance.html:28
+msgid ""
+"Easy Apply is briefly unavailable while we make an update. Nothing you saved "
+"has been lost — please try again in a few minutes."
+msgstr ""
+"Easy Apply est brièvement indisponible pendant une mise à jour. Rien de ce "
+"que vous avez enregistré n’a été perdu — merci de réessayer dans quelques "
+"minutes."

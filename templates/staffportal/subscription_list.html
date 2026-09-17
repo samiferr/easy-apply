@@ -1,0 +1,61 @@
+{% extends "staffportal/base.html" %}
+{% load staffportal %}
+{% block breadcrumb %}
+  {% url 'staffportal:billing' as billing_url %}
+  {% include "partials/_crumb.html" with crumb_label="Billing" crumb_url=billing_url only %}
+  {% include "partials/_crumb.html" with crumb_label="Subscriptions" only %}
+{% endblock %}
+{% block page_actions %}
+  <a href="{% url 'staffportal:subscription_export' %}{% if querystring %}?{{ querystring }}{% endif %}" class="btn-secondary">Export CSV</a>
+{% endblock %}
+{% block content %}
+<div class="space-y-4">
+  <form method="get" class="card flex flex-wrap items-end gap-3 p-4">
+    <div class="min-w-[14rem] flex-1">
+      <label for="q" class="field-label">Search</label>
+      <input type="search" id="q" name="q" value="{{ filters.q }}" placeholder="Email or provider id"
+             class="block w-full rounded-lg border border-line-strong bg-surface px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-500 shadow-sm dark:text-slate-100" />
+    </div>
+    <div>
+      <label for="status" class="field-label">Status</label>
+      <select id="status" name="status" class="block rounded-lg border border-line-strong bg-surface px-3.5 py-2.5 pr-8 text-sm text-slate-900 shadow-sm dark:text-slate-100">
+        <option value="">Any</option>
+        {% for value, label in status_choices %}<option value="{{ value }}" {% if filters.status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="plan" class="field-label">Plan</label>
+      <select id="plan" name="plan" class="block rounded-lg border border-line-strong bg-surface px-3.5 py-2.5 pr-8 text-sm text-slate-900 shadow-sm dark:text-slate-100">
+        <option value="">Any</option>
+        {% for plan in plans %}<option value="{{ plan.pk }}" {% if filters.plan == plan.pk|stringformat:"s" %}selected{% endif %}>{{ plan.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn-primary">Filter</button>
+  </form>
+
+  <div class="card overflow-x-auto p-5">
+    <table class="data-table data-table-wide">
+      <thead><tr><th>Account</th><th>Plan</th><th>Status</th><th>Period ends</th><th>Provider id</th><th></th></tr></thead>
+      <tbody>
+        {% for subscription in subscriptions %}
+          <tr>
+            <td><a href="{% url 'staffportal:user_detail' subscription.user_id %}" class="font-medium text-brand-700 hover:underline dark:text-brand-400">{{ subscription.user.email }}</a></td>
+            <td>{{ subscription.plan.name }} <span class="text-muted">{{ subscription.plan.price_display }}</span></td>
+            <td><span class="badge {{ subscription.status|status_tone }}">{{ subscription.get_status_display }}</span>{% if subscription.cancel_at_period_end %} <span class="badge badge-partial">Cancels</span>{% endif %}</td>
+            <td>{{ subscription.current_period_end|date:"Y-m-d"|default:"—" }}</td>
+            <td class="max-w-[10rem] truncate text-muted">{{ subscription.external_customer_id|default:"—" }}</td>
+            <td class="text-right">
+              {% if "billing.manage" in portal_capabilities %}
+                <a href="{% url 'staffportal:subscription_update' subscription.pk %}" class="text-sm font-semibold text-brand-700 dark:text-brand-400">Edit</a>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6" class="py-8 text-center text-muted">No subscription matches these filters.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "staffportal/partials/_pagination.html" %}
+</div>
+{% endblock %}

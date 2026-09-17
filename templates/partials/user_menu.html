@@ -43,7 +43,10 @@ browser" beats two competing ones in a column this narrow.
     </div>
     <div class="py-1">
       <a href="{% url 'core:export_preview' %}" class="menu-item">{% trans "Export recap (.md)" %}</a>
-      {% if user.is_staff %}<a href="{% url 'admin:index' %}" class="menu-item">{% trans "Admin" %}</a>{% endif %}
+      {% if user.is_staff and not is_impersonating %}
+        <a href="{% url 'staffportal:dashboard' %}" class="menu-item font-medium">{% trans "Operator console" %}</a>
+        <a href="{% url 'admin:index' %}" class="menu-item">{% trans "Django admin" %}</a>
+      {% endif %}
     </div>
     <div class="py-1">
       <a href="{% url 'accounts:logout_confirm' %}" class="block px-3 py-2 text-sm font-medium text-rose-700 transition hover:bg-rose-500/10 dark:text-rose-300">{% trans "Log out" %}</a>

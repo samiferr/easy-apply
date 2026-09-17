@@ -1,0 +1,21 @@
+{% extends "staffportal/base.html" %}
+{% block breadcrumb %}{% include "partials/_crumb.html" with crumb_label="Runtime settings" only %}{% endblock %}
+{% block content %}
+<form method="post" class="max-w-3xl space-y-6">
+  {% csrf_token %}
+  <div class="card border-l-4 border-amber-500 p-4 text-sm">
+    These take effect immediately for this process and within 30 seconds
+    everywhere else. Every change is written to the audit log with its old and
+    new value.
+  </div>
+
+  {% for group, fields in form.grouped_fields %}
+    <section class="card space-y-5 p-6">
+      <h2 class="section-title">{{ group }}</h2>
+      {% for field in fields %}{% include "partials/field.html" with field=field %}{% endfor %}
+    </section>
+  {% endfor %}
+
+  <button type="submit" class="btn-primary">Save settings</button>
+</form>
+{% endblock %}

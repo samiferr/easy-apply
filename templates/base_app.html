@@ -21,6 +21,13 @@ Below `md` the sidebar leaves the flow and becomes an off-canvas drawer, opened
 by the one floating button below — the only chrome that overlays the content.
 {% endcomment %}
 <body class="min-h-full bg-canvas font-sans" x-data="appShell()">
+  {% comment %}
+  Impersonation and announcement strips sit above the shell — above the
+  sidebar, above the skip link's target — because both are things the page must
+  never let you scroll past.
+  {% endcomment %}
+  {% include "partials/_portal_banners.html" %}
+
   <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:z-[60] focus:m-3 focus:rounded-lg focus:bg-brand-600 focus:px-4 focus:py-2 focus:font-semibold focus:text-white">{% trans "Skip to content" %}</a>
 
   <div class="mx-auto flex w-full max-w-shell">

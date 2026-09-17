@@ -1,0 +1,103 @@
+{% load static staffportal %}<!DOCTYPE html>
+<html lang="en" class="h-full">
+{% comment %}
+The operator console's own shell.
+
+Two deliberate departures from the customer-facing app:
+
+* **It is English only.** No `{% trans %}`, no locale files. The portal is an
+  internal tool with one operator language; translating it would double the
+  review surface of every screen for nobody's benefit. Everything a *customer*
+  ever reads is still fully translated.
+* **It looks different on purpose.** The slate chrome and the "Operator
+  console" strip exist so nobody spends thirty seconds wondering whether the
+  account they are about to suspend is their own test account or a real one.
+
+Everything else — tokens, cards, badges, tables, the page header — is the same
+design system as the product, so there is one set of components to maintain.
+{% endcomment %}
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>{% block title %}{{ page_title|default:"Operator console" }} · {{ SITE_NAME }} staff{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'dist/output.css' %}" />
+  <script>
+    if (localStorage.theme === "dark" || (!("theme" in localStorage) && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+      document.documentElement.classList.add("dark");
+    }
+  </script>
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="min-h-full bg-canvas font-sans" x-data="portalShell()">
+  <a href="#portal-main" class="sr-only focus:not-sr-only focus:absolute focus:z-[60] focus:m-3 focus:rounded-lg focus:bg-brand-600 focus:px-4 focus:py-2 focus:font-semibold focus:text-white">Skip to content</a>
+
+  <div class="mx-auto flex w-full max-w-shell">
+    {% include "staffportal/partials/_sidebar.html" %}
+
+    <button type="button" @click="mobileOpen = true" x-show="!mobileOpen"
+      class="fixed left-3 top-3 z-40 flex h-11 w-11 items-center justify-center rounded-xl bg-surface text-slate-700 shadow-card-hover ring-1 ring-slate-900/5 md:hidden dark:text-slate-200 dark:ring-white/10"
+      aria-label="Open navigation" :aria-expanded="mobileOpen" aria-controls="portal-sidebar">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" /></svg>
+    </button>
+    <div x-show="mobileOpen" x-cloak x-transition.opacity @click="mobileOpen = false"
+         class="fixed inset-0 z-40 bg-slate-950/60 md:hidden" aria-hidden="true"></div>
+
+    <div class="flex min-h-svh min-w-0 flex-1 flex-col">
+      <main id="portal-main" class="flex-1 pt-12 md:pt-0">
+        <div class="page-shell">
+          <header class="page-header">
+            <nav aria-label="Breadcrumb">
+              <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'staffportal:dashboard' %}" class="breadcrumb-link">Operator console</a></li>
+                {% block breadcrumb %}{% endblock %}
+              </ol>
+            </nav>
+            <div class="page-header-row">
+              <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+                  <h1 class="page-title">{% block page_title %}{{ page_title }}{% endblock %}</h1>
+                  {% block page_title_badge %}{% endblock %}
+                </div>
+                {% if page_subtitle %}<p class="page-lead">{{ page_subtitle }}</p>{% endif %}
+              </div>
+              <div class="page-actions">{% block page_actions %}{% endblock %}</div>
+            </div>
+          </header>
+
+          {% if messages %}<div class="mb-6">{% include "partials/messages.html" %}</div>{% endif %}
+
+          {% block content %}{% endblock %}
+        </div>
+      </main>
+
+      <footer class="page-shell pb-8 pt-4 text-xs text-muted">
+        <p>
+          Operator console · signed in as {{ request.user.email }} ({{ portal_role }}) ·
+          every change on these screens is written to the
+          <a href="{% url 'staffportal:audit_list' %}" class="underline underline-offset-2">audit log</a>.
+        </p>
+      </footer>
+    </div>
+  </div>
+
+  <script defer src="{% static 'js/alpine.min.js' %}"></script>
+  <script>
+    function portalShell() {
+      return {
+        collapsed: localStorage.portalSidebarCollapsed === "1",
+        mobileOpen: false,
+        toggleCollapsed() {
+          this.collapsed = !this.collapsed;
+          localStorage.portalSidebarCollapsed = this.collapsed ? "1" : "0";
+        },
+        toggleTheme() {
+          document.documentElement.classList.toggle("dark");
+          localStorage.theme = document.documentElement.classList.contains("dark") ? "dark" : "light";
+        },
+      };
+    }
+  </script>
+  {% block extra_body %}{% endblock %}
+</body>
+</html>
