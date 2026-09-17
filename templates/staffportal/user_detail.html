@@ -1,0 +1,254 @@
+{% extends "staffportal/base.html" %}
+{% load staffportal %}
+{% comment %}
+Capability checks read `portal_capabilities` (put in the context by
+`StaffPortalMixin`) rather than the `{% can %}` tag: a tag at the top level of a
+child template never runs, and repeating it in every block is worse than one
+membership test. The view enforces the same capability regardless — this only
+keeps the UI from offering buttons that would 403.
+{% endcomment %}
+{% block breadcrumb %}
+  {% url 'staffportal:user_list' as user_list_url %}
+  {% include "partials/_crumb.html" with crumb_label="Accounts" crumb_url=user_list_url only %}
+  {% include "partials/_crumb.html" with crumb_label=account.email only %}
+{% endblock %}
+
+{% block page_title_badge %}
+  {% if not account.is_active %}<span class="badge badge-danger">Suspended</span>{% endif %}
+  {% if account.is_superuser %}<span class="badge badge-pending">Superuser</span>{% elif account.is_staff %}<span class="badge badge-pending">Staff</span>{% endif %}
+{% endblock %}
+
+{% block page_actions %}
+  {% if "users.export" in portal_capabilities %}<a href="{% url 'staffportal:user_data_export' account.pk %}" class="btn-secondary">Export data (JSON)</a>{% endif %}
+  {% if "users.delete" in portal_capabilities and account.pk != request.user.pk %}<a href="{% url 'staffportal:user_delete' account.pk %}" class="btn-danger">Delete account</a>{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="grid gap-6 lg:grid-cols-3">
+  <div class="space-y-6 lg:col-span-2">
+
+    <!-- Identity -->
+    <section class="card p-5">
+      <h2 class="section-title">Account</h2>
+      <dl class="mt-4 grid gap-4 sm:grid-cols-2">
+        <div><dt class="text-xs font-semibold uppercase tracking-wider text-muted">Name</dt><dd class="mt-1">{{ account.get_full_name|default:"—" }}</dd></div>
+        <div><dt class="text-xs font-semibold uppercase tracking-wider text-muted">Email</dt><dd class="mt-1 break-all">{{ account.email }}</dd></div>
+        <div><dt class="text-xs font-semibold uppercase tracking-wider text-muted">Joined</dt><dd class="mt-1">{{ account.date_joined|date:"Y-m-d H:i" }}</dd></div>
+        <div><dt class="text-xs font-semibold uppercase tracking-wider text-muted">Last login</dt><dd class="mt-1">{{ account.last_login|date:"Y-m-d H:i"|default:"never" }}</dd></div>
+        <div><dt class="text-xs font-semibold uppercase tracking-wider text-muted">Last seen</dt><dd class="mt-1">{% if account.last_seen_at %}{{ account.last_seen_at|timesince }} ago{% else %}never{% endif %}</dd></div>
+        <div><dt class="text-xs font-semibold uppercase tracking-wider text-muted">Content</dt><dd class="mt-1">{{ profiles|length }} profile{{ profiles|length|pluralize }} · {{ job_post_count }} job post{{ job_post_count|pluralize }} · {{ tailored_count }} resume{{ tailored_count|pluralize }}</dd></div>
+      </dl>
+    </section>
+
+    <!-- Workspaces -->
+    <section class="card p-5">
+      <h2 class="section-title">Profiles</h2>
+      <ul class="mt-3 divide-y divide-line text-sm">
+        {% for profile in profiles %}
+          <li class="flex items-center justify-between gap-3 py-2.5">
+            <span class="font-medium text-slate-900 dark:text-white">{{ profile.name }}</span>
+            <span class="text-muted">{{ profile.language_label }} · {{ profile.completion_percent }}% complete</span>
+          </li>
+        {% empty %}<li class="py-3 text-muted">No profiles.</li>{% endfor %}
+      </ul>
+    </section>
+
+    <!-- Recent product activity -->
+    <section class="card overflow-x-auto p-5">
+      <h2 class="section-title">Recent job posts</h2>
+      <table class="data-table data-table-wide mt-3">
+        <thead><tr><th>Title</th><th>Company</th><th>Status</th><th>Created</th></tr></thead>
+        <tbody>
+          {% for job in job_posts %}
+            <tr>
+              <td>{{ job.title|default:"Untitled" }}</td>
+              <td>{{ job.company_name|default:"—" }}</td>
+              <td><span class="badge {{ job.status|status_tone }}">{{ job.get_status_display }}</span></td>
+              <td>{{ job.created_at|date:"Y-m-d" }}</td>
+            </tr>
+          {% empty %}<tr><td colspan="4" class="py-6 text-center text-muted">Nothing analyzed yet.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </section>
+
+    <!-- AI jobs -->
+    <section class="card overflow-x-auto p-5">
+      <h2 class="section-title">AI jobs</h2>
+      <table class="data-table data-table-wide mt-3">
+        <thead><tr><th>Kind</th><th>State</th><th>Queued</th><th>Error</th></tr></thead>
+        <tbody>
+          {% for task in tasks %}
+            <tr>
+              <td>{{ task.get_kind_display }}</td>
+              <td><span class="badge {{ task.state|status_tone }}">{{ task.get_state_display }}</span></td>
+              <td>{{ task.queued_at|date:"Y-m-d H:i" }}</td>
+              <td class="max-w-xs truncate text-muted">{{ task.error_message|default:"—" }}</td>
+            </tr>
+          {% empty %}<tr><td colspan="4" class="py-6 text-center text-muted">No background jobs.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Support notes -->
+    <section class="card p-5">
+      <h2 class="section-title">Internal notes</h2>
+      <p class="mt-1 text-sm text-muted">Never shown to the customer.</p>
+      {% if "users.manage" in portal_capabilities %}
+        <form method="post" action="{% url 'staffportal:user_note_add' account.pk %}" class="mt-4 space-y-3">
+          {% csrf_token %}
+          {% for field in note_form %}{% include "partials/field.html" with field=field %}{% endfor %}
+          <button type="submit" class="btn-primary">Add note</button>
+        </form>
+      {% endif %}
+      <ul class="mt-4 divide-y divide-line text-sm">
+        {% for note in notes %}
+          <li class="py-3">
+            <div class="flex items-center justify-between gap-3">
+              <span class="font-medium text-slate-900 dark:text-white">{{ note.author_email|default:"(deleted staff account)" }}</span>
+              <span class="text-muted">{{ note.created_at|date:"Y-m-d H:i" }}{% if note.pinned %} · pinned{% endif %}</span>
+            </div>
+            <p class="mt-1 whitespace-pre-line">{{ note.body }}</p>
+          </li>
+        {% empty %}<li class="py-3 text-muted">No notes yet.</li>{% endfor %}
+      </ul>
+    </section>
+
+    <!-- Audit -->
+    <section class="card p-5">
+      <h2 class="section-title">What staff did to this account</h2>
+      <ul class="mt-3 divide-y divide-line text-sm">
+        {% for entry in audit_entries %}
+          <li class="py-2.5">
+            <div class="flex flex-wrap items-baseline justify-between gap-2">
+              <span class="font-medium text-slate-900 dark:text-white">{{ entry.action }}</span>
+              <span class="text-muted">{{ entry.actor_email|default:"system" }} · {{ entry.created_at|date:"Y-m-d H:i" }}</span>
+            </div>
+            {% if entry.summary %}<p class="mt-0.5 text-muted">{{ entry.summary }}</p>{% endif %}
+          </li>
+        {% empty %}<li class="py-3 text-muted">Nothing recorded.</li>{% endfor %}
+      </ul>
+    </section>
+  </div>
+
+  <!-- Right rail: state and actions -->
+  <div class="space-y-6">
+    <section class="card p-5">
+      <h2 class="section-title">Subscription</h2>
+      {% if subscription %}
+        <p class="mt-3 text-heading-lg font-semibold text-slate-900 dark:text-white">{{ subscription.plan.name }}</p>
+        <p class="mt-1"><span class="badge {{ subscription.status|status_tone }}">{{ subscription.get_status_display }}</span> <span class="text-sm text-muted">{{ subscription.plan.price_display }}</span></p>
+        <dl class="mt-4 space-y-1.5 text-sm">
+          <div class="flex justify-between gap-3"><dt class="text-muted">Period</dt><dd class="text-right">{{ subscription.current_period_start|date:"Y-m-d" }} → {{ subscription.current_period_end|date:"Y-m-d" }}</dd></div>
+          {% if subscription.trial_ends_at %}<div class="flex justify-between gap-3"><dt class="text-muted">Trial ends</dt><dd>{{ subscription.trial_ends_at|date:"Y-m-d" }}</dd></div>{% endif %}
+          {% if subscription.external_customer_id %}<div class="flex justify-between gap-3"><dt class="text-muted">Customer id</dt><dd class="break-all">{{ subscription.external_customer_id }}</dd></div>{% endif %}
+        </dl>
+        {% if "billing.manage" in portal_capabilities %}
+          <a href="{% url 'staffportal:subscription_update' subscription.pk %}" class="btn-secondary mt-4 w-full">Edit subscription</a>
+        {% endif %}
+      {% else %}
+        <p class="mt-3 text-sm text-muted">No subscription — no plans are configured yet.</p>
+      {% endif %}
+    </section>
+
+    <section class="card p-5">
+      <h2 class="section-title">This period's usage</h2>
+      <p class="mt-1 text-sm text-muted">{% if quotas_enforced %}Limits are enforced.{% else %}Limits are recorded but <strong>not enforced</strong> — turn on <code class="rounded bg-surface-sunken px-1 py-0.5">enforce_quotas</code> in runtime settings.{% endif %}</p>
+      <ul class="mt-4 space-y-3 text-sm">
+        {% for allowance in allowances %}
+          <li>
+            <div class="flex items-baseline justify-between gap-2">
+              <span class="font-medium text-slate-900 dark:text-white">{{ allowance.label }}</span>
+              <span class="tabular-nums text-muted">{{ allowance.used }}{% if not allowance.unlimited %} / {{ allowance.limit }}{% else %} / ∞{% endif %}</span>
+            </div>
+            {% if not allowance.unlimited %}
+              <div class="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-surface-sunken">
+                <div class="h-full rounded-full {% if allowance.exhausted %}bg-rose-500{% elif allowance.percent > 80 %}bg-amber-500{% else %}bg-brand-500{% endif %}" style="width: {{ allowance.percent }}%"></div>
+              </div>
+            {% endif %}
+          </li>
+        {% endfor %}
+        <li class="flex items-baseline justify-between gap-2 border-t border-line pt-3">
+          <span class="font-medium text-slate-900 dark:text-white">Profiles</span>
+          <span class="tabular-nums text-muted">{{ profile_used }}{% if profile_limit %} / {{ profile_limit }}{% else %} / ∞{% endif %}</span>
+        </li>
+      </ul>
+      {% if "billing.manage" in portal_capabilities %}
+        <form method="post" action="{% url 'staffportal:user_usage_reset' account.pk %}" class="mt-4">
+          {% csrf_token %}
+          <button type="submit" class="btn-secondary w-full">Reset this period's usage</button>
+        </form>
+      {% endif %}
+    </section>
+
+    {% if "billing.manage" in portal_capabilities and subscription %}
+    <section class="card p-5">
+      <h2 class="section-title">Change plan</h2>
+      <form method="post" action="{% url 'staffportal:user_plan_change' account.pk %}" class="mt-4 space-y-3">
+        {% csrf_token %}
+        {% for field in plan_form %}{% include "partials/field.html" with field=field %}{% endfor %}
+        <button type="submit" class="btn-primary w-full">Apply</button>
+      </form>
+    </section>
+    {% endif %}
+
+    {% if "users.impersonate" in portal_capabilities %}
+    <section class="card border-l-4 border-amber-500 p-5">
+      <h2 class="section-title">Sign in as this account</h2>
+      {% if can_impersonate %}
+        <p class="mt-1 text-sm text-muted">Audited, time-limited, and visible to you as a banner the whole time.</p>
+        <form method="post" action="{% url 'staffportal:impersonate_start' account.pk %}" class="mt-4 space-y-3">
+          {% csrf_token %}
+          {% for field in impersonation_form %}{% include "partials/field.html" with field=field %}{% endfor %}
+          <button type="submit" class="btn-primary w-full">Start session</button>
+        </form>
+      {% else %}
+        <p class="mt-2 text-sm text-muted">{{ impersonate_blocked_reason }}</p>
+      {% endif %}
+      {% if impersonations %}
+        <ul class="mt-4 space-y-1.5 border-t border-line pt-3 text-xs text-muted">
+          {% for session in impersonations %}
+            <li>{{ session.actor_email }} · {{ session.started_at|date:"Y-m-d H:i" }} · {{ session.reason }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </section>
+    {% endif %}
+
+    {% if "users.manage" in portal_capabilities %}
+    <section class="card p-5">
+      <h2 class="section-title">Account actions</h2>
+      <div class="mt-4 space-y-3">
+        <form method="post" action="{% url 'staffportal:user_password_reset' account.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="btn-secondary w-full">Send password reset email</button>
+        </form>
+        {% if account.is_active %}
+          <form method="post" action="{% url 'staffportal:user_suspend' account.pk %}" class="space-y-2">
+            {% csrf_token %}
+            <input type="text" name="reason" placeholder="Reason (audited)" class="block w-full rounded-lg border border-line-strong bg-surface px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-500 dark:text-slate-100" />
+            <button type="submit" class="btn-danger w-full">Suspend and end their sessions</button>
+          </form>
+        {% else %}
+          <form method="post" action="{% url 'staffportal:user_reactivate' account.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn-primary w-full">Reactivate account</button>
+          </form>
+        {% endif %}
+      </div>
+    </section>
+    {% endif %}
+
+    <section class="card p-5">
+      <h2 class="section-title">Feature flags</h2>
+      <p class="mt-1 text-sm text-muted">What is switched on for this account.</p>
+      {% if enabled_flags %}
+        <ul class="mt-3 flex flex-wrap gap-1.5">
+          {% for key in enabled_flags %}<li><span class="badge badge-strong">{{ key }}</span></li>{% endfor %}
+        </ul>
+      {% else %}
+        <p class="mt-3 text-sm text-muted">None.</p>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

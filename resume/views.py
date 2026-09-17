@@ -9,6 +9,8 @@ from django.views.generic import CreateView, ListView
 
 from core.models import AITask
 from jobs.models import JobPost
+from staffportal.models import UsageMetric
+from staffportal.services import quotas
 
 from .forms import ResumeUploadForm, TailoredResumeForm
 from .models import ResumeImport, TailoredResume
@@ -23,11 +25,17 @@ class ResumeUploadView(LoginRequiredMixin, CreateView):
     template_name = "resume/resume_upload.html"
 
     def form_valid(self, form):
+        blocked = quotas.blocked_message(self.request.user, UsageMetric.RESUME_IMPORT)
+        if blocked:
+            messages.error(self.request, blocked)
+            return self.form_invalid(form)
+
         form.instance.profile = self.request.profile
         form.instance.original_filename = form.instance.file.name
         response = super().form_valid(form)
         # Never block the POST on an AI call — the review page shows progress.
         enqueue_resume_analysis(self.object)
+        quotas.consume(self.request.user, UsageMetric.RESUME_IMPORT)
         return response
 
     def get_success_url(self):
@@ -107,7 +115,13 @@ class TailoredResumeGenerateView(TailoredResumeMixin, View):
             )
             return redirect(job.get_absolute_url())
 
+        blocked = quotas.blocked_message(request.user, UsageMetric.TAILORED_RESUME)
+        if blocked:
+            messages.error(request, blocked)
+            return redirect(job.get_absolute_url())
+
         enqueue_tailored_resume(job)
+        quotas.consume(request.user, UsageMetric.TAILORED_RESUME)
         messages.info(request, _("Writing your tailored resume — this takes a moment."))
         return redirect("resume:tailored", job_pk=job.pk)
 

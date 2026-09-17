@@ -1,0 +1,17 @@
+{% extends "staffportal/base.html" %}
+{% block breadcrumb %}
+  {% url 'staffportal:subscription_list' as list_url %}
+  {% include "partials/_crumb.html" with crumb_label="Subscriptions" crumb_url=list_url only %}
+  {% include "partials/_crumb.html" with crumb_label=page_title only %}
+{% endblock %}
+{% block content %}
+<div class="space-y-4">
+  <div class="card max-w-3xl p-4 text-sm text-muted">
+    Editing here records the intent, it does not talk to a payment provider —
+    `external_customer_id` and `external_subscription_id` are where a real
+    provider's ids go once one is wired in.
+  </div>
+  {% url 'staffportal:user_detail' object.user_id as cancel_url %}
+  {% include "staffportal/partials/_form_card.html" with submit_label="Save subscription" cancel_url=cancel_url %}
+</div>
+{% endblock %}

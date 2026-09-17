@@ -1,0 +1,22 @@
+{% extends "staffportal/base.html" %}
+{% block breadcrumb %}
+  {% url 'staffportal:flag_list' as list_url %}
+  {% include "partials/_crumb.html" with crumb_label="Feature flags" crumb_url=list_url only %}
+  {% include "partials/_crumb.html" with crumb_label=page_title only %}
+{% endblock %}
+{% block content %}
+<div class="space-y-4">
+  {% url 'staffportal:flag_list' as cancel_url %}
+  {% include "staffportal/partials/_form_card.html" with submit_label="Save flag" cancel_url=cancel_url %}
+  <div class="card max-w-3xl p-4 text-sm text-muted">
+    <p>A percentage rollout buckets on a hash of the flag key and the account id, so the same accounts stay in the rollout on every request and in every process. Raising the percentage only ever adds accounts; it never reshuffles the ones already in.</p>
+  </div>
+  {% if object %}
+    <form method="post" action="{% url 'staffportal:flag_delete' object.pk %}" class="max-w-3xl">
+      {% csrf_token %}
+      <button type="submit" class="btn-danger">Delete flag</button>
+      <p class="mt-2 text-sm text-muted">Code checking this key will get <code class="rounded bg-surface-sunken px-1.5 py-0.5">False</code> afterwards.</p>
+    </form>
+  {% endif %}
+</div>
+{% endblock %}

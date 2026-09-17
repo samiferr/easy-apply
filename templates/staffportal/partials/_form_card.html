@@ -1,0 +1,18 @@
+{% comment %}
+The one form layout every portal add/edit screen uses. Pass `form`,
+`submit_label` and `cancel_url`; anything screen-specific goes in the
+`{% block %}` around the include.
+{% endcomment %}
+<form method="post" class="card max-w-3xl space-y-5 p-6">
+  {% csrf_token %}
+  {% if form.non_field_errors %}
+    <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950/50 dark:text-rose-300">
+      {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+    </div>
+  {% endif %}
+  {% for field in form %}{% include "partials/field.html" with field=field %}{% endfor %}
+  <div class="flex flex-wrap gap-2 pt-2">
+    <button type="submit" class="btn-primary">{{ submit_label|default:"Save" }}</button>
+    {% if cancel_url %}<a href="{{ cancel_url }}" class="btn-secondary">Cancel</a>{% endif %}
+  </div>
+</form>

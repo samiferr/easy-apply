@@ -1,0 +1,27 @@
+{% extends "staffportal/base.html" %}
+{% block breadcrumb %}{% include "partials/_crumb.html" with crumb_label="Impersonation log" only %}{% endblock %}
+{% block content %}
+<div class="card overflow-x-auto p-5">
+  <table class="data-table data-table-wide">
+    <thead><tr><th>Operator</th><th>Account</th><th>Reason</th><th>Started</th><th>Ended</th><th>IP</th></tr></thead>
+    <tbody>
+      {% for session in sessions %}
+        <tr>
+          <td class="font-medium text-slate-900 dark:text-white">{{ session.actor_email }}</td>
+          <td>{% if session.target_id %}<a href="{% url 'staffportal:user_detail' session.target_id %}" class="text-brand-700 hover:underline dark:text-brand-400">{{ session.target_email }}</a>{% else %}{{ session.target_email }}{% endif %}</td>
+          <td class="max-w-xs">{{ session.reason }}</td>
+          <td>{{ session.started_at|date:"Y-m-d H:i" }}</td>
+          <td>
+            {% if session.ended_at %}{{ session.ended_at|date:"H:i" }} <span class="text-muted">({{ session.get_ended_reason_display|lower }})</span>
+            {% else %}<span class="badge badge-partial">Open until {{ session.expires_at|date:"H:i" }}</span>{% endif %}
+          </td>
+          <td class="text-muted">{{ session.ip_address|default:"—" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="py-8 text-center text-muted">Nobody has impersonated an account.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include "staffportal/partials/_pagination.html" %}
+{% endblock %}

@@ -1,0 +1,85 @@
+{% extends "staffportal/base.html" %}
+{% load staffportal %}
+{% block breadcrumb %}{% include "partials/_crumb.html" with crumb_label="Accounts" only %}{% endblock %}
+{% block page_actions %}
+  {% can "users.export" as can_export %}
+  {% if can_export %}<a href="{% url 'staffportal:user_export' %}{% if querystring %}?{{ querystring }}{% endif %}" class="btn-secondary">Export CSV</a>{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-4">
+  <form method="get" class="card flex flex-wrap items-end gap-3 p-4">
+    <div class="min-w-[14rem] flex-1">
+      <label for="q" class="field-label">Search</label>
+      <input type="search" id="q" name="q" value="{{ filters.q }}" placeholder="Email or name"
+             class="block w-full rounded-lg border border-line-strong bg-surface px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-500 shadow-sm focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500/40 dark:text-slate-100 dark:placeholder:text-slate-400" />
+    </div>
+    <div>
+      <label for="status" class="field-label">Status</label>
+      <select id="status" name="status" class="block rounded-lg border border-line-strong bg-surface px-3.5 py-2.5 pr-8 text-sm text-slate-900 shadow-sm dark:text-slate-100">
+        <option value="">Any</option>
+        <option value="active" {% if filters.status == "active" %}selected{% endif %}>Active</option>
+        <option value="suspended" {% if filters.status == "suspended" %}selected{% endif %}>Suspended</option>
+        <option value="staff" {% if filters.status == "staff" %}selected{% endif %}>Staff</option>
+      </select>
+    </div>
+    <div>
+      <label for="plan" class="field-label">Plan</label>
+      <select id="plan" name="plan" class="block rounded-lg border border-line-strong bg-surface px-3.5 py-2.5 pr-8 text-sm text-slate-900 shadow-sm dark:text-slate-100">
+        <option value="">Any</option>
+        {% for plan in plans %}<option value="{{ plan.pk }}" {% if filters.plan == plan.pk|stringformat:"s" %}selected{% endif %}>{{ plan.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="activity" class="field-label">Activity</label>
+      <select id="activity" name="activity" class="block rounded-lg border border-line-strong bg-surface px-3.5 py-2.5 pr-8 text-sm text-slate-900 shadow-sm dark:text-slate-100">
+        <option value="">Any</option>
+        <option value="recent" {% if filters.activity == "recent" %}selected{% endif %}>Seen in 30 days</option>
+        <option value="dormant" {% if filters.activity == "dormant" %}selected{% endif %}>Dormant</option>
+      </select>
+    </div>
+    <button type="submit" class="btn-primary">Filter</button>
+    {% if querystring %}<a href="{% url 'staffportal:user_list' %}" class="btn-ghost">Clear</a>{% endif %}
+  </form>
+
+  <div class="card overflow-x-auto p-5">
+    <p class="mb-3 text-sm text-muted">{{ page_obj.paginator.count }} of {{ total_count }} account{{ total_count|pluralize }}</p>
+    <table class="data-table data-table-wide">
+      <thead>
+        <tr>
+          <th>Account</th><th>Plan</th><th class="text-right">Profiles</th>
+          <th class="text-right">Job posts</th><th>Last seen</th><th>Joined</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for account in accounts %}
+          <tr>
+            <td>
+              <a href="{% url 'staffportal:user_detail' account.pk %}" class="font-medium text-brand-700 hover:underline dark:text-brand-400">{{ account.email }}</a>
+              <div class="mt-1 flex flex-wrap gap-1.5">
+                {% if not account.is_active %}<span class="badge badge-danger">Suspended</span>{% endif %}
+                {% if account.is_superuser %}<span class="badge badge-pending">Superuser</span>{% elif account.is_staff %}<span class="badge badge-pending">Staff</span>{% endif %}
+                {% if account.get_full_name %}<span class="text-xs text-muted">{{ account.get_full_name }}</span>{% endif %}
+              </div>
+            </td>
+            <td>
+              {% if account.subscription %}
+                {{ account.subscription.plan.name }}
+                <span class="badge {{ account.subscription.status|status_tone }} ml-1">{{ account.subscription.get_status_display }}</span>
+              {% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
+            <td class="text-right tabular-nums">{{ account.profile_count }}</td>
+            <td class="text-right tabular-nums">{{ account.job_post_count }}</td>
+            <td>{% if account.last_seen_at %}{{ account.last_seen_at|timesince }} ago{% else %}<span class="text-muted">never</span>{% endif %}</td>
+            <td>{{ account.date_joined|date:"Y-m-d" }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6" class="py-8 text-center text-muted">No account matches these filters.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% include "staffportal/partials/_pagination.html" %}
+</div>
+{% endblock %}

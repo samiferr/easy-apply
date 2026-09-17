@@ -5,6 +5,9 @@ from django.urls import include, path
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    # The staff portal. `django.contrib.admin` stays for raw table access;
+    # /staff/ is the operator-facing product built on top of it.
+    path("staff/", include("staffportal.urls")),
     # Language switcher (set_language) — cookie-based, so no URL name changes.
     path("i18n/", include("django.conf.urls.i18n")),
     path("accounts/", include("accounts.urls")),

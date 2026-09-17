@@ -1,0 +1,34 @@
+{% comment %}
+A day-by-day bar chart, rendered from `metrics.daily_series`. Server-side CSS
+bars rather than a charting library: the app ships no JS bundler, and a bar
+chart is four divs.
+
+Zero-height bars keep a 2px sliver so the axis still reads as a row of days.
+{% endcomment %}
+<div class="card p-5">
+  <div class="flex flex-wrap items-baseline justify-between gap-2">
+    <h2 class="section-title">{{ chart.label }}</h2>
+    <p class="text-sm text-muted"><span class="font-semibold tabular-nums text-slate-900 dark:text-white">{{ chart.total }}</span> in {{ chart.days }} days · peak {{ chart.peak }}</p>
+  </div>
+  {% if chart.has_data %}
+    <div class="mt-5 flex h-32 items-end gap-px" role="img" aria-label="{{ chart.label }} per day over the last {{ chart.days }} days">
+      {% for bar in chart.bars %}
+        {% comment %}
+        The column is `h-full` so the bar's percentage height has something to
+        resolve against — `items-end` alone shrinks each column to its content
+        and every bar collapses to the 2px floor.
+        {% endcomment %}
+        <div class="group flex h-full flex-1 items-end" title="{{ bar.day }}: {{ bar.count }}">
+          <div class="w-full rounded-t-sm {% if bar.is_today %}bg-brand-600{% else %}bg-brand-500/60{% endif %} transition-all group-hover:bg-brand-600"
+               style="height: {% if bar.percent %}{{ bar.percent }}%{% else %}2px{% endif %}"></div>
+        </div>
+      {% endfor %}
+    </div>
+    <div class="mt-2 flex justify-between text-xs text-muted">
+      <span>{{ chart.bars.0.day }}</span>
+      <span>today</span>
+    </div>
+  {% else %}
+    <p class="mt-5 text-sm text-muted">Nothing in this window yet.</p>
+  {% endif %}
+</div>

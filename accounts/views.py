@@ -41,6 +41,16 @@ class RegisterView(CreateView):
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             return redirect("core:dashboard")
+        # Registration can be closed from the staff portal without a deploy —
+        # the switch an operator reaches for during an incident or a launch.
+        from staffportal.services import runtime_settings
+
+        if not runtime_settings.get("signups_enabled"):
+            messages.info(
+                request,
+                _("New sign-ups are paused right now. Please check back shortly."),
+            )
+            return redirect("core:home")
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
@@ -166,6 +176,15 @@ class ProfileCreateView(LoginRequiredMixin, CreateView):
         return kwargs
 
     def form_valid(self, form):
+        # Workspaces are a ceiling rather than a meter: the check is how many
+        # exist, not how many were created this month.
+        from staffportal.services import quotas
+
+        blocked = quotas.profile_blocked_message(self.request.user)
+        if blocked:
+            messages.error(self.request, blocked)
+            return self.form_invalid(form)
+
         response = super().form_valid(form)
         # A profile you just created is the one you meant to work in.
         set_active_profile(self.request, self.object)

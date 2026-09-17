@@ -1,0 +1,58 @@
+{% load i18n %}
+{% comment %}
+Two strips that belong above everything else on a customer-facing page, both
+driven by `staffportal.context_processors.portal_banners`.
+
+The impersonation strip is deliberately loud and *not* dismissible: a staff
+member working inside someone else's account must not be able to forget it.
+
+Announcements are dismissed per browser with `localStorage` rather than a
+database row — the customer is telling this browser "I read it", which is not
+worth a write, and a fresh device showing it again is the right behaviour for
+an incident notice.
+{% endcomment %}
+
+{% if is_impersonating %}
+  <div class="sticky top-0 z-[70] bg-rose-600 text-white shadow-lg print:hidden">
+    <div class="mx-auto flex w-full max-w-shell flex-wrap items-center justify-between gap-3 px-4 py-2.5 text-sm sm:px-6">
+      <p class="flex min-w-0 items-center gap-2 font-semibold">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        <span class="truncate">
+          Viewing as {{ user.email }}{% if impersonator %} — you are {{ impersonator.email }}{% endif %}{% if impersonation_session %} · ends {{ impersonation_session.expires_at|time:"H:i" }}{% endif %}
+        </span>
+      </p>
+      <form method="post" action="{% url 'staffportal:impersonate_stop' %}" class="shrink-0">
+        {% csrf_token %}
+        <button type="submit" class="rounded-lg bg-white/15 px-3 py-1.5 font-semibold transition hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+          Stop and return to my account
+        </button>
+      </form>
+    </div>
+  </div>
+{% endif %}
+
+{% for announcement in live_announcements %}
+  <div x-data="{ open: {% if announcement.dismissible %}localStorage.getItem('announcement-{{ announcement.pk }}') !== 'dismissed'{% else %}true{% endif %} }"
+       x-show="open" x-cloak
+       class="print:hidden
+         {% if announcement.level == 'critical' %}bg-rose-600 text-white
+         {% elif announcement.level == 'warning' %}bg-amber-500 text-amber-950
+         {% elif announcement.level == 'success' %}bg-emerald-600 text-white
+         {% else %}bg-slate-900 text-white dark:bg-slate-800{% endif %}"
+       role="status">
+    <div class="mx-auto flex w-full max-w-shell flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-sm sm:px-6">
+      <span class="font-semibold">{{ announcement.title }}</span>
+      {% if announcement.body %}<span class="min-w-0 opacity-90">{{ announcement.body }}</span>{% endif %}
+      {% if announcement.link_url %}
+        <a href="{{ announcement.link_url }}" class="font-semibold underline underline-offset-2">{{ announcement.link_label|default:_("Learn more") }}</a>
+      {% endif %}
+      {% if announcement.dismissible %}
+        <button type="button" class="ms-auto shrink-0 rounded p-1 opacity-70 transition hover:opacity-100"
+                @click="open = false; localStorage.setItem('announcement-{{ announcement.pk }}', 'dismissed')"
+                aria-label="{% trans 'Dismiss' %}">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+        </button>
+      {% endif %}
+    </div>
+  </div>
+{% endfor %}

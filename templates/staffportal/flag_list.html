@@ -1,0 +1,45 @@
+{% extends "staffportal/base.html" %}
+{% load staffportal %}
+{% block breadcrumb %}{% include "partials/_crumb.html" with crumb_label="Feature flags" only %}{% endblock %}
+{% block page_actions %}
+  {% if "flags.manage" in portal_capabilities %}<a href="{% url 'staffportal:flag_create' %}" class="btn-primary">+ New flag</a>{% endif %}
+{% endblock %}
+{% block content %}
+<div class="space-y-4">
+  <div class="card p-4 text-sm text-muted">
+    Code checks a flag with <code class="rounded bg-surface-sunken px-1.5 py-0.5">{% templatetag openblock %} feature "key" as on {% templatetag closeblock %}</code>
+    in a template or <code class="rounded bg-surface-sunken px-1.5 py-0.5">flags.is_enabled("key", user)</code> in Python.
+    A key with no row here evaluates to <strong>off</strong>, so deleting a flag retires its feature.
+  </div>
+
+  <div class="card overflow-x-auto p-5">
+    <table class="data-table data-table-wide">
+      <thead><tr><th>Key</th><th>State</th><th>Overrides</th><th>For you</th><th>Updated</th><th></th></tr></thead>
+      <tbody>
+        {% for flag in flags %}
+          <tr>
+            <td>
+              <span class="font-medium text-slate-900 dark:text-white">{{ flag.key }}</span>
+              <p class="text-muted">{{ flag.name }}</p>
+            </td>
+            <td><span class="badge {{ flag.state|status_tone }}">{{ flag.state_summary }}</span></td>
+            <td class="text-muted">
+              {{ flag.users.count }} account{{ flag.users.count|pluralize }}{% if flag.plans.exists %} · {% for plan in flag.plans.all %}{{ plan.name }}{% if not forloop.last %}, {% endif %}{% endfor %}{% endif %}
+            </td>
+            <td>{% if flag.key in my_flags %}<span class="badge badge-strong">on</span>{% else %}<span class="badge badge-none">off</span>{% endif %}</td>
+            <td class="text-muted">{{ flag.updated_at|date:"Y-m-d" }}</td>
+            <td class="text-right">
+              {% if "flags.manage" in portal_capabilities %}
+                <a href="{% url 'staffportal:flag_update' flag.pk %}" class="text-sm font-semibold text-brand-700 dark:text-brand-400">Edit</a>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6" class="py-8 text-center text-muted">No flags yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "staffportal/partials/_pagination.html" %}
+</div>
+{% endblock %}

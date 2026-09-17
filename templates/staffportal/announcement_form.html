@@ -1,0 +1,18 @@
+{% extends "staffportal/base.html" %}
+{% block breadcrumb %}
+  {% url 'staffportal:announcement_list' as list_url %}
+  {% include "partials/_crumb.html" with crumb_label="Announcements" crumb_url=list_url only %}
+  {% include "partials/_crumb.html" with crumb_label=page_title only %}
+{% endblock %}
+{% block content %}
+<div class="space-y-4">
+  {% url 'staffportal:announcement_list' as cancel_url %}
+  {% include "staffportal/partials/_form_card.html" with submit_label="Save announcement" cancel_url=cancel_url %}
+  {% if object %}
+    <form method="post" action="{% url 'staffportal:announcement_delete' object.pk %}" class="max-w-3xl">
+      {% csrf_token %}
+      <button type="submit" class="btn-danger">Delete announcement</button>
+    </form>
+  {% endif %}
+</div>
+{% endblock %}

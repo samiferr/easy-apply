@@ -1,0 +1,24 @@
+{% extends "staffportal/base.html" %}
+{% block breadcrumb %}
+  {% url 'staffportal:billing' as billing_url %}
+  {% include "partials/_crumb.html" with crumb_label="Plans" crumb_url=billing_url only %}
+  {% include "partials/_crumb.html" with crumb_label=page_title only %}
+{% endblock %}
+{% block content %}
+<div class="space-y-4">
+  {% if subscriber_count %}
+    <div class="card border-l-4 border-amber-500 p-4 text-sm">
+      <p><strong>{{ subscriber_count }}</strong> account{{ subscriber_count|pluralize }} {{ subscriber_count|pluralize:"is,are" }} on this plan. Changing an allowance takes effect on their next check — changing the price does not re-bill anyone by itself.</p>
+    </div>
+  {% endif %}
+  {% url 'staffportal:billing' as cancel_url %}
+  {% include "staffportal/partials/_form_card.html" with submit_label="Save plan" cancel_url=cancel_url %}
+  {% if object %}
+    <form method="post" action="{% url 'staffportal:plan_delete' object.pk %}" class="max-w-3xl">
+      {% csrf_token %}
+      <button type="submit" class="btn-danger">{% if subscriber_count %}Deactivate plan{% else %}Delete plan{% endif %}</button>
+      <p class="mt-2 text-sm text-muted">A plan with subscribers is deactivated rather than deleted — it stops taking new sign-ups and keeps the ones it has.</p>
+    </form>
+  {% endif %}
+</div>
+{% endblock %}

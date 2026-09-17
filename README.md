@@ -77,6 +77,13 @@ call made inside it.
   The shell is borderless and has no top bar — the sidebar is the app's only
   chrome and shares one canvas with the content — capped at 96rem and centred, and every foreground/background pair in it is
   measured against WCAG 2.2 rather than eyeballed. See **Design system** below.
+- **An operator console at `/staff/`** for running this as a service: plans,
+  subscriptions and monthly usage quotas; feature flags with percentage
+  rollouts; in-product announcements; runtime kill switches (maintenance mode,
+  AI, sign-ups); audited "sign in as customer" support sessions; system health
+  and AI-queue screens; GDPR data export and erasure; and an append-only audit
+  log of every staff action. Access is a role, not just `is_staff`. See
+  **The operator console** below.
 
 ## Tech stack
 
@@ -106,6 +113,9 @@ education/      Degrees and certificates
 preferences/    Job preferences (salary, location, arrangement) and the
                 benefit list a job's Compensation section is matched against
 legal/          Privacy, terms, cookies, legal notice and contact pages
+staffportal/    The operator console at /staff/: plans, subscriptions and
+                usage quotas, feature flags, announcements, runtime settings,
+                impersonation, health checks, the AI queue and the audit log
 core/           Landing page, dashboard, Markdown export, scoped profile
                 slices (utils.py), shared AI client (ai.py), the active-profile
                 middleware (middleware.py), the AI language contract
@@ -671,6 +681,137 @@ my password" and "I need to recover access to my account". In development,
 to the terminal instead of actually being emailed. Configure `EMAIL_*` in
 `.env` to send real emails in production.
 
+## The operator console (`/staff/`)
+
+Everything a SaaS needs an operator to be able to do, in one place, gated on
+`is_staff`. `django.contrib.admin` stays mounted at `/admin/` as the raw table
+editor of last resort; `/staff/` is the product built for the people running
+this one.
+
+The console is **English only**, deliberately: it is an internal tool with one
+operator language, and translating it would double the review surface of every
+screen for nobody's benefit. Everything a *customer* ever sees — including the
+maintenance page the console can switch on — is still fully translated.
+
+### Access is a role, not a flag
+
+`is_staff` is the door. What is behind it is a role on `staffportal.StaffMember`:
+
+| Role | Adds |
+| --- | --- |
+| **Viewer** | Read the overview, accounts, billing, the queue and the audit log |
+| **Support** | Suspend/reactivate, send password resets, write internal notes, impersonate, export an account's data |
+| **Billing** | Change plans, subscriptions and usage counters |
+| **Admin** | Feature flags, announcements, runtime settings, account deletion |
+| **Superuser** | Everything, plus granting and revoking portal access |
+
+A staff account with no `StaffMember` row reads as a **viewer** — turning on
+`is_staff` by mistake exposes read-only screens, never the delete button.
+Granting roles is superuser-only on purpose: any role that can hand out roles
+can promote itself, which makes every other boundary decorative.
+
+Two rules are enforced in one place (`staffportal/views/base.py`) so no screen
+can forget them:
+
+- a non-staff visitor gets **404, not 403** — a 403 confirms the portal is
+  there;
+- an **impersonated session can never reach the portal**, or "sign in as a
+  customer" becomes a way to take a staff action the audit trail attributes to
+  the customer.
+
+### What it does
+
+**Overview** — MRR, ARR, ARPA and 30-day churn; sign-ups and actives (DAU /
+WAU / MAU and the DAU÷MAU stickiness ratio); an activation funnel from
+"signed up" to "analyzed a job post" to "generated a resume"; AI success rate
+by task kind; and a *needs attention* strip that puts failing health checks and
+failed jobs above the vanity totals.
+
+**Accounts** — searchable and filterable by status, plan and activity, with an
+account screen that carries the customer's profiles, job posts, AI jobs, plan,
+this period's usage against their allowances, the feature flags that are on for
+them, internal support notes, and every staff action ever taken on them.
+Actions: suspend (which also **ends their live sessions**, not just their next
+login), reactivate, send the normal password-reset email (staff never see or
+set a customer's password), change plan, reset this period's usage, export
+their data, and delete the account.
+
+**Impersonation** — "sign in as this customer", with a mandatory recorded
+reason, a session that **expires by itself** (`impersonation_minutes`), a red
+non-dismissible banner on every page while it is open, and an audit entry at
+both ends. Staff cannot impersonate other staff unless they are a superuser.
+
+**Plans, subscriptions and quotas** — plans carry a price and monthly
+allowances where `NULL` means unlimited and `0` means *not included*. Every
+account gets a subscription on the default plan at registration, so no code
+path has to handle "user without a plan". Usage is counted in `UsageRecord`
+rather than derived from `core.AITask`, because task rows are pruned on a
+retention schedule and a billing period has to still add up after they are
+gone. `external_customer_id` / `external_subscription_id` are where a real
+payment provider's ids go when one is wired in — nothing here bills anyone.
+
+**Feature flags** — off / on / staff-only / percentage rollout, plus per-account
+overrides and per-plan entitlements. Bucketing is a hash of the flag key and the
+account id, so a 10% rollout is the *same* 10% on every request and in every
+process, and raising the percentage only ever adds accounts. A key with no row
+evaluates to **off**, so deleting a flag retires its feature rather than
+releasing it to everyone. Check one with `{% feature "key" as on %}` in a
+template or `flags.is_enabled("key", user)` in Python.
+
+**Announcements** — maintenance windows, incidents and release notes, shown as a
+banner in the product to a chosen audience for a chosen window, dismissed per
+browser in `localStorage`.
+
+**Operations** — a health screen that answers both *is it up* (database,
+migrations, Celery workers, the queue) and *is it configured like production*
+(`DEBUG`, `SECRET_KEY`, `ALLOWED_HOSTS`, HTTPS cookies, email backend, AI key,
+`collectstatic`, the `LEGAL_*` placeholders, a default plan); the AI queue with
+per-job retry and cancel; and the runtime settings below.
+
+**Audit log** — append-only: `AuditLog.save()` refuses updates and
+`delete()` refuses single-row deletes, so the only way to remove anything is the
+retention command. Actor email and target label are denormalized so an entry
+stays readable after the accounts it names are deleted — which is exactly the
+entry someone will come asking about. Downloading the log is itself audited.
+
+**Exports** — streaming CSVs for accounts, subscriptions, the queue and the
+audit log, and a per-account JSON export covering every table, for GDPR Art. 20
+(portability) and Art. 17 (erasure, via the delete flow).
+
+### Runtime settings
+
+Changed from `/staff/operations/settings/` with no deploy, and cached for 30
+seconds so the per-request ones cost nothing:
+
+| Key | Default | What it does |
+| --- | --- | --- |
+| `signups_enabled` | `True` | Closes registration without touching existing accounts |
+| `maintenance_mode` | `False` | Everyone but staff gets a translated 503 page; staff keep full access so the fix can be verified before it is lifted |
+| `ai_features_enabled` | `True` | Kill switch for every call to the AI provider |
+| `enforce_quotas` | `False` | Whether plan allowances actually refuse work |
+| `impersonation_minutes` | `30` | How long a "sign in as" session stays open |
+| `audit_retention_days` | `365` | Used by `manage.py prune_audit_log` |
+| `support_email` | `""` | Shown to customers on error and quota screens |
+
+**Quota enforcement ships dark.** With `enforce_quotas` off — the default — the
+product behaves exactly as it did before this app existed: usage is recorded,
+nothing is refused. Turn it on once the allowances read correctly on real
+accounts. Discovering a wrong limit in a staging dashboard is cheap;
+discovering it in production is not.
+
+### Setting it up
+
+```bash
+python manage.py migrate
+python manage.py seed_saas --backfill   # starter plans + flags, and a
+                                        # subscription for existing accounts
+python manage.py createsuperuser        # a superuser holds every capability
+```
+
+Then open `/staff/` and add the rest of the team under **Portal access**.
+
+Schedule `python manage.py prune_audit_log` alongside the other retention jobs.
+
 ## Deployment notes
 
 - Set `DEBUG=False`, a strong `SECRET_KEY`, and real `ALLOWED_HOSTS` /
@@ -696,3 +837,11 @@ to the terminal instead of actually being emailed. Configure `EMAIL_*` in
 - Schedule `python manage.py prune_ai_tasks`, and run
   `python manage.py sweep_stuck_ai_tasks` on worker startup so a crashed worker
   never leaves a permanent spinner in the UI.
+- Run `python manage.py seed_saas --backfill` once so every account has a
+  subscription, then check `/staff/operations/` — the health screen is a
+  production-readiness checklist for exactly this list.
+- Schedule `python manage.py prune_audit_log` to apply the audit retention
+  window (`audit_retention_days`, 365 days by default).
+- Set `STAFF_PORTAL_TRUST_X_FORWARDED_FOR=True` **only** if the proxy in front
+  of the app overwrites `X-Forwarded-For`. Trusting it otherwise lets any caller
+  forge the IP address recorded in the audit trail.
