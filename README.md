@@ -814,6 +814,14 @@ Schedule `python manage.py prune_audit_log` alongside the other retention jobs.
 
 ## Deployment notes
 
+Production deploys to a VPS through GitHub Actions (SSH + systemd + nginx +
+Let's Encrypt) on every push to `main`: gunicorn, a Celery worker, Redis and a
+daily retention timer, all set up by `deploy/deploy.sh`. The server's IP and
+domain come from the `VPS_HOST` and `DOMAIN` Actions secrets (or variables).
+See [`deploy/README.md`](deploy/README.md) for the one-time setup, the full
+list of secrets, and troubleshooting. The pipeline already covers the
+checklist below; it's kept for anyone deploying some other way.
+
 - Set `DEBUG=False`, a strong `SECRET_KEY`, and real `ALLOWED_HOSTS` /
   `CSRF_TRUSTED_ORIGINS` in your environment.
 - Run `python manage.py collectstatic` — WhiteNoise serves the compressed,

@@ -1,0 +1,10 @@
+[Unit]
+Description=easy-apply retention jobs (AI task records, audit log)
+
+[Service]
+Type=oneshot
+User=__DEPLOY_USER__
+Group=__DEPLOY_USER__
+WorkingDirectory=/var/www/easy-apply
+ExecStart=/var/www/easy-apply/venv/bin/python manage.py prune_ai_tasks
+ExecStart=/var/www/easy-apply/venv/bin/python manage.py prune_audit_log

@@ -249,3 +249,6 @@ node_modules/
 db.sqlite3-shm
 db.sqlite3-wal
 /.opencode/
+
+# Pre-migration SQLite snapshots written by deploy/deploy.sh
+backups/
