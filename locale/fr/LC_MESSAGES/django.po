@@ -3335,3 +3335,35 @@ msgstr ""
 "Easy Apply est brièvement indisponible pendant une mise à jour. Rien de ce "
 "que vous avez enregistré n’a été perdu — merci de réessayer dans quelques "
 "minutes."
+
+#: templates/core/home.html
+msgid "It's OK to be"
+msgstr "C’est bien d’être"
+
+msgid "lazy"
+msgstr "paresseux"
+
+msgid "It's OK to be lazy"
+msgstr "C’est bien d’être paresseux"
+
+msgid "The Law of Least Mental Effort"
+msgstr "La loi du moindre effort mental"
+
+msgid "The lazy path to a tailored resume"
+msgstr "Trois étapes vers un CV personnalisé"
+
+msgid "Start being lazy — it's free"
+msgstr "Soyez paresseux — c’est gratuit"
+
+msgid "Do less. Land more."
+msgstr "Faites moins. Décrochez plus."
+
+msgid "Create your free account"
+msgstr "Créez votre compte gratuit"
+
+msgid "You're not lazy."
+msgstr "Vous n’êtes pas paresseux."
+
+msgid "You're working with leverage."
+msgstr "Vous utilisez un effet de levier."
+

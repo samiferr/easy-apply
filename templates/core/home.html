@@ -4,7 +4,7 @@
 {% block meta_description %}{% trans "It's OK to be lazy. Easy Apply does the repetitive busywork — extracting 13 job sections, checking requirements, and generating tailored resumes — so you can save 100% of your energy for the interview." %}{% endblock %}
 
 {% block content %}
-<!--
+{% comment %}
   LANDING PAGE: "It's OK to be lazy."
 
   Behavioral Economics & Neuromarketing Framework:
@@ -15,14 +15,14 @@
      and automation instantly (60,000x faster than raw copy).
   4. The Contrast Principle & IKEA Effect — interactive Alpine toggle comparing the 3-hour burnout with the 15-second flow.
   5. Loss Aversion (Prospect Theory, Kahneman & Tversky) — "What you'll stop doing" focuses on pain elimination.
-  6. Hick's Law & Fitts's Law — single dominant CTA, frictionless entry, no credit card required.
+  6. Hick's Law & Fitts's Law — single dominant CTA, frictionless entry, full-width touch targets on mobile.
   7. Peak-End Rule — memorable emotional closing hook.
--->
+{% endcomment %}
 
 <!-- =========================================================================
      1. HERO SECTION: The Core Hook & Visual Priming
      ========================================================================= -->
-<section class="relative overflow-hidden pt-8 pb-16 sm:pb-24 lg:pb-32">
+<section class="relative overflow-hidden pt-6 pb-12 sm:pt-10 sm:pb-20 lg:pt-14 lg:pb-28">
   <!-- Ambient backdrop lighting -->
   <div class="pointer-events-none absolute inset-x-0 -top-40 -z-10 transform-gpu blur-3xl" aria-hidden="true">
     <div class="relative left-1/2 aspect-[1155/678] w-[38rem] -translate-x-1/2 bg-gradient-to-tr from-brand-300 via-indigo-400 to-emerald-400 opacity-20 dark:opacity-25"
@@ -31,67 +31,67 @@
 
   <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
     <div class="text-center">
-      <!-- Cognitive fluency badge / eyebrow -->
-      <div class="inline-flex items-center gap-2 rounded-full border border-brand-200/80 bg-brand-50/80 px-4 py-1.5 text-xs font-semibold tracking-wide uppercase text-brand-700 backdrop-blur-sm sm:text-sm dark:border-brand-800/60 dark:bg-brand-950/60 dark:text-brand-300">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-brand-600 dark:text-brand-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+      <!-- Cognitive fluency badge / eyebrow (Optimized for small screens) -->
+      <div class="inline-flex items-center gap-1.5 sm:gap-2 rounded-full border border-brand-200/80 bg-brand-50/80 px-3 py-1 sm:px-4 sm:py-1.5 text-[11px] sm:text-xs font-semibold tracking-wide uppercase text-brand-700 backdrop-blur-sm dark:border-brand-800/60 dark:bg-brand-950/60 dark:text-brand-300">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 sm:h-4 sm:w-4 text-brand-600 dark:text-brand-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
         <span>{% trans "The Law of Least Mental Effort" %}</span>
       </div>
 
-      <!-- Main Headline: The Von Restorff accent on "lazy" -->
-      <h1 class="mx-auto mt-6 max-w-4xl text-heading-4xl font-extrabold tracking-tight text-slate-900 sm:text-heading-6xl lg:text-heading-7xl dark:text-white">
+      <!-- Main Headline: Responsive mobile sizing (30px on small screens, scaling up smoothly) -->
+      <h1 class="mx-auto mt-4 sm:mt-6 max-w-4xl text-3xl font-extrabold tracking-tight text-slate-900 sm:text-5xl md:text-heading-6xl lg:text-heading-7xl dark:text-white leading-tight">
         {% trans "It's OK to be" %}
         <span class="relative inline-block whitespace-nowrap text-brand-600 dark:text-brand-400">
           {% trans "lazy" %}
-          <svg class="absolute left-0 top-full mt-1 h-3.5 w-full text-brand-500 dark:text-brand-400" viewBox="0 0 120 14" fill="none" preserveAspectRatio="none" aria-hidden="true">
+          <svg class="absolute left-0 top-full mt-0.5 sm:mt-1 h-2 sm:h-3.5 w-full text-brand-500 dark:text-brand-400" viewBox="0 0 120 14" fill="none" preserveAspectRatio="none" aria-hidden="true">
             <path d="M4 10C35 3 75 3 116 7" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>
           </svg>
         </span>.
       </h1>
 
-      <!-- Neuromarketing Subhead (Kahneman System 1 energy conservation) -->
-      <p class="mx-auto mt-7 max-w-2xl text-lg leading-relaxed text-slate-600 sm:text-xl dark:text-slate-300">
+      <!-- Neuromarketing Subhead (Optimized for mobile reading comfort) -->
+      <p class="mx-auto mt-4 sm:mt-7 max-w-2xl text-sm sm:text-lg lg:text-xl leading-relaxed text-slate-600 dark:text-slate-300">
         {% trans "Your brain consumes 20% of your body's energy. It naturally resists repetitive clerical work for a reason. Easy Apply handles the reading, matching, and resume rewriting — so you can save 100% of your cognitive energy for the actual interview." %}
       </p>
 
-      <!-- Hick's Law: Dominant Primary CTA + Risk Reversal -->
-      <div class="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-        <a href="{% url 'accounts:register' %}" class="btn-primary !px-8 !py-3.5 !text-base shadow-lg shadow-brand-500/20 transition-all hover:shadow-xl hover:shadow-brand-500/30">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+      <!-- Hick's & Fitts's Law: Full width touch targets on phones, inline on desktop -->
+      <div class="mt-6 sm:mt-10 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 w-full sm:w-auto">
+        <a href="{% url 'accounts:register' %}" class="btn-primary w-full sm:w-auto !px-6 sm:!px-8 !py-3.5 !text-sm sm:!text-base min-h-[48px] justify-center shadow-lg shadow-brand-500/20 transition-all hover:shadow-xl hover:shadow-brand-500/30">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
           {% trans "Start being lazy — it's free" %}
         </a>
-        <a href="#contrast" class="btn-secondary !px-6 !py-3.5 !text-base">
+        <a href="#contrast" class="btn-secondary w-full sm:w-auto !px-5 sm:!px-6 !py-3.5 !text-sm sm:!text-base min-h-[48px] justify-center">
           {% trans "See the effort comparison" %}
         </a>
       </div>
 
-      <!-- Trust & Frictionless cues (Neuromarketing: Zero risk activation) -->
-      <div class="mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-medium text-slate-600 dark:text-slate-400">
-        <span class="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
-          <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+      <!-- Trust cues: wrap cleanly on phones -->
+      <div class="mt-4 sm:mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs font-medium text-slate-600 dark:text-slate-400">
+        <span class="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+          <svg class="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
           {% trans "Free to start" %}
         </span>
-        <span class="inline-flex items-center gap-1.5">
-          <svg class="h-4 w-4 text-brand-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd" /></svg>
+        <span class="inline-flex items-center gap-1">
+          <svg class="h-3.5 w-3.5 sm:h-4 sm:w-4 text-brand-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd" /></svg>
           {% trans "No credit card needed" %}
         </span>
-        <span class="inline-flex items-center gap-1.5">
-          <svg class="h-4 w-4 text-purple-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+        <span class="inline-flex items-center gap-1">
+          <svg class="h-3.5 w-3.5 sm:h-4 sm:w-4 text-purple-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
           {% trans "Your data stays 100% yours" %}
         </span>
       </div>
     </div>
 
     <!-- Free Vector Illustration: Serene Professional kicking back while AI automates the workflow -->
-    <div class="mt-12 sm:mt-16">
-      <div class="card overflow-hidden p-4 sm:p-8 bg-gradient-to-b from-white to-slate-50/80 shadow-2xl dark:from-slate-900 dark:to-slate-950">
-        <div class="flex items-center justify-between border-b border-line pb-4 mb-4">
-          <div class="flex items-center gap-2">
-            <span class="h-3 w-3 rounded-full bg-rose-400"></span>
-            <span class="h-3 w-3 rounded-full bg-amber-400"></span>
-            <span class="h-3 w-3 rounded-full bg-emerald-400"></span>
-            <span class="ml-2 text-xs font-semibold text-slate-500 dark:text-slate-400">{% trans "Easy Apply Automation Engine" %}</span>
+    <div class="mt-8 sm:mt-14">
+      <div class="card overflow-hidden p-2.5 sm:p-6 lg:p-8 bg-gradient-to-b from-white to-slate-50/80 shadow-xl dark:from-slate-900 dark:to-slate-950 rounded-xl sm:rounded-2xl">
+        <div class="flex items-center justify-between border-b border-line pb-2.5 sm:pb-4 mb-3 sm:mb-4 px-1">
+          <div class="flex items-center gap-1.5 sm:gap-2">
+            <span class="h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full bg-rose-400"></span>
+            <span class="h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full bg-amber-400"></span>
+            <span class="h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full bg-emerald-400"></span>
+            <span class="ml-1 sm:ml-2 text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 truncate max-w-[130px] sm:max-w-none">{% trans "Easy Apply Automation Engine" %}</span>
           </div>
-          <span class="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300">
+          <span class="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] sm:text-xs font-semibold text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 shrink-0">
             <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
             {% trans "Autopilot Active" %}
           </span>
@@ -107,29 +107,29 @@
 <!-- =========================================================================
      2. THE REFRAME: Identity Labeling (Cialdini) & Authority
      ========================================================================= -->
-<section class="border-t border-line bg-surface py-16 sm:py-24">
+<section class="border-t border-line bg-surface py-12 sm:py-20 lg:py-24">
   <div class="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
     <!-- Famous Quote: Reframing "Lazy" into Highest-Status Efficiency -->
-    <blockquote class="card p-8 sm:p-10 relative overflow-hidden bg-brand-50/40 border border-brand-100 dark:bg-slate-900/60 dark:border-brand-900/50">
-      <svg class="absolute -top-4 -left-4 h-20 w-20 text-brand-200/50 dark:text-brand-900/30" viewBox="0 0 24 24" fill="currentColor"><path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/></svg>
+    <blockquote class="card p-5 sm:p-8 md:p-10 relative overflow-hidden bg-brand-50/40 border border-brand-100 dark:bg-slate-900/60 dark:border-brand-900/50 rounded-xl sm:rounded-2xl">
+      <svg class="absolute -top-3 -left-3 sm:-top-4 sm:-left-4 h-12 w-12 sm:h-20 sm:w-20 text-brand-200/50 dark:text-brand-900/30" viewBox="0 0 24 24" fill="currentColor"><path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/></svg>
 
-      <p class="text-heading-xl sm:text-heading-2xl font-bold tracking-tight text-slate-900 dark:text-white leading-snug">
+      <p class="text-base sm:text-heading-xl md:text-heading-2xl font-bold tracking-tight text-slate-900 dark:text-white leading-snug">
         {% trans "“I choose a lazy person to do a hard job because a lazy person will find an easy way to do it.”" %}
       </p>
-      <footer class="mt-4 text-sm font-semibold uppercase tracking-wider text-brand-700 dark:text-brand-400">
+      <footer class="mt-3 sm:mt-4 text-xs sm:text-sm font-semibold uppercase tracking-wider text-brand-700 dark:text-brand-400">
         — {% trans "Bill Gates" %}
       </footer>
     </blockquote>
 
-    <div class="mt-12">
-      <h2 class="text-heading-3xl font-extrabold tracking-tight text-slate-900 sm:text-heading-4xl dark:text-white">
+    <div class="mt-8 sm:mt-12">
+      <h2 class="text-2xl sm:text-heading-3xl md:text-heading-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
         {% trans "You're not lazy." %}<br>
         <span class="text-brand-600 dark:text-brand-400">{% trans "You're working with leverage." %}</span>
       </h2>
-      <p class="mx-auto mt-6 max-w-2xl text-lg text-slate-600 dark:text-slate-300">
+      <p class="mx-auto mt-4 sm:mt-6 max-w-2xl text-sm sm:text-base md:text-lg leading-relaxed text-slate-600 dark:text-slate-300">
         {% trans "Repetitive copy-pasting, manually parsing bloated job specs, and rewriting bullet points is not 'hard work' — it is low-leverage clerical busywork." %}
       </p>
-      <p class="mx-auto mt-3 max-w-2xl text-lg text-slate-600 dark:text-slate-300">
+      <p class="mx-auto mt-2 sm:mt-3 max-w-2xl text-sm sm:text-base md:text-lg leading-relaxed text-slate-600 dark:text-slate-300">
         {% trans "High-performing candidates don't waste their willpower on paperwork. They automate the busywork and show up sharp, energized, and prepared to win the interview." %}
       </p>
     </div>
@@ -139,57 +139,57 @@
 <!-- =========================================================================
      3. THE CONTRAST PRINCIPLE: Interactive Effort Comparison
      ========================================================================= -->
-<section id="contrast" class="py-20 sm:py-28" x-data="{ viewMode: 'lazy' }">
+<section id="contrast" class="py-12 sm:py-20 lg:py-28" x-data="{ viewMode: 'lazy' }">
   <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
     <div class="text-center">
-      <p class="text-xs font-semibold uppercase tracking-wider text-brand-600 dark:text-brand-400">
+      <p class="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-brand-600 dark:text-brand-400">
         {% trans "The Neuromarketing Contrast Principle" %}
       </p>
-      <h2 class="mt-2 text-heading-3xl font-extrabold tracking-tight text-slate-900 sm:text-heading-5xl dark:text-white">
+      <h2 class="mt-1.5 sm:mt-2 text-2xl sm:text-heading-3xl md:text-heading-5xl font-extrabold tracking-tight text-slate-900 dark:text-white">
         {% trans "Which way sounds more intelligent?" %}
       </h2>
-      <p class="mx-auto mt-4 max-w-2xl text-lg text-slate-600 dark:text-slate-300">
+      <p class="mx-auto mt-3 sm:mt-4 max-w-2xl text-sm sm:text-base md:text-lg leading-relaxed text-slate-600 dark:text-slate-300">
         {% trans "Compare the cognitive strain of traditional applying against the effortless precision of Easy Apply." %}
       </p>
 
-      <!-- Interactive Switcher (Neuromarketing: IKEA Effect / Active Engagement) -->
-      <div class="mt-8 inline-flex rounded-xl bg-surface p-1.5 shadow-sm ring-1 ring-line">
+      <!-- Interactive Switcher (Responsive mobile control) -->
+      <div class="mt-6 sm:mt-8 inline-flex w-full max-w-sm sm:w-auto rounded-xl bg-surface-sunken p-1 sm:p-1.5 shadow-sm ring-1 ring-line">
         <button type="button" @click="viewMode = 'exhausting'"
-                :class="viewMode === 'exhausting' ? 'bg-rose-600 text-white shadow' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'"
-                class="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition">
-          <span>😤</span>
+                :class="viewMode === 'exhausting' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'"
+                class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 sm:gap-2 rounded-lg px-2.5 py-2 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold transition">
+          <span class="text-sm">😤</span>
           <span>{% trans "The 3-Hour Burnout Way" %}</span>
         </button>
         <button type="button" @click="viewMode = 'lazy'"
-                :class="viewMode === 'lazy' ? 'bg-emerald-600 text-white shadow' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'"
-                class="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition">
-          <span>😎</span>
+                :class="viewMode === 'lazy' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'"
+                class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 sm:gap-2 rounded-lg px-2.5 py-2 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold transition">
+          <span class="text-sm">😎</span>
           <span>{% trans "The Strategic 'Lazy' Way" %}</span>
         </button>
       </div>
     </div>
 
-    <!-- Vector Comparison Visual -->
-    <div class="mt-12">
+    <!-- Vector Comparison Visual (Switches card smoothly on mobile; side-by-side on desktop) -->
+    <div class="mt-8 sm:mt-12">
       {% include "illustrations/burnout_vs_leverage.html" %}
     </div>
 
     <!-- Numerical Cognitive Math (Concreteness & Chunking) -->
-    <div class="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-3">
-      <div class="card p-6 text-center border-t-4 border-brand-500">
-        <p class="text-heading-3xl font-extrabold text-brand-600 dark:text-brand-400">1</p>
-        <p class="mt-2 font-semibold text-slate-900 dark:text-white">{% trans "Resume upload once" %}</p>
-        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">{% trans "We extract your career data into clean reusable building blocks." %}</p>
+    <div class="mt-8 sm:mt-12 grid grid-cols-1 sm:grid-cols-3 gap-3.5 sm:gap-6">
+      <div class="card p-4 sm:p-6 text-center border-t-4 border-brand-500 rounded-xl sm:rounded-2xl">
+        <p class="text-3xl sm:text-heading-3xl font-extrabold text-brand-600 dark:text-brand-400">1</p>
+        <p class="mt-1 sm:mt-2 font-semibold text-sm sm:text-base text-slate-900 dark:text-white">{% trans "Resume upload once" %}</p>
+        <p class="mt-1 text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{% trans "We extract your career data into clean reusable building blocks." %}</p>
       </div>
-      <div class="card p-6 text-center border-t-4 border-emerald-500">
-        <p class="text-heading-3xl font-extrabold text-emerald-600 dark:text-emerald-400">13</p>
-        <p class="mt-2 font-semibold text-slate-900 dark:text-white">{% trans "Sections parsed per post" %}</p>
-        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">{% trans "Requirements, compensation & red flags separated in seconds." %}</p>
+      <div class="card p-4 sm:p-6 text-center border-t-4 border-emerald-500 rounded-xl sm:rounded-2xl">
+        <p class="text-3xl sm:text-heading-3xl font-extrabold text-emerald-600 dark:text-emerald-400">13</p>
+        <p class="mt-1 sm:mt-2 font-semibold text-sm sm:text-base text-slate-900 dark:text-white">{% trans "Sections parsed per post" %}</p>
+        <p class="mt-1 text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{% trans "Requirements, compensation & red flags separated in seconds." %}</p>
       </div>
-      <div class="card p-6 text-center border-t-4 border-purple-500">
-        <p class="text-heading-3xl font-extrabold text-purple-600 dark:text-purple-400">0</p>
-        <p class="mt-2 font-semibold text-slate-900 dark:text-white">{% trans "Manual rewrites" %}</p>
-        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">{% trans "A fresh, tailored resume ready in the company's own vocabulary." %}</p>
+      <div class="card p-4 sm:p-6 text-center border-t-4 border-purple-500 rounded-xl sm:rounded-2xl">
+        <p class="text-3xl sm:text-heading-3xl font-extrabold text-purple-600 dark:text-purple-400">0</p>
+        <p class="mt-1 sm:mt-2 font-semibold text-sm sm:text-base text-slate-900 dark:text-white">{% trans "Manual rewrites" %}</p>
+        <p class="mt-1 text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{% trans "A fresh, tailored resume ready in the company's own vocabulary." %}</p>
       </div>
     </div>
   </div>
@@ -198,65 +198,65 @@
 <!-- =========================================================================
      4. NEUROMARKETING DEEP DIVE: The Science of Energy Conservation
      ========================================================================= -->
-<section id="science" class="border-t border-line bg-surface py-20 sm:py-24">
+<section id="science" class="border-t border-line bg-surface py-12 sm:py-20 lg:py-24">
   <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
       <!-- Left side: Brain vector illustration -->
       <div class="lg:col-span-5 text-center">
-        <div class="card p-8 bg-gradient-to-b from-brand-50/50 to-white dark:from-slate-900 dark:to-slate-950">
-          <p class="text-xs font-semibold uppercase tracking-wider text-brand-600 dark:text-brand-400 mb-2">
+        <div class="card p-5 sm:p-8 bg-gradient-to-b from-brand-50/50 to-white dark:from-slate-900 dark:to-slate-950 rounded-xl sm:rounded-2xl">
+          <p class="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-brand-600 dark:text-brand-400 mb-1.5 sm:mb-2">
             {% trans "Cognitive Architecture" %}
           </p>
-          <h3 class="text-heading-lg font-bold text-slate-900 dark:text-white">
+          <h3 class="text-base sm:text-heading-lg font-bold text-slate-900 dark:text-white leading-snug">
             {% trans "Conserve Your Dopamine & Prefrontal Cortex" %}
           </h3>
-          <div class="mt-6">
+          <div class="mt-4 sm:mt-6">
             {% include "illustrations/brain_energy.html" %}
           </div>
-          <p class="mt-4 text-xs text-slate-500 dark:text-slate-400">
+          <p class="mt-3 sm:mt-4 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
             {% trans "Ego depletion occurs when candidates waste cognitive reserves on tedious formatting rather than interview preparation." %}
           </p>
         </div>
       </div>
 
       <!-- Right side: 3 Neuromarketing Facts -->
-      <div class="lg:col-span-7 space-y-6">
+      <div class="lg:col-span-7 space-y-4 sm:space-y-6">
         <div>
-          <span class="text-xs font-semibold uppercase tracking-wider text-brand-600 dark:text-brand-400">
+          <span class="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-brand-600 dark:text-brand-400">
             {% trans "Behavioral Psychology" %}
           </span>
-          <h2 class="mt-2 text-heading-2xl font-extrabold tracking-tight text-slate-900 sm:text-heading-3xl dark:text-white">
+          <h2 class="mt-1 sm:mt-2 text-xl sm:text-heading-2xl md:text-heading-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
             {% trans "Why 'being lazy' is the highest-converting strategy" %}
           </h2>
         </div>
 
-        <div class="space-y-4">
-          <div class="card p-5 border-l-4 border-brand-500">
-            <h4 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <span class="flex h-6 w-6 items-center justify-center rounded-full bg-brand-100 text-xs text-brand-700 dark:bg-brand-900/60 dark:text-brand-300">1</span>
-              {% trans "Zipf's Law of Least Effort (Kahneman's System 1)" %}
+        <div class="space-y-3 sm:space-y-4">
+          <div class="card p-4 sm:p-5 border-l-4 border-brand-500 rounded-xl">
+            <h4 class="text-sm sm:text-base font-bold text-slate-900 dark:text-white flex items-start sm:items-center gap-2.5">
+              <span class="flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700 dark:bg-brand-900/60 dark:text-brand-300 shrink-0 mt-0.5 sm:mt-0">1</span>
+              <span>{% trans "Zipf's Law of Least Effort (Kahneman's System 1)" %}</span>
             </h4>
-            <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">
+            <p class="mt-1.5 sm:mt-2 text-xs sm:text-sm leading-relaxed text-slate-600 dark:text-slate-300">
               {% trans "Evolution designed the human mind to minimize mental strain. When an application process feels agonizingly repetitive, your brain triggers fatigue as a protective mechanism. Automating the drudgery aligns with human biology." %}
             </p>
           </div>
 
-          <div class="card p-5 border-l-4 border-emerald-500">
-            <h4 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <span class="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-xs text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300">2</span>
-              {% trans "Cognitive Fluency for Recruiters & ATS" %}
+          <div class="card p-4 sm:p-5 border-l-4 border-emerald-500 rounded-xl">
+            <h4 class="text-sm sm:text-base font-bold text-slate-900 dark:text-white flex items-start sm:items-center gap-2.5">
+              <span class="flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300 shrink-0 mt-0.5 sm:mt-0">2</span>
+              <span>{% trans "Cognitive Fluency for Recruiters & ATS" %}</span>
             </h4>
-            <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">
+            <p class="mt-1.5 sm:mt-2 text-xs sm:text-sm leading-relaxed text-slate-600 dark:text-slate-300">
               {% trans "Hiring teams scan resumes in 6 seconds. When your resume mirrors the exact vocabulary of the job post, their brain processes it with instant cognitive ease. Easy Apply tailors your experience using the employer's own lexicon." %}
             </p>
           </div>
 
-          <div class="card p-5 border-l-4 border-purple-500">
-            <h4 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <span class="flex h-6 w-6 items-center justify-center rounded-full bg-purple-100 text-xs text-purple-700 dark:bg-purple-900/60 dark:text-purple-300">3</span>
-              {% trans "Zero Ego Depletion for the Interview" %}
+          <div class="card p-4 sm:p-5 border-l-4 border-purple-500 rounded-xl">
+            <h4 class="text-sm sm:text-base font-bold text-slate-900 dark:text-white flex items-start sm:items-center gap-2.5">
+              <span class="flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full bg-purple-100 text-xs font-bold text-purple-700 dark:bg-purple-900/60 dark:text-purple-300 shrink-0 mt-0.5 sm:mt-0">3</span>
+              <span>{% trans "Zero Ego Depletion for the Interview" %}</span>
             </h4>
-            <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">
+            <p class="mt-1.5 sm:mt-2 text-xs sm:text-sm leading-relaxed text-slate-600 dark:text-slate-300">
               {% trans "When you spend 15 hours a week in clerical despair, you enter the interview exhausted. Save your energy, confidence, and charisma for the conversations where hiring decisions are actually made." %}
             </p>
           </div>
@@ -269,77 +269,77 @@
 <!-- =========================================================================
      5. HOW IT WORKS: 3 Steps (Visual Dual-Coding with Vector Illustrations)
      ========================================================================= -->
-<section id="how" class="py-20 sm:py-24">
+<section id="how" class="py-12 sm:py-20 lg:py-24">
   <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
     <div class="text-center">
-      <span class="text-xs font-semibold uppercase tracking-wider text-brand-600 dark:text-brand-400">
+      <span class="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-brand-600 dark:text-brand-400">
         {% trans "Frictionless Workflow" %}
       </span>
-      <h2 class="mt-2 text-heading-3xl font-extrabold tracking-tight text-slate-900 sm:text-heading-5xl dark:text-white">
+      <h2 class="mt-1.5 sm:mt-2 text-2xl sm:text-heading-3xl md:text-heading-5xl font-extrabold tracking-tight text-slate-900 dark:text-white">
         {% trans "The lazy path to a tailored resume" %}
       </h2>
-      <p class="mx-auto mt-4 max-w-2xl text-lg text-slate-600 dark:text-slate-300">
+      <p class="mx-auto mt-3 sm:mt-4 max-w-2xl text-sm sm:text-base md:text-lg leading-relaxed text-slate-600 dark:text-slate-300">
         {% trans "Three painless steps. Zero rewriting from scratch. Zero keyword guessing." %}
       </p>
     </div>
 
-    <div class="mt-16 grid grid-cols-1 gap-8 md:grid-cols-3">
+    <div class="mt-10 sm:mt-16 grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-3 lg:gap-8">
       <!-- Step 1 Card -->
-      <div class="relative flex flex-col justify-between card p-6 md:p-8 hover:-translate-y-1 transition duration-200">
+      <div class="relative flex flex-col justify-between card p-5 sm:p-6 lg:p-8 rounded-xl sm:rounded-2xl hover:-translate-y-1 transition duration-200">
         <div>
           <!-- Step 1 Vector Illustration -->
-          <div class="mb-6 flex justify-center">
+          <div class="mb-4 sm:mb-6 flex justify-center">
             {% include "illustrations/step_drop.html" %}
           </div>
-          <div class="flex items-center gap-3">
-            <span class="flex h-8 w-8 items-center justify-center rounded-full bg-brand-600 text-sm font-bold text-white">1</span>
-            <h3 class="text-heading-lg font-bold text-slate-900 dark:text-white">{% trans "Drop in your resume" %}</h3>
+          <div class="flex items-center gap-2.5 sm:gap-3">
+            <span class="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-brand-600 text-xs sm:text-sm font-bold text-white shrink-0">1</span>
+            <h3 class="text-base sm:text-heading-lg font-bold text-slate-900 dark:text-white">{% trans "Drop in your resume" %}</h3>
           </div>
-          <p class="mt-3 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+          <p class="mt-2.5 sm:mt-3 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
             {% trans "Upload a PDF or DOCX once. AI parses your skills, experience, education and languages into clean profile blocks. You review every item with full control." %}
           </p>
         </div>
-        <div class="mt-6 border-t border-line pt-4 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+        <div class="mt-4 sm:mt-6 border-t border-line pt-3 sm:pt-4 text-xs font-medium text-emerald-600 dark:text-emerald-400">
           {% trans "✓ Done once forever" %}
         </div>
       </div>
 
       <!-- Step 2 Card -->
-      <div class="relative flex flex-col justify-between card p-6 md:p-8 hover:-translate-y-1 transition duration-200">
+      <div class="relative flex flex-col justify-between card p-5 sm:p-6 lg:p-8 rounded-xl sm:rounded-2xl hover:-translate-y-1 transition duration-200">
         <div>
           <!-- Step 2 Vector Illustration -->
-          <div class="mb-6 flex justify-center">
+          <div class="mb-4 sm:mb-6 flex justify-center">
             {% include "illustrations/step_paste.html" %}
           </div>
-          <div class="flex items-center gap-3">
-            <span class="flex h-8 w-8 items-center justify-center rounded-full bg-brand-600 text-sm font-bold text-white">2</span>
-            <h3 class="text-heading-lg font-bold text-slate-900 dark:text-white">{% trans "Paste any job post" %}</h3>
+          <div class="flex items-center gap-2.5 sm:gap-3">
+            <span class="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-brand-600 text-xs sm:text-sm font-bold text-white shrink-0">2</span>
+            <h3 class="text-base sm:text-heading-lg font-bold text-slate-900 dark:text-white">{% trans "Paste any job post" %}</h3>
           </div>
-          <p class="mt-3 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+          <p class="mt-2.5 sm:mt-3 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
             {% trans "Paste raw text from LinkedIn, Indeed, or career sites. We break it into 13 standardized sections and evaluate every requirement against your profile." %}
           </p>
         </div>
-        <div class="mt-6 border-t border-line pt-4 text-xs font-medium text-brand-600 dark:text-brand-400">
+        <div class="mt-4 sm:mt-6 border-t border-line pt-3 sm:pt-4 text-xs font-medium text-brand-600 dark:text-brand-400">
           {% trans "✓ Red flags surfaced instantly" %}
         </div>
       </div>
 
       <!-- Step 3 Card -->
-      <div class="relative flex flex-col justify-between card p-6 md:p-8 hover:-translate-y-1 transition duration-200">
+      <div class="relative flex flex-col justify-between card p-5 sm:p-6 lg:p-8 rounded-xl sm:rounded-2xl hover:-translate-y-1 transition duration-200">
         <div>
           <!-- Step 3 Vector Illustration -->
-          <div class="mb-6 flex justify-center">
+          <div class="mb-4 sm:mb-6 flex justify-center">
             {% include "illustrations/step_relax.html" %}
           </div>
-          <div class="flex items-center gap-3">
-            <span class="flex h-8 w-8 items-center justify-center rounded-full bg-brand-600 text-sm font-bold text-white">3</span>
-            <h3 class="text-heading-lg font-bold text-slate-900 dark:text-white">{% trans "Download & relax" %}</h3>
+          <div class="flex items-center gap-2.5 sm:gap-3">
+            <span class="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-brand-600 text-xs sm:text-sm font-bold text-white shrink-0">3</span>
+            <h3 class="text-base sm:text-heading-lg font-bold text-slate-900 dark:text-white">{% trans "Download & relax" %}</h3>
           </div>
-          <p class="mt-3 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+          <p class="mt-2.5 sm:mt-3 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
             {% trans "Your experience rewritten in the employer's specific vocabulary. Edit the Markdown or export a clean, print-ready PDF in one click." %}
           </p>
         </div>
-        <div class="mt-6 border-t border-line pt-4 text-xs font-medium text-purple-600 dark:text-purple-400">
+        <div class="mt-4 sm:mt-6 border-t border-line pt-3 sm:pt-4 text-xs font-medium text-purple-600 dark:text-purple-400">
           {% trans "✓ 100% tailored to the post" %}
         </div>
       </div>
@@ -350,65 +350,65 @@
 <!-- =========================================================================
      6. LOSS AVERSION: What You'll Stop Doing (Prospect Theory)
      ========================================================================= -->
-<section class="border-t border-line bg-surface py-20 sm:py-24">
+<section class="border-t border-line bg-surface py-12 sm:py-20 lg:py-24">
   <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
     <div class="text-center">
-      <span class="text-xs font-semibold uppercase tracking-wider text-rose-600 dark:text-rose-400">
+      <span class="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-rose-600 dark:text-rose-400">
         {% trans "Loss Aversion: The Cognitive Cost of Inaction" %}
       </span>
-      <h2 class="mt-2 text-heading-3xl font-extrabold tracking-tight text-slate-900 sm:text-heading-5xl dark:text-white">
+      <h2 class="mt-1.5 sm:mt-2 text-2xl sm:text-heading-3xl md:text-heading-5xl font-extrabold tracking-tight text-slate-900 dark:text-white">
         {% trans "What you'll stop doing forever" %}
       </h2>
-      <p class="mx-auto mt-4 max-w-2xl text-lg text-slate-600 dark:text-slate-300">
+      <p class="mx-auto mt-3 sm:mt-4 max-w-2xl text-sm sm:text-base md:text-lg leading-relaxed text-slate-600 dark:text-slate-300">
         {% trans "Avoiding loss motivates the human brain twice as much as potential gain. Here is the cognitive baggage you can drop today." %}
       </p>
     </div>
 
-    <div class="mt-16 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    <div class="mt-10 sm:mt-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-6">
       <!-- Item 1 -->
-      <div class="card p-6 border-l-4 border-rose-500">
-        <h3 class="text-heading-lg font-bold text-slate-900 dark:text-white">{% trans "Stop reading job posts twice" %}</h3>
-        <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">
+      <div class="card p-4 sm:p-6 border-l-4 border-rose-500 rounded-xl">
+        <h3 class="text-base sm:text-heading-lg font-bold text-slate-900 dark:text-white">{% trans "Stop reading job posts twice" %}</h3>
+        <p class="mt-1.5 sm:mt-2 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
           {% trans "Paste once. We split the post into 13 clean sections — requirements, compensation, culture and red flags — so you only read what matters." %}
         </p>
       </div>
 
       <!-- Item 2 -->
-      <div class="card p-6 border-l-4 border-rose-500">
-        <h3 class="text-heading-lg font-bold text-slate-900 dark:text-white">{% trans "Stop guessing if you fit" %}</h3>
-        <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">
+      <div class="card p-4 sm:p-6 border-l-4 border-rose-500 rounded-xl">
+        <h3 class="text-base sm:text-heading-lg font-bold text-slate-900 dark:text-white">{% trans "Stop guessing if you fit" %}</h3>
+        <p class="mt-1.5 sm:mt-2 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
           {% trans "Every requirement gets an individual strong/partial/none verdict and a one-sentence proof citing the specific skill or role behind it." %}
         </p>
       </div>
 
       <!-- Item 3 -->
-      <div class="card p-6 border-l-4 border-rose-500">
-        <h3 class="text-heading-lg font-bold text-slate-900 dark:text-white">{% trans "Stop rewriting bullet points" %}</h3>
-        <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">
+      <div class="card p-4 sm:p-6 border-l-4 border-rose-500 rounded-xl">
+        <h3 class="text-base sm:text-heading-lg font-bold text-slate-900 dark:text-white">{% trans "Stop rewriting bullet points" %}</h3>
+        <p class="mt-1.5 sm:mt-2 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
           {% trans "DeepSeek rewrites your real accomplishments using the posting's own target vocabulary without ever hallucinating credentials." %}
         </p>
       </div>
 
       <!-- Item 4 -->
-      <div class="card p-6 border-l-4 border-rose-500">
-        <h3 class="text-heading-lg font-bold text-slate-900 dark:text-white">{% trans "Stop retyping profile info" %}</h3>
-        <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">
+      <div class="card p-4 sm:p-6 border-l-4 border-rose-500 rounded-xl">
+        <h3 class="text-base sm:text-heading-lg font-bold text-slate-900 dark:text-white">{% trans "Stop retyping profile info" %}</h3>
+        <p class="mt-1.5 sm:mt-2 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
           {% trans "Found a requirement you meet but forgot to list? Click 'Add to Profile', and only that single row re-evaluates in real time." %}
         </p>
       </div>
 
       <!-- Item 5 -->
-      <div class="card p-6 border-l-4 border-rose-500">
-        <h3 class="text-heading-lg font-bold text-slate-900 dark:text-white">{% trans "Stop wasting nights on bad jobs" %}</h3>
-        <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">
+      <div class="card p-4 sm:p-6 border-l-4 border-rose-500 rounded-xl">
+        <h3 class="text-base sm:text-heading-lg font-bold text-slate-900 dark:text-white">{% trans "Stop wasting nights on bad jobs" %}</h3>
+        <p class="mt-1.5 sm:mt-2 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
           {% trans "Unrealistic demands, missing compensation, or toxic red flags are identified up-front before you spend 3 hours applying." %}
         </p>
       </div>
 
       <!-- Item 6 -->
-      <div class="card p-6 border-l-4 border-rose-500">
-        <h3 class="text-heading-lg font-bold text-slate-900 dark:text-white">{% trans "Stop worrying about privacy" %}</h3>
-        <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">
+      <div class="card p-4 sm:p-6 border-l-4 border-rose-500 rounded-xl">
+        <h3 class="text-base sm:text-heading-lg font-bold text-slate-900 dark:text-white">{% trans "Stop worrying about privacy" %}</h3>
+        <p class="mt-1.5 sm:mt-2 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
           {% trans "Export your entire career database as Markdown anytime. One click deletes your account and data permanently. No lock-in." %}
         </p>
       </div>
@@ -419,31 +419,31 @@
 <!-- =========================================================================
      7. SOCIAL PROOF & VALIDATION (Bandwagon Effect & Relatability)
      ========================================================================= -->
-<section class="py-20 sm:py-24">
+<section class="py-12 sm:py-20 lg:py-24">
   <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
     <div class="text-center">
-      <span class="text-xs font-semibold uppercase tracking-wider text-brand-600 dark:text-brand-400">
+      <span class="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-brand-600 dark:text-brand-400">
         {% trans "Social Validation" %}
       </span>
-      <h2 class="mt-2 text-heading-3xl font-extrabold tracking-tight text-slate-900 sm:text-heading-4xl dark:text-white">
+      <h2 class="mt-1.5 sm:mt-2 text-2xl sm:text-heading-3xl md:text-heading-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
         {% trans "From burned-out applicants to relaxed candidates" %}
       </h2>
-      <p class="mx-auto mt-4 max-w-xl text-lg text-slate-600 dark:text-slate-300">
+      <p class="mx-auto mt-3 sm:mt-4 max-w-xl text-sm sm:text-base text-slate-600 dark:text-slate-300">
         {% trans "See how strategic candidates apply with zero stress." %}
       </p>
     </div>
 
-    <div class="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
+    <div class="mt-8 sm:mt-12 grid grid-cols-1 md:grid-cols-3 gap-3.5 sm:gap-6">
       <!-- Testimonial 1 -->
-      <div class="card p-6 flex flex-col justify-between">
+      <div class="card p-4 sm:p-6 rounded-xl sm:rounded-2xl flex flex-col justify-between">
         <div>
-          <div class="flex text-amber-400 mb-3">★★★★★</div>
-          <p class="text-sm text-slate-700 dark:text-slate-300 italic leading-relaxed">
+          <div class="flex text-amber-400 text-sm mb-2.5 sm:mb-3">★★★★★</div>
+          <p class="text-xs sm:text-sm text-slate-700 dark:text-slate-300 italic leading-relaxed">
             {% trans "“I used to spend every Sunday evening stressing over tailoring resumes for 3 jobs. With Easy Apply, I applied to 8 targeted roles in 20 minutes while drinking coffee. Got 3 interviews.”" %}
           </p>
         </div>
-        <div class="mt-6 flex items-center gap-3 border-t border-line pt-4">
-          <div class="h-9 w-9 rounded-full bg-brand-600 flex items-center justify-center text-white font-bold text-xs">ML</div>
+        <div class="mt-4 sm:mt-6 flex items-center gap-2.5 sm:gap-3 border-t border-line pt-3 sm:pt-4">
+          <div class="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-brand-600 flex items-center justify-center text-white font-bold text-xs shrink-0">ML</div>
           <div>
             <p class="text-xs font-bold text-slate-900 dark:text-white">Marc L.</p>
             <p class="text-[11px] text-slate-500">Senior Full-Stack Engineer</p>
@@ -452,15 +452,15 @@
       </div>
 
       <!-- Testimonial 2 -->
-      <div class="card p-6 flex flex-col justify-between">
+      <div class="card p-4 sm:p-6 rounded-xl sm:rounded-2xl flex flex-col justify-between">
         <div>
-          <div class="flex text-amber-400 mb-3">★★★★★</div>
-          <p class="text-sm text-slate-700 dark:text-slate-300 italic leading-relaxed">
+          <div class="flex text-amber-400 text-sm mb-2.5 sm:mb-3">★★★★★</div>
+          <p class="text-xs sm:text-sm text-slate-700 dark:text-slate-300 italic leading-relaxed">
             {% trans "“The red flag detector alone saved me from applying to a toxic ghost job that asked for 10 years experience on a junior salary. This tool respects my time.”" %}
           </p>
         </div>
-        <div class="mt-6 flex items-center gap-3 border-t border-line pt-4">
-          <div class="h-9 w-9 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold text-xs">SK</div>
+        <div class="mt-4 sm:mt-6 flex items-center gap-2.5 sm:gap-3 border-t border-line pt-3 sm:pt-4">
+          <div class="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold text-xs shrink-0">SK</div>
           <div>
             <p class="text-xs font-bold text-slate-900 dark:text-white">Sophie K.</p>
             <p class="text-[11px] text-slate-500">Product Manager</p>
@@ -469,15 +469,15 @@
       </div>
 
       <!-- Testimonial 3 -->
-      <div class="card p-6 flex flex-col justify-between">
+      <div class="card p-4 sm:p-6 rounded-xl sm:rounded-2xl flex flex-col justify-between">
         <div>
-          <div class="flex text-amber-400 mb-3">★★★★★</div>
-          <p class="text-sm text-slate-700 dark:text-slate-300 italic leading-relaxed">
+          <div class="flex text-amber-400 text-sm mb-2.5 sm:mb-3">★★★★★</div>
+          <p class="text-xs sm:text-sm text-slate-700 dark:text-slate-300 italic leading-relaxed">
             {% trans "“The multiple profile workspaces in French and English made switching job markets seamless. I didn't have to rewrite a single French credential.”" %}
           </p>
         </div>
-        <div class="mt-6 flex items-center gap-3 border-t border-line pt-4">
-          <div class="h-9 w-9 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold text-xs">AD</div>
+        <div class="mt-4 sm:mt-6 flex items-center gap-2.5 sm:gap-3 border-t border-line pt-3 sm:pt-4">
+          <div class="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold text-xs shrink-0">AD</div>
           <div>
             <p class="text-xs font-bold text-slate-900 dark:text-white">Alexandre D.</p>
             <p class="text-[11px] text-slate-500">Data Analyst</p>
@@ -491,35 +491,35 @@
 <!-- =========================================================================
      8. FINAL CALL TO ACTION: Peak-End Rule & High Emotional Leverage
      ========================================================================= -->
-<section class="relative overflow-hidden bg-gradient-to-br from-brand-600 via-brand-700 to-indigo-900 py-20 sm:py-24 text-white">
+<section class="relative overflow-hidden bg-gradient-to-br from-brand-600 via-brand-700 to-indigo-900 py-14 sm:py-20 lg:py-24 text-white">
   <!-- Soft visual sparkle backdrops -->
   <div class="pointer-events-none absolute inset-0 opacity-10">
     <svg class="h-full w-full" fill="none" viewBox="0 0 800 400"><circle cx="400" cy="200" r="300" stroke="#ffffff" stroke-width="1.5" stroke-dasharray="8 8" /></svg>
   </div>
 
   <div class="relative mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
-    <p class="text-xs font-bold uppercase tracking-widest text-brand-200">
+    <p class="text-[11px] sm:text-xs font-bold uppercase tracking-widest text-brand-200">
       {% trans "Save Your Brain For What Counts" %}
     </p>
 
-    <h2 class="mt-3 text-heading-3xl font-extrabold tracking-tight sm:text-heading-5xl text-white">
+    <h2 class="mt-2 sm:mt-3 text-2xl sm:text-heading-3xl md:text-heading-5xl font-extrabold tracking-tight text-white leading-tight">
       {% trans "Do less. Land more." %}
     </h2>
 
-    <p class="mx-auto mt-5 max-w-xl text-lg text-brand-100 leading-relaxed">
+    <p class="mx-auto mt-3 sm:mt-5 max-w-xl text-sm sm:text-base md:text-lg text-brand-100 leading-relaxed">
       {% trans "The instinct that wanted to skip clerical work is the exact same instinct that invented automation. Put it to work for your career today." %}
     </p>
 
-    <div class="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-      <a href="{% url 'accounts:register' %}" class="btn !bg-white !px-8 !py-3.5 !text-base !font-bold !text-brand-700 shadow-xl hover:!bg-brand-50 transition-all">
+    <div class="mt-8 sm:mt-10 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 w-full sm:w-auto">
+      <a href="{% url 'accounts:register' %}" class="btn !bg-white w-full sm:w-auto !px-6 sm:!px-8 !py-3.5 !text-sm sm:!text-base !font-bold !text-brand-700 shadow-xl hover:!bg-brand-50 transition-all min-h-[48px] justify-center">
         {% trans "Create your free account" %}
       </a>
-      <a href="{% url 'accounts:login' %}" class="btn !border !border-white/30 !bg-white/10 !px-6 !py-3.5 !text-base !text-white hover:!bg-white/20 transition-all">
+      <a href="{% url 'accounts:login' %}" class="btn !border !border-white/30 !bg-white/10 w-full sm:w-auto !px-5 sm:!px-6 !py-3.5 !text-sm sm:!text-base !text-white hover:!bg-white/20 transition-all min-h-[48px] justify-center">
         {% trans "Log in" %}
       </a>
     </div>
 
-    <div class="mt-6 flex flex-wrap justify-center items-center gap-6 text-xs text-brand-200">
+    <div class="mt-4 sm:mt-6 flex flex-wrap justify-center items-center gap-x-4 gap-y-2 text-xs text-brand-200">
       <span>{% trans "✓ No credit card required" %}</span>
       <span>{% trans "✓ Instant setup" %}</span>
       <span>{% trans "✓ Export to Markdown & PDF" %}</span>

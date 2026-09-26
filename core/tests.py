@@ -142,9 +142,9 @@ class FrenchCatalogueTests(TestCase):
 
     def test_marketing_page_is_translated(self):
         body = self.client.get(reverse("core:home")).content.decode()
-        for needle in ["Ne devinez plus", "Trois étapes vers un CV personnalisé", "Créez votre compte"]:
+        for needle in ["C’est bien d’être", "paresseux", "Trois étapes vers un CV personnalisé", "Créer un compte"]:
             self.assertIn(needle, body, f"missing French string: {needle}")
-        self.assertNotIn("Stop guessing whether you fit the job.", body)
+        self.assertNotIn("It's OK to be", body)
 
     def test_privacy_policy_is_translated(self):
         body = self.client.get(reverse("legal:privacy")).content.decode()
@@ -174,7 +174,8 @@ class FrenchCatalogueTests(TestCase):
     def test_english_is_unaffected(self):
         self.client.cookies["django_language"] = "en"
         body = self.client.get(reverse("core:home")).content.decode()
-        self.assertIn("Stop guessing whether you fit the job.", body)
+        self.assertIn("It's OK to be", body)
+        self.assertIn("lazy", body)
 
 
 class ResponsiveContractTests(TestCase):

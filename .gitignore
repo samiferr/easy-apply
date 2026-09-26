@@ -248,3 +248,4 @@ node_modules/
 # SQLite WAL sidecar files (created by the WAL pragma in core/apps.py)
 db.sqlite3-shm
 db.sqlite3-wal
+/.opencode/

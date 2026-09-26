@@ -1,0 +1,12 @@
+{
+  "enabled": true,
+  "fallbackMode": "wait",
+  "cooldownMs": 60000,
+  "fallbackModels": [],
+  "errorPatterns": {
+    "ignorePatterns": [
+      "not your plan limits",
+      "draw from your extra usage"
+    ]
+  }
+}
