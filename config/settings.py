@@ -123,8 +123,7 @@ elif DEBUG:
             "NAME": BASE_DIR / "db.sqlite3",
             # SQLite runs with WAL + a busy timeout because the Celery worker
             # can write to the same file as the web process. WAL itself is set
-            # by the connection_created receiver in core/apps.py — Django 5.0's
-            # SQLite backend has no `init_command` option.
+            # by the connection_created receiver in core/apps.py.
             "OPTIONS": {"timeout": 20},
         }
     }
