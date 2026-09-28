@@ -87,9 +87,9 @@ call made inside it.
 
 ## Tech stack
 
-- **Backend:** Django 5, SQLite in WAL mode (**Postgres recommended in
-  production** — the Celery worker writes to the same database as the web
-  process)
+- **Database:** PostgreSQL in production (set `DATABASE_URL`; required
+  when `DEBUG=False`), SQLite in WAL mode for local development and tests
+- **Backend:** Django 5
 - **Background jobs:** Celery + Redis — every AI call runs off the request cycle
 - **Frontend:** Django templates + Tailwind CSS (compiled via the Tailwind CLI)
   + Alpine.js for lightweight interactivity (tabs, modals, dark mode)
@@ -146,6 +146,20 @@ python manage.py createsuperuser   # optional, for /admin/
 python manage.py runserver
 ```
 
+With `DATABASE_URL` left empty, local development uses SQLite
+(`db.sqlite3`) and needs no database server. To work against PostgreSQL
+instead, as production does, point `DATABASE_URL` at a local database:
+
+```bash
+sudo -u postgres psql -c "CREATE ROLE easy_apply LOGIN CREATEDB PASSWORD 'devpass'"
+sudo -u postgres createdb -O easy_apply easy_apply
+# in .env:
+DATABASE_URL=postgres://easy_apply:devpass@127.0.0.1:5432/easy_apply
+```
+
+`CREATEDB` is only there so `python manage.py test` can create its throwaway
+`test_easy_apply` database.
+
 The app seeds a handful of common soft-skill and technical-skill categories
 (Communication, Leadership, Programming Languages, Databases, ...) via a data
 migration, so new users have somewhere to start. Add more from `/admin/`.
@@ -179,10 +193,11 @@ web process:
 celery -A config worker -l info --concurrency=2
 ```
 
-Keep concurrency low on SQLite: the worker writes to the same database file as
-the web process. SQLite is put in WAL mode automatically
-(`core/apps.py`), and no AI call is ever made inside an open transaction — but
-**Postgres is the recommended production database** for exactly this reason.
+The worker writes to the same database as the web process. In production
+that's PostgreSQL, which handles the two writers without trouble. On local
+SQLite, keep concurrency low: it's put in WAL mode with a busy timeout
+automatically (`core/apps.py`), and no AI call is ever made inside an open
+transaction, which is enough for one developer.
 
 Two housekeeping commands are worth scheduling:
 
@@ -816,8 +831,10 @@ Schedule `python manage.py prune_audit_log` alongside the other retention jobs.
 
 Production deploys to a VPS through GitHub Actions (SSH + systemd + nginx +
 Let's Encrypt) on every push to `main`: gunicorn, a Celery worker, Redis and a
-daily retention timer, all set up by `deploy/deploy.sh`. The server's IP and
-domain come from the `VPS_HOST` and `DOMAIN` Actions secrets (or variables).
+daily retention timer on PostgreSQL, all set up by `deploy/deploy.sh`. The
+server's IP and domain come from the `VPS_HOST` and `DOMAIN` Actions secrets
+(or variables), and the database from the `DATABASE_URL` secret, with a
+`pg_dump` taken before every migration.
 See [`deploy/README.md`](deploy/README.md) for the one-time setup, the full
 list of secrets, and troubleshooting. The pipeline already covers the
 checklist below; it's kept for anyone deploying some other way.
@@ -832,11 +849,11 @@ checklist below; it's kept for anyone deploying some other way.
   `CELERY_TASK_ALWAYS_EAGER` defaults to False, so without a worker every AI
   request queues forever. Start one with
   `celery -A config worker -l info --concurrency=2`.
-- **Swap SQLite for Postgres.** This matters more than it used to: the worker
-  and the web process now write to the same database. SQLite is put in WAL
-  mode with a busy timeout and no AI call is made inside an open transaction,
-  which makes single-instance SQLite workable — but Postgres is the right
-  answer for anything real.
+- **Use PostgreSQL.** Set `DATABASE_URL=postgres://USER:PASSWORD@HOST:PORT/NAME`
+  (add `?sslmode=require` for a managed server). The settings refuse to start
+  with `DEBUG=False` and no `DATABASE_URL`, so production can't fall back to
+  SQLite by accident. `DB_CONN_MAX_AGE` (default 60 seconds) controls
+  persistent connections.
 - Fill in every `LEGAL_*` variable. The legal pages ship with visible `TODO:`
   placeholders for the entity name, address, jurisdiction, hosting provider and
   privacy contact.

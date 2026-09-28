@@ -6,7 +6,10 @@
 # of mid-deploy in CI.
 #
 # Usage (as root, or via sudo):
-#   sudo bash deploy/preflight.sh
+#   sudo bash deploy/preflight.sh                  # check/install core packages only
+#   sudo bash deploy/preflight.sh --with-postgres  # also run PostgreSQL on this box:
+#                                                  # install it, create the easy_apply
+#                                                  # role + database, print DATABASE_URL
 #
 # Safe to re-run any time - every check is idempotent and only touches
 # what's missing.
@@ -27,12 +30,26 @@ REQUIRED_PACKAGES=(
   python3-certbot-nginx
   # Celery broker - every AI call is queued through it
   redis-server
+  # pg_dump, for deploy.sh's pre-migration backup
+  postgresql-client
 )
 
-if [ "$#" -gt 0 ]; then
-  echo "Usage: $0" >&2
-  exit 1
-fi
+DB_NAME="easy_apply"
+DB_USER="easy_apply"
+
+WITH_POSTGRES=false
+for arg in "$@"; do
+  case "$arg" in
+    --with-postgres)
+      WITH_POSTGRES=true
+      ;;
+    *)
+      echo "Unknown option: $arg" >&2
+      echo "Usage: $0 [--with-postgres]" >&2
+      exit 1
+      ;;
+  esac
+done
 
 if [ "$(id -u)" -ne 0 ]; then
   echo "This script must be run as root (or via sudo)." >&2
@@ -49,6 +66,10 @@ if [ -r /etc/os-release ]; then
   fi
 else
   echo "WARNING: /etc/os-release not found; cannot confirm this is Ubuntu 24.04." >&2
+fi
+
+if $WITH_POSTGRES; then
+  REQUIRED_PACKAGES+=(postgresql postgresql-contrib openssl)
 fi
 
 echo "==> Refreshing package index"
@@ -84,6 +105,46 @@ systemctl enable --now redis-server
 redis-cli ping | grep -q PONG \
   && echo "redis: responding" \
   || { echo "redis-server is installed but not answering PING" >&2; exit 1; }
+
+if $WITH_POSTGRES; then
+  echo "==> Checking PostgreSQL"
+  psql --version
+  systemctl enable --now postgresql
+  if systemctl is-active --quiet postgresql; then
+    echo "postgresql service: active"
+  else
+    echo "postgresql service failed to start" >&2
+    exit 1
+  fi
+
+  echo "==> Creating the ${DB_USER} role and ${DB_NAME} database (if missing)"
+  DB_PASSWORD=""
+  if sudo -u postgres psql -tAc "SELECT 1 FROM pg_roles WHERE rolname = '${DB_USER}'" | grep -q 1; then
+    echo "Role ${DB_USER} already exists - left unchanged (its password is not reset)."
+  else
+    # Hex, so the password never needs URL-encoding inside DATABASE_URL. Sent
+    # on stdin rather than the command line, which other users can see.
+    DB_PASSWORD="$(openssl rand -hex 24)"
+    sudo -u postgres psql -v ON_ERROR_STOP=1 -q <<SQL
+CREATE ROLE ${DB_USER} LOGIN PASSWORD '${DB_PASSWORD}';
+SQL
+    echo "Created role ${DB_USER}."
+  fi
+  if sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname = '${DB_NAME}'" | grep -q 1; then
+    echo "Database ${DB_NAME} already exists - left unchanged."
+  else
+    sudo -u postgres createdb --owner "$DB_USER" "$DB_NAME"
+    echo "Created database ${DB_NAME}, owned by ${DB_USER}."
+  fi
+  if [ -n "$DB_PASSWORD" ]; then
+    echo
+    echo "    Save this as the DATABASE_URL GitHub Actions secret now."
+    echo "    The password is not stored anywhere else, and re-running this script won't show it again:"
+    echo
+    echo "    postgres://${DB_USER}:${DB_PASSWORD}@127.0.0.1:5432/${DB_NAME}"
+    echo
+  fi
+fi
 
 echo "==> Checking systemd + sudo (required by deploy.sh)"
 command -v systemctl >/dev/null || { echo "systemctl not found - deploy.sh requires systemd." >&2; exit 1; }

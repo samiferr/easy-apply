@@ -4,7 +4,7 @@
 
 Easy Apply is an AI-assisted career companion and SaaS platform designed to streamline the job application lifecycle. It bridges candidate qualifications and complex job descriptions through automated extraction, fine-grained semantic matching, profile enrichment, tailored resume drafting, and PDF generation.
 
-The system is built on Django 5.x, Celery, Redis, and SQLite (WAL mode), interfacing with DeepSeek AI models.
+The system is built on Django 5.x, Celery, Redis, and PostgreSQL (SQLite in WAL mode for local development), interfacing with DeepSeek AI models.
 
 ### Key Architectural Pillars
 

@@ -12,6 +12,7 @@ SITE_NAME="easy-apply"
 : "${DJANGO_SECRET_KEY:?DJANGO_SECRET_KEY must be set}"
 : "${LETSENCRYPT_EMAIL:?LETSENCRYPT_EMAIL must be set}"
 : "${DEPLOY_USER:?DEPLOY_USER must be set}"
+: "${DATABASE_URL:?DATABASE_URL must be set}"
 : "${INCLUDE_WWW:=true}"
 
 DOMAINS=("$DOMAIN")
@@ -23,14 +24,28 @@ ALLOWED_HOSTS="$(IFS=,; echo "${DOMAINS[*]}")"
 CSRF_TRUSTED_ORIGINS="$(printf 'https://%s,' "${DOMAINS[@]}")"
 CSRF_TRUSTED_ORIGINS="${CSRF_TRUSTED_ORIGINS%,}"
 
+# Production runs on PostgreSQL only; config/settings.py refuses to start with
+# DEBUG=False and no DATABASE_URL. Only the two schemes libpq (and so pg_dump)
+# understands are accepted.
+case "$DATABASE_URL" in
+    postgres://*|postgresql://*) ;;
+    *)
+        echo "DATABASE_URL must be a PostgreSQL URL (postgres://USER:PASSWORD@HOST:PORT/NAME)." >&2
+        exit 1
+        ;;
+esac
+
 cd "$APP_DIR"
 
 echo "==> Installing system packages"
 apt-get update -y
 # gettext provides msgfmt for compilemessages; redis-server is the Celery
-# broker every AI call is queued through.
+# broker every AI call is queued through; postgresql-client provides the
+# pg_dump used for the pre-migration backup below. The PostgreSQL server itself
+# is not installed here: it's either a managed instance or set up once with
+# `deploy/preflight.sh --with-postgres` (see deploy/README.md).
 apt-get install -y python3-venv python3-pip python3-dev build-essential \
-    gettext nginx certbot python3-certbot-nginx redis-server
+    gettext nginx certbot python3-certbot-nginx redis-server postgresql-client
 systemctl enable --now redis-server
 
 echo "==> Python virtualenv"
@@ -55,6 +70,7 @@ OPTIONAL_VARS=(
 {
     echo "SECRET_KEY=${DJANGO_SECRET_KEY}"
     echo "DEBUG=False"
+    echo "DATABASE_URL=${DATABASE_URL}"
     echo "ALLOWED_HOSTS=${ALLOWED_HOSTS}"
     echo "CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS}"
     # nginx already redirects HTTP to HTTPS, and Django sees plain HTTP from
@@ -74,36 +90,70 @@ OPTIONAL_VARS=(
 } > "$APP_DIR/.env"
 chmod 600 "$APP_DIR/.env"
 
-echo "==> Backing up the database"
-# The SQLite database lives in the checkout (db.sqlite3, git-ignored, so the
-# git reset in the workflow leaves it alone). Snapshot it before migrating;
-# the last 10 snapshots are kept.
-mkdir -p "$APP_DIR/backups"
-chmod 700 "$APP_DIR/backups"
-if [ -f "$APP_DIR/db.sqlite3" ]; then
-    BACKUP="$APP_DIR/backups/db-$(date -u +%Y%m%dT%H%M%SZ).sqlite3"
-    "$APP_DIR/venv/bin/python" - "$APP_DIR/db.sqlite3" "$BACKUP" <<'PY'
-import sqlite3, sys
-src, dst = sqlite3.connect(sys.argv[1]), sqlite3.connect(sys.argv[2])
-src.backup(dst)
-dst.close()
-src.close()
-PY
-    echo "Saved $BACKUP"
-    ls -1t "$APP_DIR"/backups/db-*.sqlite3 | tail -n +11 | xargs -r rm -f
-fi
-
 echo "==> Fixing ownership"
-mkdir -p "$APP_DIR/media/avatars" "$APP_DIR/staticfiles"
+mkdir -p "$APP_DIR/media/avatars" "$APP_DIR/staticfiles" "$APP_DIR/backups"
 chown -R "$DEPLOY_USER:$DEPLOY_USER" "$APP_DIR"
+chmod 700 "$APP_DIR/backups"
 
-echo "==> Django management commands"
 # Run as the same user as gunicorn and the Celery worker, so nothing in the
-# checkout (the SQLite database and its WAL files included) ends up owned by
-# root.
+# checkout ends up owned by root.
 manage() {
     sudo -u "$DEPLOY_USER" "$APP_DIR/venv/bin/python" "$APP_DIR/manage.py" "$@"
 }
+
+echo "==> Testing database connection"
+manage shell -c "
+from django.db import connection
+connection.ensure_connection()
+print(f'Connected to PostgreSQL {connection.pg_version // 10000}.')
+"
+
+echo "==> Backing up the database"
+# pg_dump (custom format, restore with pg_restore) before every migrate; the
+# last 10 dumps are kept. The credentials reach pg_dump through PG*
+# environment variables rather than its command line, where any local user
+# could read them from the process list. A failed dump (e.g. the server is a
+# newer major version than this box's pg_dump) is reported but doesn't block
+# the deploy.
+BACKUP="$APP_DIR/backups/db-$(date -u +%Y%m%dT%H%M%SZ).dump"
+if "$APP_DIR/venv/bin/python" - "$BACKUP" <<'PY'
+import os
+import subprocess
+import sys
+
+import dj_database_url
+
+db = dj_database_url.parse(os.environ["DATABASE_URL"])
+env = dict(os.environ)
+env.pop("DATABASE_URL")
+for var, value in {
+    "PGHOST": db.get("HOST"),
+    "PGPORT": db.get("PORT"),
+    "PGUSER": db.get("USER"),
+    "PGPASSWORD": db.get("PASSWORD"),
+    "PGDATABASE": db.get("NAME"),
+    "PGSSLMODE": db.get("OPTIONS", {}).get("sslmode"),
+}.items():
+    if value:
+        env[var] = str(value)
+subprocess.run(
+    ["pg_dump", "--format=custom", "--no-owner", "--file", sys.argv[1]],
+    env=env,
+    check=True,
+)
+PY
+then
+    chown "$DEPLOY_USER:$DEPLOY_USER" "$BACKUP"
+    chmod 600 "$BACKUP"
+    echo "Saved $BACKUP"
+    find "$APP_DIR/backups" -maxdepth 1 -name 'db-*.dump' -printf '%T@ %p\n' \
+        | sort -rn | tail -n +11 | cut -d' ' -f2- | xargs -r rm -f
+else
+    rm -f "$BACKUP"
+    echo "WARNING: pg_dump failed; migrating WITHOUT a fresh backup." >&2
+fi
+
+echo "==> Django management commands"
 manage migrate --noinput
 # Starter plans, flags, and a subscription for every account. Idempotent:
 # only fills gaps and never rewrites an existing plan.
@@ -120,7 +170,6 @@ chmod -R go+rX "$APP_DIR/staticfiles" "$APP_DIR/media/avatars"
 chmod go+rX "$APP_DIR" "$APP_DIR/media"
 # ...and nothing else holding user data is readable by other local accounts.
 chmod -R go-rwx "$APP_DIR/backups"
-find "$APP_DIR" -maxdepth 1 -name 'db.sqlite3*' -exec chmod go-rwx {} +
 if [ -d "$APP_DIR/media/resumes" ]; then
     chmod -R go-rwx "$APP_DIR/media/resumes"
 fi

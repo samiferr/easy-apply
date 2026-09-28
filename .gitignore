@@ -250,5 +250,5 @@ db.sqlite3-shm
 db.sqlite3-wal
 /.opencode/
 
-# Pre-migration SQLite snapshots written by deploy/deploy.sh
+# Pre-migration pg_dump backups written by deploy/deploy.sh
 backups/

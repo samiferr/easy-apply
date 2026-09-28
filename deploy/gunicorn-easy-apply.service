@@ -1,6 +1,8 @@
 [Unit]
 Description=gunicorn daemon for easy-apply
-After=network.target
+# postgresql.service only matters when the database runs on this same box;
+# ordering against a unit that doesn't exist is a no-op.
+After=network.target postgresql.service
 
 [Service]
 User=__DEPLOY_USER__

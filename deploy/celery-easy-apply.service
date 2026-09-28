@@ -1,6 +1,6 @@
 [Unit]
 Description=Celery worker for easy-apply (every AI call runs here)
-After=network.target redis-server.service
+After=network.target redis-server.service postgresql.service
 Wants=redis-server.service
 
 [Service]
@@ -10,8 +10,8 @@ WorkingDirectory=/var/www/easy-apply
 # Fail any task a previous worker left running, so a crash never leaves a
 # permanent spinner in the UI.
 ExecStartPre=/var/www/easy-apply/venv/bin/python manage.py sweep_stuck_ai_tasks
-# Concurrency stays low: the worker writes to the same SQLite file as the web
-# process.
+# Each worker process holds an AI call open for up to a minute; raise
+# --concurrency with the DeepSeek quota, not the database.
 ExecStart=/var/www/easy-apply/venv/bin/celery -A config worker -l info --concurrency=2
 Restart=on-failure
 # Warm shutdown lets in-flight AI calls finish; tasks are acks_late, so one
