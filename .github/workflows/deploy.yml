@@ -1,0 +1,147 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+# Never run two deploys against the same box at once.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  # The server's IP and public domain are not committed: they come from this
+  # repo's Actions secrets, or from Actions variables if you'd rather keep them
+  # visible (Settings -> Secrets and variables -> Actions).
+  VPS_HOST: ${{ secrets.VPS_HOST || vars.VPS_HOST }}
+  DOMAIN: ${{ secrets.DOMAIN || vars.DOMAIN }}
+  # Also serve www.<DOMAIN> (and put it on the certificate). Set the variable
+  # to "false" when DOMAIN is a subdomain with no www record.
+  INCLUDE_WWW: ${{ vars.INCLUDE_WWW || 'true' }}
+  APP_DIR: /var/www/easy-apply
+  GUNICORN_PORT: "8005"
+  # Every variable forwarded to deploy/deploy.sh, in one place so the SSH
+  # step's `envs:` and the `sudo --preserve-env` below can't drift apart.
+  DEPLOY_ENV_VARS: DOMAIN,INCLUDE_WWW,DATABASE_URL,DJANGO_SECRET_KEY,LETSENCRYPT_EMAIL,TIME_ZONE,DEEPSEEK_API_KEY,DEEPSEEK_API_BASE,DEEPSEEK_MODEL,DEEPSEEK_TIMEOUT,EMAIL_BACKEND,EMAIL_HOST,EMAIL_PORT,EMAIL_HOST_USER,EMAIL_HOST_PASSWORD,EMAIL_USE_TLS,DEFAULT_FROM_EMAIL,LEGAL_NAME,LEGAL_ADDRESS,LEGAL_EMAIL,LEGAL_JURISDICTION,LEGAL_REGISTRATION,LEGAL_DIRECTOR,LEGAL_HOST_NAME,LEGAL_HOST_ADDRESS,LEGAL_DPO_EMAIL
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check required configuration
+        env:
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          LETSENCRYPT_EMAIL: ${{ secrets.LETSENCRYPT_EMAIL || vars.LETSENCRYPT_EMAIL }}
+        run: |
+          missing=()
+          for name in VPS_HOST DOMAIN VPS_USER VPS_SSH_KEY DJANGO_SECRET_KEY DATABASE_URL LETSENCRYPT_EMAIL; do
+            if [ -z "${!name}" ]; then missing+=("$name"); fi
+          done
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "::error::Missing Actions secrets/variables: ${missing[*]} (see deploy/README.md)"
+            exit 1
+          fi
+          case "$DATABASE_URL" in
+            postgres://*|postgresql://*) ;;
+            *) echo "::error::DATABASE_URL must be a PostgreSQL URL: postgres://USER:PASSWORD@HOST:PORT/NAME"; exit 1 ;;
+          esac
+
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          LETSENCRYPT_EMAIL: ${{ secrets.LETSENCRYPT_EMAIL || vars.LETSENCRYPT_EMAIL }}
+          TIME_ZONE: ${{ secrets.TIME_ZONE || vars.TIME_ZONE }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          DEEPSEEK_API_BASE: ${{ secrets.DEEPSEEK_API_BASE || vars.DEEPSEEK_API_BASE }}
+          DEEPSEEK_MODEL: ${{ secrets.DEEPSEEK_MODEL || vars.DEEPSEEK_MODEL }}
+          DEEPSEEK_TIMEOUT: ${{ secrets.DEEPSEEK_TIMEOUT || vars.DEEPSEEK_TIMEOUT }}
+          EMAIL_BACKEND: ${{ secrets.EMAIL_BACKEND || vars.EMAIL_BACKEND }}
+          EMAIL_HOST: ${{ secrets.EMAIL_HOST || vars.EMAIL_HOST }}
+          EMAIL_PORT: ${{ secrets.EMAIL_PORT || vars.EMAIL_PORT }}
+          EMAIL_HOST_USER: ${{ secrets.EMAIL_HOST_USER || vars.EMAIL_HOST_USER }}
+          EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
+          EMAIL_USE_TLS: ${{ secrets.EMAIL_USE_TLS || vars.EMAIL_USE_TLS }}
+          DEFAULT_FROM_EMAIL: ${{ secrets.DEFAULT_FROM_EMAIL || vars.DEFAULT_FROM_EMAIL }}
+          LEGAL_NAME: ${{ secrets.LEGAL_NAME || vars.LEGAL_NAME }}
+          LEGAL_ADDRESS: ${{ secrets.LEGAL_ADDRESS || vars.LEGAL_ADDRESS }}
+          LEGAL_EMAIL: ${{ secrets.LEGAL_EMAIL || vars.LEGAL_EMAIL }}
+          LEGAL_JURISDICTION: ${{ secrets.LEGAL_JURISDICTION || vars.LEGAL_JURISDICTION }}
+          LEGAL_REGISTRATION: ${{ secrets.LEGAL_REGISTRATION || vars.LEGAL_REGISTRATION }}
+          LEGAL_DIRECTOR: ${{ secrets.LEGAL_DIRECTOR || vars.LEGAL_DIRECTOR }}
+          LEGAL_HOST_NAME: ${{ secrets.LEGAL_HOST_NAME || vars.LEGAL_HOST_NAME }}
+          LEGAL_HOST_ADDRESS: ${{ secrets.LEGAL_HOST_ADDRESS || vars.LEGAL_HOST_ADDRESS }}
+          LEGAL_DPO_EMAIL: ${{ secrets.LEGAL_DPO_EMAIL || vars.LEGAL_DPO_EMAIL }}
+        with:
+          host: ${{ env.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_SSH_PORT || 22 }}
+          script_stop: true
+          envs: ${{ env.DEPLOY_ENV_VARS }}
+          script: |
+            set -euo pipefail
+
+            APP_DIR="${{ env.APP_DIR }}"
+            REPO_URL="https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+            BRANCH="main"
+
+            if [ ! -d "$APP_DIR/.git" ] || ! git -C "$APP_DIR" rev-parse HEAD >/dev/null 2>&1; then
+              sudo rm -rf "$APP_DIR"
+              sudo mkdir -p "$APP_DIR"
+              sudo chown "$(whoami)" "$APP_DIR"
+              git clone --branch "$BRANCH" "$REPO_URL" "$APP_DIR"
+            fi
+
+            cd "$APP_DIR"
+            git remote set-url origin "$REPO_URL"
+            git fetch origin "$BRANCH"
+            git reset --hard "origin/$BRANCH"
+            git remote set-url origin "https://github.com/${{ github.repository }}.git"
+
+            sudo --preserve-env=${{ env.DEPLOY_ENV_VARS }} \
+                 env DEPLOY_USER="$(whoami)" \
+                 bash "$APP_DIR/deploy/deploy.sh"
+
+      - name: Post-deploy diagnostics
+        if: always()
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ env.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_SSH_PORT || 22 }}
+          script: |
+            DOMAIN="${{ env.DOMAIN }}"
+            PORT="${{ env.GUNICORN_PORT }}"
+            echo "--- gunicorn service ---"
+            sudo systemctl status gunicorn-easy-apply --no-pager || true
+            echo "--- celery worker service ---"
+            sudo systemctl status celery-easy-apply --no-pager || true
+            echo "--- redis ---"
+            redis-cli ping || true
+            echo "--- database ---"
+            (cd /var/www/easy-apply && venv/bin/python manage.py shell -c "from django.db import connection; connection.ensure_connection(); print(f'PostgreSQL {connection.pg_version // 10000} reachable')") || true
+            echo "--- gunicorn port ---"
+            sudo ss -tlnp | grep -E ":$PORT" || true
+            curl -sS -o /dev/null -w "gunicorn direct: HTTP %{http_code}\n" -H "Host: $DOMAIN" "http://127.0.0.1:$PORT/" || true
+            echo "--- nginx service ---"
+            sudo systemctl status nginx --no-pager || true
+            echo "--- listening sockets ---"
+            sudo ss -tlnp | grep -E ':80|:443' || true
+            echo "--- local curl :443 via domain SNI ---"
+            curl -sS -o /dev/null -w "HTTPS %{http_code}\n" --resolve "$DOMAIN:443:127.0.0.1" "https://$DOMAIN/" || true
+            echo "--- recent gunicorn logs ---"
+            sudo journalctl -u gunicorn-easy-apply --no-pager -n 40 || true
+            echo "--- recent celery logs ---"
+            sudo journalctl -u celery-easy-apply --no-pager -n 40 || true
+            echo "--- recent nginx error log ---"
+            sudo tail -n 40 /var/log/nginx/error.log || true

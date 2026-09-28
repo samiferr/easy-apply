@@ -249,3 +249,6 @@ node_modules/
 db.sqlite3-shm
 db.sqlite3-wal
 /.opencode/
+
+# Pre-migration pg_dump backups written by deploy/deploy.sh
+backups/
