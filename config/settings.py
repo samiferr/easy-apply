@@ -256,6 +256,29 @@ if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True
 
 
+# Logging — everything goes to stderr, which systemd sends to the journal
+# (`journalctl -u gunicorn-easy-apply`, `-u celery-easy-apply`). Without this,
+# Django's defaults with DEBUG=False only email unhandled exceptions to ADMINS
+# (none are set), so a Server Error (500) would leave no traceback anywhere.
+LOG_LEVEL = config("LOG_LEVEL", default="INFO")
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "plain": {"format": "{levelname} {asctime} {name}: {message}", "style": "{"},
+    },
+    "handlers": {
+        "console": {"class": "logging.StreamHandler", "formatter": "plain"},
+    },
+    "root": {"handlers": ["console"], "level": LOG_LEVEL},
+    "loggers": {
+        # ERROR only: unhandled exceptions with their traceback, without a
+        # line for every 404 or every request (gunicorn's access log has those).
+        "django": {"handlers": ["console"], "level": "ERROR", "propagate": False},
+    },
+}
+
+
 # Celery — every AI call runs off the request cycle (see config/celery.py and
 # the *_tasks.py modules). CELERY_TASK_ALWAYS_EAGER defaults to True in DEBUG so
 # the app (and the test suite) runs with no broker and no worker.
