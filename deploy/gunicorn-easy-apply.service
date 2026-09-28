@@ -1,0 +1,21 @@
+[Unit]
+Description=gunicorn daemon for easy-apply
+# postgresql.service only matters when the database runs on this same box;
+# ordering against a unit that doesn't exist is a no-op.
+After=network.target postgresql.service
+
+[Service]
+User=__DEPLOY_USER__
+Group=__DEPLOY_USER__
+WorkingDirectory=/var/www/easy-apply
+# Settings are read from /var/www/easy-apply/.env by python-decouple.
+ExecStart=/var/www/easy-apply/venv/bin/gunicorn \
+    --workers 3 \
+    --bind 127.0.0.1:__GUNICORN_PORT__ \
+    --access-logfile - \
+    --error-logfile - \
+    config.wsgi:application
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

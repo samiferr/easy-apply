@@ -5,7 +5,9 @@ Django settings for the easy-apply project.
 import sys
 from pathlib import Path
 
+import dj_database_url
 from decouple import Csv, config
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -98,18 +100,39 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 # Database
 
-# SQLite runs with WAL + a busy timeout because the Celery worker (see
-# config/celery.py) writes to the same file as the web process. Postgres is the
-# recommended production database now that there are two writer processes.
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-        # WAL itself is set by the connection_created receiver in core/apps.py —
-        # Django 5.0's SQLite backend has no `init_command` option.
-        "OPTIONS": {"timeout": 20},
+# Production runs on PostgreSQL, configured by a single DATABASE_URL:
+#   postgres://USER:PASSWORD@HOST:PORT/NAME   (append ?sslmode=require for a
+#   managed server). The web process and the Celery worker both write to it.
+# Leave DATABASE_URL unset for local development and the test suite, which
+# fall back to SQLite. With DEBUG=False that fallback is refused, so a
+# production box can't quietly start on an empty SQLite file.
+DATABASE_URL = config("DATABASE_URL", default="")
+
+if DATABASE_URL:
+    DATABASES = {
+        "default": dj_database_url.parse(
+            DATABASE_URL,
+            conn_max_age=config("DB_CONN_MAX_AGE", default=60, cast=int),
+            conn_health_checks=True,
+        )
     }
-}
+elif DEBUG:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+            # SQLite runs with WAL + a busy timeout because the Celery worker
+            # can write to the same file as the web process. WAL itself is set
+            # by the connection_created receiver in core/apps.py — Django 5.0's
+            # SQLite backend has no `init_command` option.
+            "OPTIONS": {"timeout": 20},
+        }
+    }
+else:
+    raise ImproperlyConfigured(
+        "DATABASE_URL must be set when DEBUG=False, e.g. "
+        "postgres://USER:PASSWORD@HOST:5432/NAME. Production runs on PostgreSQL."
+    )
 
 
 # Custom user model
