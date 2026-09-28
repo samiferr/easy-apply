@@ -19,9 +19,9 @@ env:
   # visible (Settings -> Secrets and variables -> Actions).
   VPS_HOST: ${{ secrets.VPS_HOST || vars.VPS_HOST }}
   DOMAIN: ${{ secrets.DOMAIN || vars.DOMAIN }}
-  # Also serve www.<DOMAIN> (and put it on the certificate). Set the variable
-  # to "false" when DOMAIN is a subdomain with no www record.
-  INCLUDE_WWW: ${{ vars.INCLUDE_WWW || 'true' }}
+  # Also serve www.<DOMAIN> (and put it on the certificate). Set it to "false",
+  # as a secret or a variable, when DOMAIN has no www record.
+  INCLUDE_WWW: ${{ secrets.INCLUDE_WWW || vars.INCLUDE_WWW || 'true' }}
   APP_DIR: /var/www/easy-apply
   GUNICORN_PORT: "8005"
   # Every variable forwarded to deploy/deploy.sh, in one place so the SSH

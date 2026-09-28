@@ -15,10 +15,19 @@ SITE_NAME="easy-apply"
 : "${DATABASE_URL:?DATABASE_URL must be set}"
 : "${INCLUDE_WWW:=true}"
 
+# Accept any common spelling (False, "no", "0", stray whitespace from a pasted
+# secret), and refuse anything else rather than silently guessing.
+INCLUDE_WWW_NORMALIZED="$(printf '%s' "$INCLUDE_WWW" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')"
 DOMAINS=("$DOMAIN")
-if [ "$INCLUDE_WWW" = "true" ]; then
-    DOMAINS+=("www.${DOMAIN}")
-fi
+case "$INCLUDE_WWW_NORMALIZED" in
+    true|1|yes|on) DOMAINS+=("www.${DOMAIN}") ;;
+    false|0|no|off) ;;
+    *)
+        echo "INCLUDE_WWW must be true or false (got '${INCLUDE_WWW}')." >&2
+        exit 1
+        ;;
+esac
+echo "==> Serving: ${DOMAINS[*]}"
 SERVER_NAMES="${DOMAINS[*]}"
 ALLOWED_HOSTS="$(IFS=,; echo "${DOMAINS[*]}")"
 CSRF_TRUSTED_ORIGINS="$(printf 'https://%s,' "${DOMAINS[@]}")"

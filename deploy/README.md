@@ -47,7 +47,7 @@ VPS (see § 1.4).
 
 Point an `A` record for your domain at the VPS IP. By default the pipeline
 also serves `www.<domain>`, so point that at the same IP too, or set the
-`INCLUDE_WWW` variable to `false` (useful when the domain is a subdomain such
+`INCLUDE_WWW` secret or variable to `false` (useful when the domain is a subdomain such
 as `apply.example.com`).
 
 Certbot fails if any name on the certificate doesn't resolve yet, so check
@@ -154,7 +154,7 @@ secret.
 | Name | Default | Purpose |
 |---|---|---|
 | `VPS_SSH_PORT` | `22` | SSH port (secret) |
-| `INCLUDE_WWW` | `true` | Variable. `false` to serve only `DOMAIN`, without `www.` |
+| `INCLUDE_WWW` | `true` | `false` to serve only `DOMAIN`, without `www.` (secret or variable) |
 | `DEEPSEEK_API_KEY` | empty (AI off) | Secret. Powers job analysis, resume import and tailored resumes |
 | `DEEPSEEK_API_BASE` | `https://api.deepseek.com` | |
 | `DEEPSEEK_MODEL` | `deepseek-v4-flash` | |
