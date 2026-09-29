@@ -1,6 +1,7 @@
 """Profiles as workspaces: creation, language enforcement, switching, isolation."""
 
 from django.contrib.auth import get_user_model
+from django.contrib.messages import get_messages
 from django.test import TestCase
 from django.urls import reverse
 
@@ -13,6 +14,8 @@ from languages.models import Language, UserLanguage
 from preferences.models import get_or_create_preference
 from resume.models import TailoredResume
 from skills.models import SkillCategory, UserSkill
+from staffportal.models import Plan, Subscription
+from staffportal.services import runtime_settings
 
 User = get_user_model()
 
@@ -271,3 +274,331 @@ class RecapLanguageTests(TestCase):
         self.assertIn("## Langues", recap)
         self.assertNotIn("## Languages", recap)
         self.assertIn("Natif / bilingue", recap)
+
+
+# ---------------------------------------------------------------------------
+# Characterization tests — pin the use cases before they move into services.py
+# ---------------------------------------------------------------------------
+def flash(response):
+    return [str(message) for message in get_messages(response.wsgi_request)]
+
+
+REGISTRATION = {
+    "first_name": "Jane",
+    "last_name": "Doe",
+    "email": "flow@example.com",
+    "profile_language": "en",
+    "password1": "a-strong-passphrase-42",
+    "password2": "a-strong-passphrase-42",
+}
+
+
+class RegistrationFlowTests(TestCase):
+    """UC-01.1: an account, its first workspace, its plan, and a session."""
+
+    def setUp(self):
+        runtime_settings.invalidate()
+        self.addCleanup(runtime_settings.invalidate)
+
+    def test_a_new_account_is_signed_in_and_greeted(self):
+        response = self.client.post(reverse("accounts:register"), REGISTRATION)
+        self.assertRedirects(response, reverse("core:dashboard"), fetch_redirect_response=False)
+        user = User.objects.get(email="flow@example.com")
+        self.assertEqual(int(self.client.session["_auth_user_id"]), user.pk)
+        self.assertEqual(
+            flash(response), ["Welcome to Easy Apply, Jane! Let's build your recap."]
+        )
+
+    def test_a_new_account_is_put_on_the_default_plan(self):
+        free = Plan.objects.create(slug="free", name="Free", price_cents=0, is_default=True)
+        self.client.post(reverse("accounts:register"), REGISTRATION)
+        user = User.objects.get(email="flow@example.com")
+        self.assertEqual(Subscription.objects.get(user=user).plan, free)
+
+    def test_the_first_profile_is_named_and_in_the_chosen_language(self):
+        self.client.post(reverse("accounts:register"), {**REGISTRATION, "profile_language": "fr"})
+        profile = Profile.objects.get(user__email="flow@example.com")
+        self.assertEqual(profile.language, "fr")
+        self.assertTrue(profile.name)
+
+    def assertSignupsPaused(self, response):
+        self.assertRedirects(response, reverse("core:home"), fetch_redirect_response=False)
+        self.assertEqual(
+            flash(response), ["New sign-ups are paused right now. Please check back shortly."]
+        )
+
+    def test_the_form_is_closed_when_sign_ups_are_switched_off(self):
+        runtime_settings.set_value("signups_enabled", False)
+        self.assertSignupsPaused(self.client.get(reverse("accounts:register")))
+
+    def test_a_post_cannot_sneak_past_the_switch(self):
+        runtime_settings.set_value("signups_enabled", False)
+        self.assertSignupsPaused(self.client.post(reverse("accounts:register"), REGISTRATION))
+        self.assertFalse(User.objects.filter(email="flow@example.com").exists())
+
+    def test_someone_already_signed_in_is_sent_to_the_dashboard(self):
+        user, _profile = make_user("already@example.com")
+        self.client.force_login(user)
+        response = self.client.get(reverse("accounts:register"))
+        self.assertRedirects(response, reverse("core:dashboard"), fetch_redirect_response=False)
+
+    def test_an_email_that_is_taken_is_a_form_error(self):
+        make_user("flow@example.com")
+        response = self.client.post(reverse("accounts:register"), REGISTRATION)
+        self.assertEqual(response.status_code, 200)
+        self.assertFormError(
+            response.context["form"], "email", "An account with this email already exists."
+        )
+        self.assertEqual(User.objects.filter(email="flow@example.com").count(), 1)
+
+
+class LoginFlowTests(TestCase):
+    """UC-01.2: email + password, and whether the session outlives the browser."""
+
+    def setUp(self):
+        make_user("login@example.com")
+
+    def login(self, **extra):
+        return self.client.post(
+            reverse("accounts:login"),
+            {"username": "login@example.com", "password": "pw12345678", **extra},
+        )
+
+    def test_without_remember_me_the_session_ends_with_the_browser(self):
+        response = self.login()
+        self.assertRedirects(response, reverse("core:dashboard"), fetch_redirect_response=False)
+        self.assertTrue(self.client.session.get_expire_at_browser_close())
+
+    def test_with_remember_me_the_session_is_kept(self):
+        self.login(remember_me="on")
+        self.assertFalse(self.client.session.get_expire_at_browser_close())
+
+    def test_wrong_credentials_redisplay_the_form(self):
+        response = self.client.post(
+            reverse("accounts:login"),
+            {"username": "login@example.com", "password": "not-the-password"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_a_suspended_account_cannot_sign_in(self):
+        User.objects.filter(email="login@example.com").update(is_active=False)
+        self.login()
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_the_login_lands_on_the_next_url(self):
+        response = self.login(next=reverse("jobs:list"))
+        self.assertRedirects(response, reverse("jobs:list"), fetch_redirect_response=False)
+
+
+class LogoutFlowTests(TestCase):
+    def setUp(self):
+        self.user, _profile = make_user("bye@example.com")
+        self.client.force_login(self.user)
+
+    def test_the_confirmation_page_changes_nothing(self):
+        self.assertEqual(self.client.get(reverse("accounts:logout_confirm")).status_code, 200)
+        self.assertIn("_auth_user_id", self.client.session)
+
+    def test_posting_ends_the_session(self):
+        response = self.client.post(reverse("accounts:logout"))
+        self.assertRedirects(response, reverse("core:home"), fetch_redirect_response=False)
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+
+class PersonalInfoTests(TestCase):
+    """UC-02.3: the name lives on the account, everything else on the profile."""
+
+    def setUp(self):
+        self.user, self.profile = make_user("info@example.com")
+        self.client.force_login(self.user)
+
+    def payload(self, **overrides):
+        data = {
+            "first_name": "Jane", "last_name": "Roe", "headline": "Staff engineer",
+            "phone": "+1 555 0100", "location": "Montreal", "bio": "Hello.",
+            "linkedin_url": "", "portfolio_url": "", "github_url": "",
+        }
+        data.update(overrides)
+        return data
+
+    def test_saving_updates_the_account_name_and_the_active_profile(self):
+        response = self.client.post(reverse("accounts:profile"), self.payload())
+        self.assertRedirects(response, reverse("accounts:profile"), fetch_redirect_response=False)
+        self.user.refresh_from_db()
+        self.profile.refresh_from_db()
+        self.assertEqual((self.user.first_name, self.user.last_name), ("Jane", "Roe"))
+        self.assertEqual(self.profile.headline, "Staff engineer")
+        self.assertEqual(flash(response), ["Your profile has been updated."])
+
+    def test_only_the_active_profile_changes(self):
+        second = Profile.objects.create(user=self.user, name="Second", language="en")
+        self.client.post(reverse("accounts:profile"), self.payload())
+        second.refresh_from_db()
+        self.assertEqual(second.headline, "")
+
+    def test_a_bad_link_redisplays_the_form_unsaved(self):
+        response = self.client.post(
+            reverse("accounts:profile"), self.payload(linkedin_url="not a url")
+        )
+        self.assertEqual(response.status_code, 200)
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.headline, "")
+
+
+class SecurityFlowTests(TestCase):
+    """UC-01.4 and UC-01.6: change the password, or erase the account."""
+
+    def setUp(self):
+        self.user, self.profile = make_user("secure@example.com")
+        self.client.force_login(self.user)
+
+    def test_changing_the_password_keeps_the_session(self):
+        response = self.client.post(
+            reverse("accounts:security"),
+            {
+                "change_password": "1",
+                "old_password": "pw12345678",
+                "new_password1": "another-strong-phrase-77",
+                "new_password2": "another-strong-phrase-77",
+            },
+        )
+        self.assertRedirects(response, reverse("accounts:security"), fetch_redirect_response=False)
+        self.assertEqual(flash(response), ["Your password has been changed successfully."])
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password("another-strong-phrase-77"))
+        self.assertEqual(self.client.get(reverse("core:dashboard")).status_code, 200)
+
+    def test_a_wrong_old_password_changes_nothing(self):
+        response = self.client.post(
+            reverse("accounts:security"),
+            {
+                "change_password": "1",
+                "old_password": "wrong",
+                "new_password1": "another-strong-phrase-77",
+                "new_password2": "another-strong-phrase-77",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["password_form"].errors)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password("pw12345678"))
+
+    def test_deleting_the_account_erases_it_and_signs_out(self):
+        JobPost.objects.create(profile=self.profile, title="Mine")
+        response = self.client.post(
+            reverse("accounts:security"),
+            {"delete_account": "1", "password": "pw12345678", "confirm": "on"},
+        )
+        self.assertRedirects(response, reverse("core:home"), fetch_redirect_response=False)
+        self.assertEqual(
+            flash(response), ["Your account and all associated data have been deleted."]
+        )
+        self.assertFalse(User.objects.filter(pk=self.user.pk).exists())
+        self.assertFalse(JobPost.objects.filter(title="Mine").exists())
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_the_wrong_password_or_no_confirmation_deletes_nothing(self):
+        for data in (
+            {"delete_account": "1", "password": "wrong", "confirm": "on"},
+            {"delete_account": "1", "password": "pw12345678"},
+        ):
+            with self.subTest(data=data):
+                response = self.client.post(reverse("accounts:security"), data)
+                self.assertEqual(response.status_code, 200)
+                self.assertTrue(User.objects.filter(pk=self.user.pk).exists())
+
+    def test_an_unrecognised_post_is_bounced_back(self):
+        response = self.client.post(reverse("accounts:security"), {"something": "else"})
+        self.assertRedirects(response, reverse("accounts:security"), fetch_redirect_response=False)
+
+
+class ProfileLimitTests(TestCase):
+    """UC-02.1: workspaces are a ceiling set by the plan, once quotas are enforced."""
+
+    def setUp(self):
+        runtime_settings.invalidate()
+        self.addCleanup(runtime_settings.invalidate)
+        Plan.objects.create(
+            slug="free", name="Free", price_cents=0, is_default=True, max_profiles=1
+        )
+        self.user, self.first = make_user("limit@example.com")
+        self.client.force_login(self.user)
+
+    def test_quotas_off_means_no_ceiling(self):
+        response = self.client.post(
+            reverse("accounts:profile_create"), {"name": "Second", "language": "en"}
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Profile.objects.filter(user=self.user).count(), 2)
+
+    def test_the_plan_limit_blocks_another_profile_once_enforced(self):
+        runtime_settings.set_value("enforce_quotas", True)
+        response = self.client.post(
+            reverse("accounts:profile_create"), {"name": "Second", "language": "en"}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Profile.objects.filter(user=self.user).count(), 1)
+        self.assertEqual(
+            flash(response),
+            ["Your plan allows 1 profile(s). Delete one, or upgrade, to add another."],
+        )
+
+    def test_a_created_profile_is_announced_and_becomes_active(self):
+        response = self.client.post(
+            reverse("accounts:profile_create"), {"name": "Analyste", "language": "fr"}
+        )
+        created = Profile.objects.get(name="Analyste")
+        self.assertRedirects(response, reverse("accounts:profile"), fetch_redirect_response=False)
+        self.assertEqual(self.client.session[ACTIVE_PROFILE_SESSION_KEY], created.pk)
+        self.assertEqual(
+            flash(response), ["Created “Analyste” (Français). You're now working in it."]
+        )
+
+
+class ProfileRenameTests(TestCase):
+    """UC-02.4: renaming never touches the language."""
+
+    def setUp(self):
+        self.user, self.profile = make_user("rename@example.com", language="fr")
+        self.client.force_login(self.user)
+
+    def test_renaming_keeps_the_language(self):
+        response = self.client.post(
+            reverse("accounts:profile_rename", args=[self.profile.pk]), {"name": "Renamed"}
+        )
+        self.assertRedirects(
+            response, reverse("accounts:profile_list"), fetch_redirect_response=False
+        )
+        self.profile.refresh_from_db()
+        self.assertEqual((self.profile.name, self.profile.language), ("Renamed", "fr"))
+        self.assertEqual(flash(response), ["Profile renamed."])
+
+    def test_a_name_already_in_use_is_refused(self):
+        Profile.objects.create(user=self.user, name="Taken", language="en")
+        response = self.client.post(
+            reverse("accounts:profile_rename", args=[self.profile.pk]), {"name": "taken"}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.name, "Main")
+
+    def test_someone_elses_profile_is_a_404(self):
+        _other_user, other_profile = make_user("intruder@example.com")
+        response = self.client.post(
+            reverse("accounts:profile_rename", args=[other_profile.pk]), {"name": "Mine now"}
+        )
+        self.assertEqual(response.status_code, 404)
+
+
+class ProfileSwitchLanguageTests(TestCase):
+    """UC-02.2: the interface follows the workspace into its language."""
+
+    def test_switching_sets_the_interface_language_cookie(self):
+        user, _first = make_user("cookie@example.com")
+        french = Profile.objects.create(user=user, name="Analyste", language="fr")
+        self.client.force_login(user)
+        response = self.client.post(reverse("accounts:profile_switch", args=[french.pk]))
+        self.assertEqual(response.cookies["django_language"].value, "fr")
+        self.assertRedirects(response, reverse("core:dashboard"), fetch_redirect_response=False)
+        self.assertEqual(flash(response), ["Switched to “Analyste”."])

@@ -9,14 +9,18 @@ inert until an operator turns it on.
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
+from django.contrib.messages import get_messages
 from django.core import mail
+from django.core.management import call_command
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import Profile
 from core.models import AITask
+from core.testing import fake_deepseek
 from jobs.models import JobPost
+from resume.models import ResumeImport, TailoredResume
 
 from .models import (
     Announcement,
@@ -1006,3 +1010,794 @@ class SeedCommandTests(PortalTestCase):
         self.assertEqual(Plan.objects.count(), 3)
         self.assertEqual(Plan.objects.filter(is_default=True).count(), 1)
         self.assertTrue(Subscription.objects.filter(user=early).exists())
+
+
+# ---------------------------------------------------------------------------
+# Characterization tests — pin the operator use cases before they move into
+# services.py. Messages and audit summaries are what an operator actually sees.
+# ---------------------------------------------------------------------------
+def flash(response):
+    return [str(message) for message in get_messages(response.wsgi_request)]
+
+
+def last_audit(action):
+    return AuditLog.objects.filter(action=action).order_by("-pk").first()
+
+
+class AccountListTests(PortalTestCase):
+    """UC-08.2: find the account."""
+
+    def setUp(self):
+        super().setUp()
+        self.free, self.pro = make_plans()
+        self.operator = make_staff("admin@example.com", StaffRole.ADMIN)
+        self.ada = make_user("ada@example.com", first_name="Ada", last_name="Lovelace")
+        self.grace = make_user("grace@example.com", first_name="Grace", last_name="Hopper")
+        self.grace.is_active = False
+        self.grace.last_seen_at = timezone.now() - timedelta(days=90)
+        self.grace.save()
+        User.objects.filter(pk=self.ada.pk).update(last_seen_at=timezone.now())
+        subscriptions.change_plan(Subscription.objects.get(user=self.grace), self.pro)
+        self.client.force_login(self.operator)
+
+    def emails(self, **params):
+        response = self.client.get(reverse("staffportal:user_list"), params)
+        self.assertEqual(response.status_code, 200)
+        return {account.email for account in response.context["accounts"]}
+
+    def test_search_matches_email_first_or_last_name(self):
+        self.assertEqual(self.emails(q="ada@"), {"ada@example.com"})
+        self.assertEqual(self.emails(q="hopper"), {"grace@example.com"})
+        self.assertEqual(self.emails(q="Grace"), {"grace@example.com"})
+
+    def test_status_filter(self):
+        self.assertEqual(self.emails(status="suspended"), {"grace@example.com"})
+        self.assertIn("ada@example.com", self.emails(status="active"))
+        self.assertNotIn("grace@example.com", self.emails(status="active"))
+        self.assertEqual(self.emails(status="staff"), {"admin@example.com"})
+
+    def test_plan_filter_ignores_junk(self):
+        self.assertEqual(self.emails(plan=str(self.pro.pk)), {"grace@example.com"})
+        self.assertGreaterEqual(len(self.emails(plan="not-a-number")), 3)
+
+    def test_activity_filter(self):
+        self.assertEqual(self.emails(activity="recent"), {"ada@example.com"})
+        never_seen = make_user("never@example.com")
+        dormant = self.emails(activity="dormant")
+        self.assertEqual(dormant, {"grace@example.com", never_seen.email})
+        self.assertNotIn("ada@example.com", dormant)
+
+    def test_the_context_carries_the_plans_and_the_total(self):
+        response = self.client.get(reverse("staffportal:user_list"), {"q": "ada"})
+        self.assertEqual(response.context["total_count"], User.objects.count())
+        self.assertEqual(list(response.context["plans"]), [self.free, self.pro])
+        self.assertEqual(response.context["filters"]["q"], "ada")
+
+    def test_the_csv_export_honours_the_same_filters_and_is_audited(self):
+        response = self.client.get(reverse("staffportal:user_export"), {"status": "suspended"})
+        body = b"".join(response.streaming_content).decode()
+        self.assertIn("grace@example.com", body)
+        self.assertNotIn("ada@example.com", body)
+        self.assertRegex(response["Content-Disposition"], r'filename="accounts-\d{8}\.csv"')
+        entry = last_audit(audit.EXPORT_DOWNLOADED)
+        self.assertEqual(entry.summary, "Accounts CSV (1 rows).")
+        self.assertEqual(entry.metadata, {"filters": {"status": "suspended"}})
+
+    def test_the_detail_page_gathers_everything_about_the_account(self):
+        profile = Profile.objects.get(user=self.ada)
+        job = JobPost.objects.create(profile=profile, title="Backend")
+        TailoredResume.objects.create(profile=profile, job=job, markdown="x")
+        AITask.start_for(profile, AITask.JOB_ANALYSIS, job)
+        SupportNote.objects.create(user=self.ada, body="Called.")
+        FeatureFlag.objects.create(key="beta", name="Beta", state=FeatureFlag.ON)
+        response = self.client.get(reverse("staffportal:user_detail", args=[self.ada.pk]))
+        context = response.context
+        self.assertEqual(context["account"], self.ada)
+        self.assertEqual(context["job_post_count"], 1)
+        self.assertEqual(context["tailored_count"], 1)
+        self.assertEqual(len(context["tasks"]), 1)
+        self.assertEqual(len(context["notes"]), 1)
+        self.assertEqual(context["enabled_flags"], ["beta"])
+        self.assertEqual(len(context["allowances"]), 3)
+        self.assertEqual((context["profile_limit"], context["profile_used"]), (1, 1))
+        self.assertFalse(context["quotas_enforced"])
+        self.assertEqual(context["subscription"].plan, self.free)
+        self.assertEqual(context["plan_form"].initial["plan"], self.free.pk)
+        self.assertEqual(context["can_impersonate"], True)
+
+
+class AccountActionGuardTests(PortalTestCase):
+    """UC-08.2 to UC-08.5, UC-08.11: what the operator is told, and what is left alone."""
+
+    def setUp(self):
+        super().setUp()
+        self.free, self.pro = make_plans()
+        self.operator = make_staff("admin@example.com", StaffRole.ADMIN)
+        self.root = make_user("root@example.com", is_staff=True, is_superuser=True)
+        self.customer = make_user("customer@example.com")
+        self.client.force_login(self.operator)
+
+    def post(self, name, account=None, **data):
+        return self.client.post(reverse(f"staffportal:{name}", args=[(account or self.customer).pk]), data)
+
+    def test_suspending_says_who_and_why(self):
+        response = self.post("user_suspend", reason="abuse report #12")
+        self.assertEqual(flash(response), ["Suspended customer@example.com and ended their sessions."])
+        self.assertRedirects(
+            response,
+            reverse("staffportal:user_detail", args=[self.customer.pk]),
+            fetch_redirect_response=False,
+        )
+        self.assertEqual(last_audit(audit.USER_SUSPENDED).summary, "abuse report #12")
+
+    def test_suspending_without_a_reason_records_a_default(self):
+        self.post("user_suspend")
+        self.assertEqual(last_audit(audit.USER_SUSPENDED).summary, "Account suspended.")
+
+    def test_you_cannot_suspend_yourself_and_are_told_so(self):
+        response = self.post("user_suspend", self.operator)
+        self.assertEqual(flash(response), ["You cannot suspend your own account."])
+        self.assertFalse(AuditLog.objects.filter(action=audit.USER_SUSPENDED).exists())
+
+    def test_only_a_superuser_may_suspend_one(self):
+        response = self.post("user_suspend", self.root)
+        self.assertEqual(flash(response), ["Only a superuser may suspend a superuser."])
+        self.root.refresh_from_db()
+        self.assertTrue(self.root.is_active)
+
+    def test_reactivating_is_confirmed_and_audited(self):
+        User.objects.filter(pk=self.customer.pk).update(is_active=False)
+        response = self.post("user_reactivate")
+        self.assertEqual(flash(response), ["Reactivated customer@example.com."])
+        self.assertEqual(last_audit(audit.USER_REACTIVATED).summary, "Account reactivated.")
+
+    def test_a_password_reset_is_confirmed_and_audited(self):
+        response = self.post("user_password_reset")
+        self.assertEqual(flash(response), ["Reset email sent to customer@example.com."])
+        self.assertEqual(last_audit(audit.USER_PASSWORD_RESET_SENT).summary, "Password reset email sent.")
+
+    def test_an_empty_note_is_refused_and_a_pinned_one_is_kept(self):
+        response = self.post("user_note_add", body="")
+        self.assertEqual(flash(response), ["The note can't be empty."])
+        self.assertFalse(SupportNote.objects.exists())
+        response = self.post("user_note_add", body="Chargeback pending.", pinned="on")
+        self.assertEqual(flash(response)[-1], "Note added.")
+        self.assertTrue(SupportNote.objects.get().pinned)
+        self.assertEqual(last_audit(audit.USER_NOTE_ADDED).summary, "Support note added.")
+
+    def test_a_plan_change_records_before_and_after_and_the_reason(self):
+        response = self.post("user_plan_change", plan=self.pro.pk, status=Subscription.ACTIVE, note="upgraded on call")
+        self.assertEqual(flash(response), ["customer@example.com is now on Pro (active)."])
+        entry = last_audit(audit.SUBSCRIPTION_UPDATED)
+        self.assertEqual(entry.summary, "Free/active → Pro/active. upgraded on call")
+        self.assertEqual(entry.metadata, {"plan": "pro", "status": "active"})
+
+    def test_a_plan_change_needs_a_plan_and_a_status(self):
+        response = self.post("user_plan_change", plan="", status="")
+        self.assertEqual(flash(response), ["Pick a plan and a status."])
+        self.assertEqual(Subscription.objects.get(user=self.customer).plan, self.free)
+
+    def test_usage_reset_reports_how_many_counters_it_cleared(self):
+        quotas.consume(self.customer, UsageMetric.JOB_ANALYSIS, amount=2)
+        quotas.consume(self.customer, UsageMetric.RESUME_IMPORT)
+        response = self.post("user_usage_reset")
+        self.assertEqual(flash(response), ["This period's usage has been reset to zero."])
+        self.assertEqual(
+            last_audit(audit.USAGE_RESET).summary, "Reset 2 usage counter(s) for the current period."
+        )
+
+    def test_without_any_default_plan_billing_actions_say_so(self):
+        Plan.objects.filter(pk=self.free.pk).update(is_default=False)
+        newcomer = make_user("newcomer@example.com")
+        self.assertFalse(Subscription.objects.filter(user=newcomer).exists())
+        response = self.post("user_plan_change", newcomer, plan=self.pro.pk, status=Subscription.ACTIVE)
+        self.assertEqual(flash(response), ["No plans are configured yet."])
+        response = self.post("user_usage_reset", newcomer)
+        self.assertEqual(flash(response)[-1], "No plans are configured yet.")
+
+    def test_deleting_shows_what_will_go_and_blocks_deleting_a_superuser(self):
+        profile = Profile.objects.get(user=self.customer)
+        JobPost.objects.create(profile=profile)
+        response = self.client.get(reverse("staffportal:user_delete", args=[self.customer.pk]))
+        self.assertEqual(
+            (response.context["profile_count"], response.context["job_post_count"], response.context["blocked"]),
+            (1, 1, False),
+        )
+        blocked = self.client.get(reverse("staffportal:user_delete", args=[self.root.pk]))
+        self.assertTrue(blocked.context["blocked"])
+
+    def test_only_a_superuser_may_delete_a_superuser(self):
+        response = self.post("user_delete", self.root, confirm_email="root@example.com")
+        self.assertEqual(flash(response), ["Only a superuser may delete a superuser account."])
+        self.assertTrue(User.objects.filter(pk=self.root.pk).exists())
+
+    def test_a_mismatched_email_deletes_nothing_and_a_match_erases_everything(self):
+        response = self.post("user_delete", confirm_email="wrong@example.com")
+        self.assertEqual(flash(response), ["The email address did not match. Nothing was deleted."])
+        self.assertRedirects(
+            response,
+            reverse("staffportal:user_delete", args=[self.customer.pk]),
+            fetch_redirect_response=False,
+        )
+        response = self.post("user_delete", confirm_email="  CUSTOMER@example.com ", reason="erasure request")
+        self.assertEqual(flash(response)[-1], "Deleted customer@example.com and everything belonging to it.")
+        self.assertRedirects(response, reverse("staffportal:user_list"), fetch_redirect_response=False)
+        entry = last_audit(audit.USER_DELETED)
+        self.assertEqual(entry.summary, "Account customer@example.com and all of its data deleted.")
+        self.assertEqual(entry.metadata, {"email": "customer@example.com", "reason": "erasure request"})
+
+    def test_the_data_export_is_a_json_attachment_and_is_audited(self):
+        response = self.client.get(reverse("staffportal:user_data_export", args=[self.customer.pk]))
+        self.assertEqual(response["Content-Type"], "application/json; charset=utf-8")
+        self.assertRegex(
+            response["Content-Disposition"],
+            rf'filename="account-{self.customer.pk}-export-\d{{8}}\.json"',
+        )
+        self.assertEqual(response.json()["account"]["email"], "customer@example.com")
+        self.assertEqual(last_audit(audit.USER_EXPORTED).summary, "Account data export downloaded.")
+
+    def test_impersonating_needs_permission_and_a_reason(self):
+        response = self.post("impersonate_start", self.operator, reason="testing")
+        self.assertEqual(flash(response), ["You are already signed in as this account."])
+        response = self.post("impersonate_start", reason="")
+        self.assertEqual(flash(response)[-1], "A reason is required before impersonating an account.")
+        self.assertFalse(ImpersonationSession.objects.exists())
+
+    def test_impersonating_says_when_it_ends_and_lands_on_the_dashboard(self):
+        response = self.post("impersonate_start", reason="ticket #1")
+        self.assertRedirects(response, reverse("core:dashboard"), fetch_redirect_response=False)
+        (message,) = flash(response)
+        self.assertTrue(message.startswith("You are now signed in as customer@example.com. This ends automatically at "))
+
+    def test_stopping_when_not_impersonating_just_goes_to_the_dashboard(self):
+        response = self.client.post(reverse("staffportal:impersonate_stop"))
+        self.assertRedirects(response, reverse("core:dashboard"), fetch_redirect_response=False)
+
+    def test_stopping_hands_back_with_a_welcome_and_lands_in_the_portal(self):
+        self.post("impersonate_start", reason="ticket #1")
+        response = self.client.post(reverse("staffportal:impersonate_stop"))
+        self.assertRedirects(response, reverse("staffportal:dashboard"), fetch_redirect_response=False)
+        self.assertEqual(flash(response)[-1], "Back to your own account, admin@example.com.")
+
+    def test_if_the_operator_lost_staff_access_stopping_signs_out(self):
+        self.post("impersonate_start", reason="ticket #1")
+        User.objects.filter(pk=self.operator.pk).update(is_staff=False)
+        response = self.client.post(reverse("staffportal:impersonate_stop"))
+        self.assertRedirects(response, reverse("core:home"), fetch_redirect_response=False)
+        self.assertEqual(flash(response)[-1], "That impersonation session has ended.")
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_the_impersonation_log_closes_sessions_that_ran_out(self):
+        self.post("impersonate_start", reason="ticket #1")
+        self.client.post(reverse("staffportal:impersonate_stop"))
+        ImpersonationSession.objects.update(ended_at=None, ended_reason="", expires_at=timezone.now() - timedelta(minutes=1))
+        response = self.client.get(reverse("staffportal:impersonation_log"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(ImpersonationSession.objects.get().ended_reason, ImpersonationSession.EXPIRED)
+
+
+class BillingTests(PortalTestCase):
+    """UC-08.5: plans and subscriptions."""
+
+    def setUp(self):
+        super().setUp()
+        self.free, self.pro = make_plans()
+        self.operator = make_staff("billing@example.com", StaffRole.BILLING)
+        self.customer = make_user("customer@example.com")
+        self.client.force_login(self.operator)
+
+    PLAN = {
+        "name": "Team", "slug": "team", "tagline": "", "description": "", "price_cents": "4900",
+        "currency": "USD", "interval": "month", "trial_days": "0", "is_active": "on",
+        "is_public": "on", "sort_order": "3", "max_profiles": "10", "features": "",
+    }
+
+    def test_the_overview_counts_entitled_subscribers_per_plan(self):
+        response = self.client.get(reverse("staffportal:billing"))
+        plans = {plan.slug: plan.subscriber_count for plan in response.context["plans"]}
+        self.assertEqual(plans, {"free": 2, "pro": 0})
+        self.assertIn("revenue", response.context)
+        self.assertIn("breakdown", response.context)
+
+    def test_creating_a_plan_is_confirmed_and_audited(self):
+        response = self.client.post(reverse("staffportal:plan_create"), self.PLAN)
+        self.assertRedirects(response, reverse("staffportal:billing"), fetch_redirect_response=False)
+        self.assertEqual(flash(response), ["Created the Team plan."])
+        plan = Plan.objects.get(slug="team")
+        self.assertEqual(plan.price_cents, 4900)
+        self.assertTrue(last_audit(audit.PLAN_CREATED).summary.startswith("Plan created at "))
+
+    def test_updating_a_plan_audits_exactly_the_fields_that_changed(self):
+        data = {**self.PLAN, "name": "Pro", "slug": "pro", "price_cents": "1500", "sort_order": "2",
+                "max_profiles": "5", "monthly_job_analyses": "100"}
+        response = self.client.post(reverse("staffportal:plan_update", args=[self.pro.pk]), data)
+        self.assertEqual(flash(response), ["Saved the Pro plan."])
+        self.assertEqual(last_audit(audit.PLAN_UPDATED).summary, "Changed: price_cents.")
+        self.assertEqual(last_audit(audit.PLAN_UPDATED).metadata, {"fields": ["price_cents"]})
+        self.pro.refresh_from_db()
+        self.assertEqual(self.pro.price_cents, 1500)
+
+    def test_saving_a_plan_unchanged_says_nothing_changed(self):
+        data = {**self.PLAN, "name": "Pro", "slug": "pro", "price_cents": "1200", "sort_order": "2",
+                "max_profiles": "5", "monthly_job_analyses": "100"}
+        self.client.post(reverse("staffportal:plan_update", args=[self.pro.pk]), data)
+        self.assertEqual(last_audit(audit.PLAN_UPDATED).summary, "Changed: nothing.")
+
+    def test_a_second_default_plan_is_refused(self):
+        response = self.client.post(reverse("staffportal:plan_create"), {**self.PLAN, "is_default": "on"})
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("is already the default plan", str(response.context["form"].errors["is_default"]))
+        self.assertFalse(Plan.objects.filter(slug="team").exists())
+
+    def test_a_plan_with_subscribers_is_retired_not_deleted(self):
+        response = self.client.post(reverse("staffportal:plan_delete", args=[self.free.pk]))
+        self.assertRedirects(response, reverse("staffportal:billing"), fetch_redirect_response=False)
+        self.assertEqual(
+            flash(response),
+            ["Free still has subscribers, so it was deactivated rather than deleted. "
+             "It takes no new sign-ups."],
+        )
+        self.free.refresh_from_db()
+        self.assertFalse(self.free.is_active)
+        self.assertFalse(self.free.is_default)
+        self.assertEqual(
+            last_audit(audit.PLAN_UPDATED).summary,
+            "Plan deactivated (it still has subscribers, so it was not deleted).",
+        )
+
+    def test_a_plan_nobody_is_on_is_deleted(self):
+        response = self.client.post(reverse("staffportal:plan_delete", args=[self.pro.pk]))
+        self.assertEqual(flash(response), ["Deleted the Pro plan."])
+        self.assertFalse(Plan.objects.filter(pk=self.pro.pk).exists())
+        self.assertEqual(last_audit(audit.PLAN_UPDATED).summary, "Plan deleted.")
+
+    def test_deleting_a_plan_that_is_already_gone_is_quiet(self):
+        response = self.client.post(reverse("staffportal:plan_delete", args=[9999]))
+        self.assertRedirects(response, reverse("staffportal:billing"), fetch_redirect_response=False)
+        self.assertEqual(flash(response), [])
+
+    def test_the_subscription_list_filters(self):
+        subscriptions.change_plan(Subscription.objects.get(user=self.customer), self.pro)
+        Subscription.objects.filter(user=self.customer).update(
+            status=Subscription.PAST_DUE, external_customer_id="cus_123"
+        )
+        other = make_user("other@example.com")
+
+        def listed(**params):
+            response = self.client.get(reverse("staffportal:subscription_list"), params)
+            return {sub.user.email for sub in response.context["subscriptions"]}
+
+        self.assertEqual(listed(q="cus_123"), {"customer@example.com"})
+        self.assertEqual(listed(q="OTHER@"), {"other@example.com"})
+        self.assertEqual(listed(status="past_due"), {"customer@example.com"})
+        self.assertEqual(listed(plan=str(self.pro.pk)), {"customer@example.com"})
+        self.assertEqual(len(listed(status="nonsense", plan="x")), 3)
+
+    def test_cancelling_a_subscription_stamps_when_and_keeps_an_earlier_stamp(self):
+        subscription = Subscription.objects.get(user=self.customer)
+        url = reverse("staffportal:subscription_update", args=[subscription.pk])
+        data = {"plan": self.free.pk, "status": Subscription.CANCELED, "notes": ""}
+        response = self.client.post(url, data)
+        self.assertRedirects(
+            response, reverse("staffportal:user_detail", args=[self.customer.pk]),
+            fetch_redirect_response=False,
+        )
+        self.assertEqual(flash(response), ["Subscription saved."])
+        subscription.refresh_from_db()
+        first = subscription.canceled_at
+        self.assertIsNotNone(first)
+        self.assertEqual(last_audit(audit.SUBSCRIPTION_UPDATED).summary, "Subscription changed: status.")
+
+        Subscription.objects.filter(pk=subscription.pk).update(status=Subscription.ACTIVE)
+        self.client.post(url, {**data, "status": Subscription.EXPIRED})
+        subscription.refresh_from_db()
+        self.assertEqual(subscription.canceled_at, first)
+
+    def test_other_status_changes_do_not_stamp_a_cancellation(self):
+        subscription = Subscription.objects.get(user=self.customer)
+        self.client.post(
+            reverse("staffportal:subscription_update", args=[subscription.pk]),
+            {"plan": self.free.pk, "status": Subscription.PAST_DUE, "notes": "card declined"},
+        )
+        subscription.refresh_from_db()
+        self.assertIsNone(subscription.canceled_at)
+
+    def test_the_subscription_csv_is_audited(self):
+        response = self.client.get(reverse("staffportal:subscription_export"))
+        body = b"".join(response.streaming_content).decode()
+        self.assertTrue(body.startswith("id,email,plan,status"))
+        self.assertIn("customer@example.com", body)
+        self.assertEqual(last_audit(audit.EXPORT_DOWNLOADED).summary, "Subscriptions CSV (2 rows).")
+
+
+class FlagAndAnnouncementManagementTests(PortalTestCase):
+    """UC-08.6 and UC-08.8."""
+
+    def setUp(self):
+        super().setUp()
+        make_plans()
+        self.operator = make_staff("admin@example.com", StaffRole.ADMIN)
+        self.client.force_login(self.operator)
+
+    def test_creating_a_flag_records_who_and_the_new_state(self):
+        response = self.client.post(
+            reverse("staffportal:flag_create"),
+            {"key": "beta", "name": "Beta", "description": "", "state": "staff", "percentage": "0"},
+        )
+        self.assertRedirects(response, reverse("staffportal:flag_list"), fetch_redirect_response=False)
+        self.assertEqual(flash(response), ["Saved the “beta” flag."])
+        flag = FeatureFlag.objects.get(key="beta")
+        self.assertEqual(flag.updated_by, self.operator)
+        entry = last_audit(audit.FLAG_CREATED)
+        self.assertTrue(entry.summary.startswith("beta → "))
+        self.assertEqual(entry.metadata, {"state": "staff", "percentage": 0})
+
+    def test_updating_a_flag_is_audited_as_an_update(self):
+        flag = FeatureFlag.objects.create(key="beta", name="Beta", state=FeatureFlag.OFF)
+        self.client.post(
+            reverse("staffportal:flag_update", args=[flag.pk]),
+            {"key": "beta", "name": "Beta", "description": "", "state": "percent", "percentage": "25"},
+        )
+        flag.refresh_from_db()
+        self.assertEqual((flag.state, flag.percentage), ("percent", 25))
+        self.assertEqual(last_audit(audit.FLAG_UPDATED).metadata, {"state": "percent", "percentage": 25})
+
+    def test_a_percentage_rollout_at_zero_is_refused(self):
+        response = self.client.post(
+            reverse("staffportal:flag_create"),
+            {"key": "beta", "name": "Beta", "description": "", "state": "percent", "percentage": "0"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(FeatureFlag.objects.exists())
+
+    def test_deleting_a_flag_retires_the_feature(self):
+        flag = FeatureFlag.objects.create(key="beta", name="Beta", state=FeatureFlag.ON)
+        response = self.client.post(reverse("staffportal:flag_delete", args=[flag.pk]))
+        self.assertEqual(flash(response), ["Deleted “beta”. Code checking it now gets False."])
+        self.assertEqual(
+            last_audit(audit.FLAG_DELETED).summary,
+            "Flag beta deleted — it now evaluates as off everywhere.",
+        )
+        self.assertFalse(flags.is_enabled("beta", self.operator))
+
+    def test_deleting_a_missing_flag_or_announcement_is_quiet(self):
+        for name in ("staffportal:flag_delete", "staffportal:announcement_delete"):
+            with self.subTest(name=name):
+                response = self.client.post(reverse(name, args=[9999]))
+                self.assertEqual(response.status_code, 302)
+                self.assertEqual(flash(response), [])
+
+    def test_a_flag_list_says_what_the_operator_themself_would_get(self):
+        FeatureFlag.objects.create(key="on", name="On", state=FeatureFlag.ON)
+        FeatureFlag.objects.create(key="off", name="Off", state=FeatureFlag.OFF)
+        response = self.client.get(reverse("staffportal:flag_list"))
+        self.assertEqual(response.context["my_flags"], {"on"})
+
+    ANNOUNCEMENT = {
+        "title": "Maintenance Sunday", "body": "", "level": "warning", "audience": "everyone",
+        "link_url": "", "link_label": "", "is_active": "on", "dismissible": "on",
+        "starts_at": "2020-01-01 10:00",
+    }
+
+    def test_publishing_an_announcement_records_the_author_and_whether_it_is_live(self):
+        response = self.client.post(reverse("staffportal:announcement_create"), self.ANNOUNCEMENT)
+        self.assertRedirects(
+            response, reverse("staffportal:announcement_list"), fetch_redirect_response=False
+        )
+        self.assertEqual(flash(response), ["Announcement saved."])
+        announcement = Announcement.objects.get()
+        self.assertEqual(announcement.created_by, self.operator)
+        entry = last_audit(audit.ANNOUNCEMENT_CREATED)
+        self.assertEqual(entry.summary, "Maintenance Sunday (warning, everyone).")
+        self.assertEqual(entry.metadata, {"live": True})
+
+    def test_editing_an_announcement_keeps_its_author_and_audits_an_update(self):
+        announcement = Announcement.objects.create(title="Old", created_by=None)
+        self.client.post(
+            reverse("staffportal:announcement_update", args=[announcement.pk]),
+            {**self.ANNOUNCEMENT, "title": "New"},
+        )
+        announcement.refresh_from_db()
+        self.assertEqual(announcement.title, "New")
+        self.assertIsNone(announcement.created_by)
+        self.assertEqual(last_audit(audit.ANNOUNCEMENT_UPDATED).summary, "New (warning, everyone).")
+
+    def test_an_announcement_cannot_end_before_it_starts(self):
+        response = self.client.post(
+            reverse("staffportal:announcement_create"),
+            {**self.ANNOUNCEMENT, "starts_at": "2030-01-02 10:00", "ends_at": "2030-01-01 10:00"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("ends_at", response.context["form"].errors)
+        self.assertFalse(Announcement.objects.exists())
+
+    def test_deleting_an_announcement_says_which(self):
+        announcement = Announcement.objects.create(title="Gone soon")
+        response = self.client.post(reverse("staffportal:announcement_delete", args=[announcement.pk]))
+        self.assertEqual(flash(response), ["Deleted “Gone soon”."])
+        self.assertEqual(last_audit(audit.ANNOUNCEMENT_DELETED).summary, "Announcement “Gone soon” deleted.")
+
+
+class QueueRetryTests(PortalTestCase):
+    """UC-08.9: an operator re-runs a customer's failed work through the product's own path."""
+
+    def setUp(self):
+        super().setUp()
+        self.operator = make_staff("admin@example.com", StaffRole.ADMIN)
+        self.customer = make_user("customer@example.com")
+        self.profile = Profile.objects.get(user=self.customer)
+        self.client.force_login(self.operator)
+
+    def retry(self, task, **data):
+        return self.client.post(reverse("staffportal:task_retry", args=[task.pk]), data)
+
+    def failed(self, kind, target):
+        task = AITask.start_for(self.profile, kind, target)
+        task.mark_failed("provider timed out")
+        return task
+
+    def assertRequeued(self, task, kind):
+        fresh = AITask.objects.filter(kind=kind, object_id=task.object_id).exclude(pk=task.pk)
+        self.assertTrue(fresh.exists(), "a fresh AITask, not the old one resurrected")
+        task.refresh_from_db()
+        self.assertEqual(task.state, AITask.FAILED)
+
+    def test_every_kind_of_task_has_a_retry_path(self):
+        import shutil
+        import tempfile
+
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from django.test import override_settings
+
+        media_root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, media_root, ignore_errors=True)
+        media = override_settings(MEDIA_ROOT=media_root)
+        media.enable()
+        self.addCleanup(media.disable)
+
+        job = JobPost.objects.create(profile=self.profile, description_text="x" * 200)
+        upload = ResumeImport.objects.create(
+            profile=self.profile,
+            file=SimpleUploadedFile("cv.txt", b"Jane Doe, backend engineer with plenty of experience. " * 3),
+        )
+        tailored = TailoredResume.objects.create(profile=self.profile, job=job, markdown="x")
+        cases = [
+            (AITask.JOB_ANALYSIS, job),
+            (AITask.JOB_MATCH, job),
+            (AITask.RESUME_IMPORT, upload),
+            (AITask.TAILORED_RESUME, tailored),
+        ]
+        for kind, target in cases:
+            with self.subTest(kind=kind):
+                task = self.failed(kind, target)
+                with fake_deepseek(lambda request: {}):
+                    response = self.retry(task)
+                self.assertEqual(
+                    flash(response)[-1], "Re-queued. The customer sees it running on their page."
+                )
+                self.assertRequeued(task, kind)
+                entry = last_audit(audit.TASK_RETRIED)
+                self.assertEqual(entry.metadata, {"kind": kind})
+                self.assertEqual(entry.summary, f"{task.get_kind_display()} re-queued for customer@example.com.")
+
+    def test_a_task_whose_object_is_gone_cannot_be_retried(self):
+        job = JobPost.objects.create(profile=self.profile)
+        task = self.failed(AITask.JOB_ANALYSIS, job)
+        job.delete()
+        response = self.retry(task)
+        self.assertEqual(flash(response), ["The object this job was about no longer exists."])
+        self.assertFalse(AuditLog.objects.filter(action=audit.TASK_RETRIED).exists())
+
+    def test_a_kind_with_no_retry_path_is_reported_not_raised(self):
+        job = JobPost.objects.create(profile=self.profile)
+        task = self.failed(AITask.JOB_ANALYSIS, job)
+        AITask.objects.filter(pk=task.pk).update(kind="bogus")
+        response = self.retry(task)
+        self.assertEqual(flash(response), ["Could not re-queue: No retry path for bogus"])
+
+    def test_the_operator_goes_back_where_they_came_from(self):
+        job = JobPost.objects.create(profile=self.profile, description_text="x" * 200)
+        task = self.failed(AITask.JOB_ANALYSIS, job)
+        with fake_deepseek(lambda request: {}):
+            response = self.retry(task, next="/staff/operations/queue/?state=failed")
+        self.assertRedirects(
+            response, "/staff/operations/queue/?state=failed", fetch_redirect_response=False
+        )
+
+    def test_cancelling_a_live_task_and_a_finished_one(self):
+        job = JobPost.objects.create(profile=self.profile)
+        live = AITask.start_for(self.profile, AITask.JOB_ANALYSIS, job)
+        response = self.client.post(reverse("staffportal:task_cancel", args=[live.pk]))
+        self.assertEqual(flash(response), ["Marked as canceled."])
+        entry = last_audit(audit.TASK_CANCELED)
+        self.assertEqual(entry.summary, "Job analysis canceled.")
+        self.assertEqual(entry.metadata, {"kind": "job_analysis"})
+        response = self.client.post(reverse("staffportal:task_cancel", args=[live.pk]))
+        self.assertEqual(flash(response)[-1], "That job had already finished.")
+        self.assertEqual(AuditLog.objects.filter(action=audit.TASK_CANCELED).count(), 1)
+
+    def test_the_queue_filters_and_counts(self):
+        job = JobPost.objects.create(profile=self.profile)
+        queued = AITask.start_for(self.profile, AITask.JOB_ANALYSIS, job)
+        broken = self.failed(AITask.JOB_MATCH, job)
+        AITask.objects.filter(pk=broken.pk).update(error_message="provider exploded")
+
+        def listed(**params):
+            response = self.client.get(reverse("staffportal:task_list"), params)
+            return {task.pk for task in response.context["tasks"]}
+
+        self.assertEqual(listed(state="failed"), {broken.pk})
+        self.assertEqual(listed(kind="job_analysis"), {queued.pk})
+        self.assertEqual(listed(q="exploded"), {broken.pk})
+        self.assertEqual(listed(q="CUSTOMER@"), {queued.pk, broken.pk})
+        self.assertEqual(listed(state="nonsense"), {queued.pk, broken.pk})
+        counts = self.client.get(reverse("staffportal:task_list")).context["ai"]
+        self.assertEqual(counts, {"queued": 1, "running": 0, "failed": 1})
+
+    def test_the_queue_csv_is_audited(self):
+        job = JobPost.objects.create(profile=self.profile)
+        AITask.start_for(self.profile, AITask.JOB_ANALYSIS, job)
+        response = self.client.get(reverse("staffportal:task_export"))
+        body = b"".join(response.streaming_content).decode()
+        self.assertTrue(body.startswith("id,email,kind,state"))
+        self.assertEqual(last_audit(audit.EXPORT_DOWNLOADED).summary, "AI queue CSV (1 rows).")
+
+
+class OperationsAndTeamTests(PortalTestCase):
+    """UC-08.7, UC-08.10 and the team screen of UC-08.1."""
+
+    def setUp(self):
+        super().setUp()
+        make_plans()
+        self.root = make_user("root@example.com", is_staff=True, is_superuser=True)
+        self.client.force_login(self.root)
+
+    def test_saving_settings_lists_exactly_what_changed(self):
+        values = runtime_settings.all_values()
+        data = {"impersonation_minutes": str(values["impersonation_minutes"]),
+                "audit_retention_days": str(values["audit_retention_days"]),
+                "support_email": "", "signups_enabled": "on", "ai_features_enabled": "on"}
+        response = self.client.post(reverse("staffportal:settings"), data)
+        self.assertEqual(flash(response), ["Nothing changed."])
+
+        data.pop("signups_enabled")
+        data["maintenance_mode"] = "on"
+        response = self.client.post(reverse("staffportal:settings"), data)
+        self.assertRedirects(response, reverse("staffportal:settings"), fetch_redirect_response=False)
+        self.assertEqual(flash(response)[-1], "Saved. 2 setting(s) changed.")
+        entry = last_audit(audit.SETTING_UPDATED)
+        self.assertEqual(
+            entry.metadata["changes"],
+            ["signups_enabled: True → False", "maintenance_mode: False → True"],
+        )
+        self.assertEqual(entry.summary, "; ".join(entry.metadata["changes"]))
+        self.assertFalse(runtime_settings.get("signups_enabled"))
+
+    def test_the_health_screen_groups_its_checks(self):
+        response = self.client.get(reverse("staffportal:health"))
+        self.assertEqual(response.status_code, 200)
+        groups = [name for name, _checks in response.context["grouped_checks"]]
+        self.assertIn("Liveness", groups)
+        self.assertIn("summary", response.context)
+
+    def test_the_dashboard_range_is_seven_or_thirty_days(self):
+        self.assertEqual(self.client.get(reverse("staffportal:dashboard")).context["days"], 30)
+        self.assertEqual(self.client.get(reverse("staffportal:dashboard"), {"range": "7"}).context["days"], 7)
+        self.assertEqual(self.client.get(reverse("staffportal:dashboard"), {"range": "9"}).context["days"], 30)
+
+    def test_only_operators_who_may_impersonate_see_open_sessions_on_the_dashboard(self):
+        response = self.client.get(reverse("staffportal:dashboard"))
+        self.assertIn("open_impersonations", response.context)
+        viewer = make_staff("viewer@example.com", StaffRole.VIEWER)
+        self.client.force_login(viewer)
+        response = self.client.get(reverse("staffportal:dashboard"))
+        self.assertNotIn("open_impersonations", response.context)
+
+    def test_the_audit_log_filters(self):
+        operator = make_staff("ops@example.com", StaffRole.ADMIN)
+        other = make_staff("other@example.com", StaffRole.ADMIN)
+        AuditLog.objects.create(actor=operator, actor_email=operator.email, action=audit.USER_SUSPENDED,
+                                target_repr="target@example.com", summary="abuse")
+        AuditLog.objects.create(actor=other, actor_email=other.email, action=audit.USER_NOTE_ADDED,
+                                target_repr="x", summary="note", while_impersonating=True)
+
+        def listed(**params):
+            response = self.client.get(reverse("staffportal:audit_list"), params)
+            return {entry.actor_email for entry in response.context["entries"]}
+
+        self.assertEqual(listed(action=audit.USER_SUSPENDED), {"ops@example.com"})
+        self.assertEqual(listed(actor=str(other.pk)), {"other@example.com"})
+        self.assertEqual(listed(q="abuse"), {"ops@example.com"})
+        self.assertEqual(listed(q="TARGET@"), {"ops@example.com"})
+        self.assertEqual(listed(impersonated="1"), {"other@example.com"})
+        self.assertEqual(len(listed(actor="junk")), 2)
+        context = self.client.get(reverse("staffportal:audit_list")).context
+        self.assertEqual(context["action_choices"], audit.ACTION_CHOICES)
+        self.assertEqual({actor.email for actor in context["actors"]}, {"ops@example.com", "other@example.com"})
+
+    def test_the_team_screen_lists_managed_and_unmanaged_staff(self):
+        make_staff("managed@example.com", StaffRole.SUPPORT)
+        make_user("bare@example.com", is_staff=True)
+        response = self.client.get(reverse("staffportal:team_list"))
+        self.assertEqual([m.user.email for m in response.context["members"]], ["managed@example.com"])
+        unmanaged = {u.email for u in response.context["unmanaged"]}
+        self.assertEqual(unmanaged, {"root@example.com", "bare@example.com"})
+
+    def test_granting_to_someone_who_already_has_a_role_updates_it(self):
+        candidate = make_staff("candidate@example.com", StaffRole.VIEWER)
+        response = self.client.post(
+            reverse("staffportal:team_list"),
+            {"email": "candidate@example.com", "role": StaffRole.BILLING, "note": "promoted"},
+        )
+        self.assertEqual(flash(response), ["candidate@example.com now has portal access as billing."])
+        candidate.refresh_from_db()
+        self.assertEqual(candidate.staff_member.role, StaffRole.BILLING)
+        entry = last_audit(audit.TEAM_UPDATED)
+        self.assertEqual(
+            (entry.summary, entry.metadata),
+            ("Portal access as Billing — support, plus plans and subscriptions.", {"role": "billing"}),
+        )
+        self.assertFalse(AuditLog.objects.filter(action=audit.TEAM_GRANTED).exists())
+
+    def test_a_suspended_account_cannot_be_granted_access(self):
+        make_user("suspended@example.com", is_active=False)
+        response = self.client.post(
+            reverse("staffportal:team_list"), {"email": "suspended@example.com", "role": StaffRole.VIEWER}
+        )
+        self.assertContains(response, "This account is suspended.")
+
+    def test_changing_a_role_from_its_own_page(self):
+        candidate = make_staff("candidate@example.com", StaffRole.VIEWER)
+        member = candidate.staff_member
+        response = self.client.post(
+            reverse("staffportal:team_update", args=[member.pk]), {"role": StaffRole.ADMIN, "note": ""}
+        )
+        self.assertRedirects(response, reverse("staffportal:team_list"), fetch_redirect_response=False)
+        self.assertEqual(flash(response), ["Role updated."])
+        self.assertEqual(
+            last_audit(audit.TEAM_UPDATED).summary,
+            "Role set to Admin — everything except superuser-only actions.",
+        )
+
+    def test_revoking_a_superuser_keeps_their_staff_flag(self):
+        other_root = make_user("root2@example.com", is_staff=True, is_superuser=True)
+        member = StaffMember.objects.create(user=other_root, role=StaffRole.ADMIN)
+        response = self.client.post(reverse("staffportal:team_revoke", args=[member.pk]))
+        self.assertEqual(flash(response), ["Revoked root2@example.com's portal access."])
+        other_root.refresh_from_db()
+        self.assertTrue(other_root.is_staff)
+        self.assertEqual(last_audit(audit.TEAM_REVOKED).summary, "Portal access revoked.")
+        response = self.client.post(reverse("staffportal:team_revoke", args=[member.pk]))
+        self.assertEqual(response.status_code, 404)
+
+
+class PruneAuditLogCommandTests(PortalTestCase):
+    """UC-08.10: retention is applied in bulk, never row by row."""
+
+    def setUp(self):
+        super().setUp()
+        self.old = AuditLog.objects.create(actor_email="a@example.com", action="x.old", summary="old")
+        self.recent = AuditLog.objects.create(actor_email="a@example.com", action="x.new", summary="new")
+        AuditLog.objects.filter(pk=self.old.pk).update(created_at=timezone.now() - timedelta(days=400))
+
+    def test_entries_beyond_the_configured_window_are_deleted(self):
+        call_command("prune_audit_log", verbosity=0)
+        self.assertEqual(set(AuditLog.objects.values_list("pk", flat=True)), {self.recent.pk})
+
+    def test_the_window_can_be_given_on_the_command_line(self):
+        AuditLog.objects.filter(pk=self.recent.pk).update(created_at=timezone.now() - timedelta(days=10))
+        call_command("prune_audit_log", days=5, verbosity=0)
+        self.assertFalse(AuditLog.objects.exists())
+
+    def test_a_dry_run_only_reports(self):
+        from io import StringIO
+
+        out = StringIO()
+        call_command("prune_audit_log", dry_run=True, stdout=out)
+        self.assertEqual(AuditLog.objects.count(), 2)
+        self.assertIn("Would delete 1 entries older than 365 days.", out.getvalue())
+
+    def test_the_window_comes_from_the_runtime_setting(self):
+        runtime_settings.set_value("audit_retention_days", 500)
+        call_command("prune_audit_log", verbosity=0)
+        self.assertEqual(AuditLog.objects.count(), 2)
