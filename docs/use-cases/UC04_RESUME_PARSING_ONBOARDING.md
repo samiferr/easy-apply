@@ -9,6 +9,7 @@ The `resume` app enables candidates to upload existing resumes in multiple forma
 
 - **Primary Actor:** Candidate
 - **Supporting System:** `staffportal.domain.quotas`, `resume.tasks.enqueue_resume_analysis`
+- **Implemented by:** `resume.services.start_resume_import`, `resume.tasks.enqueue_resume_analysis`
 - **Objective:** Securely upload a resume file and trigger background AI extraction without blocking the web request.
 
 ### Preconditions
@@ -47,6 +48,7 @@ The `resume` app enables candidates to upload existing resumes in multiple forma
 
 - **Primary Actor:** Background AI Worker
 - **Supporting System:** `resume.domain.extractor`, `resume.domain.deepseek_resume`, DeepSeek API
+- **Implemented by:** `resume.services.import_task`, `resume.tasks.analyze_resume_import`, `resume.domain.deepseek_resume.analyze_resume_text`, `resume.domain.extractor.extract_resume_text`, `resume.domain.importer.run_analysis`
 - **Objective:** Parse document text and invoke LLM to produce structured profile JSON adhering to profile language.
 
 ### Main Success Scenario
@@ -82,6 +84,7 @@ The `resume` app enables candidates to upload existing resumes in multiple forma
 
 - **Primary Actor:** Candidate
 - **Supporting System:** `resume.services.build_review_sections`
+- **Implemented by:** `resume.services.is_reviewable`, `resume.services.review_checklist`, `resume.services.build_review_sections`
 - **Objective:** Compare parsed resume items against existing candidate profile data to highlight duplicates and prevent clutter.
 
 ### Main Success Scenario
@@ -109,6 +112,7 @@ The `resume` app enables candidates to upload existing resumes in multiple forma
 
 - **Primary Actor:** Candidate
 - **Supporting System:** `resume.services.apply_selected`
+- **Implemented by:** `resume.services.apply_selected`, `resume.services.apply_review`, `resume.services.import_summary`
 - **Objective:** Selectively check or uncheck parsed items and commit them to the profile database atomically.
 
 ### Main Success Scenario

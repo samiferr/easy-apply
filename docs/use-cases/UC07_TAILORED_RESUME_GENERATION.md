@@ -9,6 +9,7 @@ The `resume` app enables candidates to author job-specific tailored resumes. Usi
 
 - **Primary Actor:** Candidate / Background AI Worker
 - **Supporting System:** `staffportal.domain.quotas`, `resume.domain.tailored`, `templates/resume_template.md`
+- **Implemented by:** `core.services.build_profile_snapshot`, `core.services.profile_snapshot_is_empty`, `core.services.build_resume_snapshot`, `resume.services.start_tailored_resume`, `resume.services.tailored_resume_task`, `resume.tasks.generate_tailored_resume_task`, `resume.tasks.enqueue_tailored_resume`, `resume.domain.tailored.render_markdown`, `resume.domain.tailored.generate_tailored_resume`
 - **Objective:** Generate a job-tailored resume draft highlighting the candidate's most relevant qualifications for a specific position.
 
 ### Preconditions
@@ -52,6 +53,7 @@ The `resume` app enables candidates to author job-specific tailored resumes. Usi
 
 - **Primary Actor:** Candidate
 - **Supporting System:** `resume.views.TailoredResumeEditView`, `TailoredResumeForm`
+- **Implemented by:** `resume.services.profile_tailored_resumes`, `resume.services.save_tailored_edits`
 - **Objective:** Review, refine, and manually customize the AI-generated resume draft in a live Markdown editor.
 
 ### Main Success Scenario
@@ -75,6 +77,7 @@ The `resume` app enables candidates to author job-specific tailored resumes. Usi
 
 - **Primary Actor:** Candidate
 - **Supporting System:** `resume.domain.pdf.render_markdown_pdf`, ReportLab engine
+- **Implemented by:** `resume.services.profile_tailored_resumes`, `resume.services.tailored_resume_pdf`, `resume.domain.pdf.render_markdown_pdf`
 - **Objective:** Compile the Markdown resume into an ATS-friendly, clean, high-resolution PDF document.
 
 ### Main Success Scenario
@@ -106,6 +109,7 @@ The `resume` app enables candidates to author job-specific tailored resumes. Usi
 ## UC-07.4: Raw Markdown Export & Tailored Resume Lifecycle
 
 - **Primary Actor:** Candidate
+- **Implemented by:** `resume.services.profile_tailored_resumes`, `resume.services.remove_tailored_resume`
 - **Objective:** Download the raw Markdown document for external tools or delete obsolete drafts.
 
 ### Main Success Scenario (Markdown Download)

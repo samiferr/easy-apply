@@ -9,6 +9,7 @@ The `accounts` app handles identity verification, credential security, session m
 
 - **Primary Actor:** Anonymous Visitor
 - **Supporting System:** `staffportal.domain.runtime_settings`, `staffportal.domain.subscriptions`, `accounts.models.Profile`
+- **Implemented by:** `accounts.services.signups_open`, `accounts.services.complete_registration`, `accounts.services.default_profile_name`, `accounts.services.bootstrap_profile`, `core.services.build_dashboard`, `core.services.jobs_per_day_chart`, `staffportal.services.provision_subscription`
 - **Objective:** Establish a new customer account, instantiate their primary workspace profile, and enroll them into the SaaS default subscription plan.
 
 ### Preconditions
@@ -53,6 +54,7 @@ The `accounts` app handles identity verification, credential security, session m
 
 - **Primary Actor:** Anonymous Visitor / Candidate
 - **Supporting System:** `django.contrib.auth`, `staffportal.middleware.LastSeenMiddleware`
+- **Implemented by:** `accounts.services.apply_remember_me`, `accounts.services.get_active_profile`, `core.services.build_dashboard`
 - **Objective:** Authenticate using email and password, bind the active profile workspace to the session, and access user data.
 
 ### Preconditions
@@ -121,6 +123,7 @@ The `accounts` app handles identity verification, credential security, session m
 ## UC-01.4: Credential Modification (Password Change)
 
 - **Primary Actor:** Candidate (Logged in)
+- **Implemented by:** `accounts.services.change_password`
 - **Objective:** Update current account password from within account security settings.
 
 ### Main Success Scenario
@@ -162,6 +165,7 @@ The `accounts` app handles identity verification, credential security, session m
 
 - **Primary Actor:** Candidate (Logged in)
 - **Supporting System:** Django cascading deletes, `accounts.models.User.delete()`
+- **Implemented by:** `accounts.services.delete_account`
 - **Objective:** Exercise "Right to be Forgotten" by permanently deleting the user account and all personal career data.
 
 ### Preconditions

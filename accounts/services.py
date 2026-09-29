@@ -91,6 +91,7 @@ def profiles_of(user):
     return Profile.objects.filter(user=user)
 
 
+# UC-01.1 — User Registration (step 5a) and UC-02.1: the starter profile's name
 def default_profile_name(user) -> str:
     """A unique starter name, so the bootstrap never trips the unique constraint."""
     base = gettext("My profile")

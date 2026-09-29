@@ -1,6 +1,8 @@
 """Smoke tests: every route renders under the new layout, in both languages."""
 
+import ast
 import json
+import re
 import shutil
 import tempfile
 from datetime import date, timedelta
@@ -11,7 +13,7 @@ import requests
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
-from django.test import TestCase, override_settings
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone, translation
 from django.utils.translation import gettext_lazy
@@ -1394,3 +1396,68 @@ class LanguageClauseTests(TestCase):
             with self.subTest(code=code):
                 self.assertEqual(language_clause(code), language_clause("en"))
         self.assertEqual(language_clause("fr-CA"), language_clause("fr"))
+
+
+class ServiceTraceabilityTests(SimpleTestCase):
+    """Each app's `services.py` holds its use cases, and every one of them says
+    which documented use case (`docs/use-cases/UC0x_*.md`) it implements — in a
+    `# UC-xx.y — Title (step n)` comment right above the function."""
+
+    USE_CASE = re.compile(r"UC-\d{2}(?:\.\d+)?")
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        base = Path(settings.BASE_DIR)
+        cls.modules = sorted(
+            base / app.split(".")[0] / "services.py"
+            for app in settings.INSTALLED_APPS
+            if (base / app.split(".")[0]).is_dir()
+        )
+        cls.documented = {
+            heading
+            for doc in (base / "docs" / "use-cases").glob("UC0*.md")
+            for heading in re.findall(r"^## (UC-\d{2}\.\d+):", doc.read_text(), re.M)
+        }
+
+    def cited_above(self, lines, node):
+        """The `UC-xx.y` ids in the comment block directly above a function."""
+        first = min([node.lineno] + [d.lineno for d in node.decorator_list])
+        cited, index = [], first - 2  # `lines` is 0-based, `lineno` 1-based
+        while index >= 0 and lines[index].lstrip().startswith("#"):
+            cited += self.USE_CASE.findall(lines[index])
+            index -= 1
+        return cited
+
+    def test_every_app_has_a_services_module_naming_its_use_case_document(self):
+        self.assertGreaterEqual(len(self.modules), 11)
+        for module in self.modules:
+            with self.subTest(module=module.parent.name):
+                self.assertTrue(module.exists(), f"{module.parent.name} has no services.py")
+                docstring = ast.get_docstring(ast.parse(module.read_text())) or ""
+                self.assertIn("docs/use-cases/UC0", docstring)
+
+    def test_every_public_service_cites_a_use_case_that_is_documented(self):
+        self.assertGreater(len(self.documented), 40)
+        for module in self.modules:
+            source = module.read_text()
+            lines = source.splitlines()
+            for node in ast.parse(source).body:
+                if not isinstance(node, ast.FunctionDef) or node.name.startswith("_"):
+                    continue
+                with self.subTest(service=f"{module.parent.name}.services.{node.name}"):
+                    cited = self.cited_above(lines, node)
+                    self.assertTrue(cited, "no `# UC-xx.y` comment above it")
+                    for use_case in cited:
+                        if "." in use_case:
+                            self.assertIn(use_case, self.documented, "no such use case in docs/use-cases")
+
+    def test_every_documented_use_case_group_is_implemented_by_some_service(self):
+        """The reverse direction, at the level of a document: UC01 to UC09 each
+        have services citing them (UC-01.3 and UC-01.5 — password reset and
+        sign-out — are Django's own views and have none)."""
+        cited = set()
+        for module in self.modules:
+            cited.update(self.USE_CASE.findall(module.read_text()))
+        groups = {use_case.split(".")[0] for use_case in cited}
+        self.assertEqual(groups, {f"UC-0{n}" for n in range(1, 10)})

@@ -9,6 +9,7 @@ The `jobs` app handles the ingestion, extraction, and evaluation of external job
 
 - **Primary Actor:** Candidate
 - **Supporting System:** `staffportal.domain.quotas`, `jobs.tasks.enqueue_job_analysis`
+- **Implemented by:** `jobs.services.profile_jobs_with_sections`, `jobs.services.search_jobs`, `jobs.services.start_job_analysis`, `jobs.services.job_detail_context`, `jobs.tasks.enqueue_job_analysis`
 - **Objective:** Submit raw job posting text and initiate the background analysis pipeline.
 
 ### Preconditions
@@ -40,6 +41,7 @@ The `jobs` app handles the ingestion, extraction, and evaluation of external job
 
 - **Primary Actor:** Background AI Worker
 - **Supporting System:** `jobs.domain.deepseek_client.analyze_job_text`, `jobs.sections.SECTIONS`
+- **Implemented by:** `jobs.tasks.read_job_text`, `jobs.tasks.extract_job_sections`, `jobs.domain.deepseek_client.analyze_job_text`, `jobs.domain.importer.normalize_sections`, `jobs.domain.importer.apply_analysis`
 - **Objective:** Parse raw job text into 13 canonical sections with classified elements in the profile's language.
 
 ### Main Success Scenario
@@ -75,6 +77,7 @@ The `jobs` app handles the ingestion, extraction, and evaluation of external job
 
 - **Primary Actor:** Background AI Worker
 - **Supporting System:** `jobs.domain.matcher.match_section_to_profile`, `core.services.build_profile_slice`
+- **Implemented by:** `core.services.build_profile_slice`, `jobs.tasks.match_job_section`, `jobs.tasks.finalize_job_analysis`, `jobs.domain.deepseek_client.match_section`, `jobs.domain.importer.matched_sections_for`, `jobs.domain.matcher.match_section_to_profile`, `jobs.domain.matcher.finalize_job_match`
 - **Objective:** Match each extracted section in parallel using ONLY relevant parts of the candidate profile.
 
 ### Main Success Scenario
@@ -109,6 +112,7 @@ The `jobs` app handles the ingestion, extraction, and evaluation of external job
 
 - **Primary Actor:** Background AI Worker
 - **Supporting System:** `core.services.profile_slice_is_empty`, `core.services.empty_slice_hint`
+- **Implemented by:** `core.services.profile_slice_is_empty`, `core.services.empty_slice_hint`, `jobs.domain.matcher.match_section_to_profile`
 - **Objective:** Eliminate redundant AI API calls when the candidate has not yet recorded the relevant slice data.
 
 ### Main Success Scenario
@@ -132,6 +136,7 @@ The `jobs` app handles the ingestion, extraction, and evaluation of external job
 
 - **Primary Actor:** Candidate / Background AI Worker
 - **Supporting System:** `jobs.views.JobSectionRematchView`, `jobs.tasks.enqueue_section_match`
+- **Implemented by:** `jobs.services.profile_sections`, `jobs.services.job_detail_context`, `jobs.services.reanalyze_job`, `jobs.services.rematch_section`, `jobs.tasks.match_job_section`, `jobs.tasks.finalize_job_analysis`, `jobs.tasks.enqueue_section_match`
 - **Objective:** Prevent one transient API error in a single section from halting the entire job analysis, and allow on-demand section retries.
 
 ### Main Success Scenario
@@ -157,6 +162,7 @@ The `jobs` app handles the ingestion, extraction, and evaluation of external job
 
 - **Primary Actor:** Candidate (Browser / Alpine.js)
 - **Supporting System:** `jobs.views.JobAnalysisStateView`
+- **Implemented by:** `jobs.services.profile_jobs_with_sections`, `jobs.services.analysis_state`
 - **Objective:** Provide a single lightweight JSON polling endpoint to update the sidebar rail, match badges, and overall status without 13 independent HTTP queries.
 
 ### Main Success Scenario
@@ -178,6 +184,7 @@ The `jobs` app handles the ingestion, extraction, and evaluation of external job
 
 - **Primary Actor:** Candidate
 - **Supporting System:** `JobPostReanalyzeView` vs. `JobPostMatchProfileView`
+- **Implemented by:** `jobs.services.reanalyze_job`, `jobs.services.rematch_job`, `jobs.tasks.enqueue_job_analysis`, `jobs.tasks.enqueue_full_match`
 - **Objective:** Distinguish between a costly re-extraction from scratch versus a free re-evaluation against an updated candidate profile.
 
 ### Main Success Scenario (Re-Match Against Profile - Free)

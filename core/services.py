@@ -503,10 +503,12 @@ def empty_slice_hint(section_key: str) -> str:
 # ---------------------------------------------------------------------------
 # Dashboard
 #
-# No use case of its own in docs/use-cases: it is where UC-01.1 lands a new
-# account, and it summarises UC-02.3 (how complete the profile is), UC-05 (jobs
-# analysed) and UC-09.4 (work still running).
+# It has no use case of its own in docs/use-cases; it is the screen a signed-in
+# candidate lands on, and it summarises how complete the profile is, the jobs
+# analysed and the AI work still running.
 # ---------------------------------------------------------------------------
+# UC-01.1 — User Registration (step 8: the dashboard a new account lands on) and
+# UC-01.2 — Email Authentication (step 7: where a sign-in goes)
 def build_dashboard(profile) -> dict:
     """Everything the dashboard shows about `profile`, keyed as its template reads it."""
     from jobs.models import JobPost
@@ -558,6 +560,7 @@ def _has_preferences(profile) -> bool:
     return bool(preference) and not preference.is_empty
 
 
+# UC-01.1 — step 8: a piece of the dashboard, the postings analysed each day this month
 def jobs_per_day_chart(profile) -> dict:
     """Jobs analyzed per day this month, aggregated in the database and
     rendered as a server-side SVG/CSS chart — no JS charting library."""

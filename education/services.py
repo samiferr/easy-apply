@@ -11,6 +11,7 @@ def profile_degrees(profile):
     return Degree.objects.filter(profile=profile)
 
 
+# UC-03.5 — the workspace boundary, for certificates
 def profile_certificates(profile):
     return Certificate.objects.filter(profile=profile)
 
@@ -29,10 +30,12 @@ def add_degree(profile, form) -> Degree:
     return form.save()
 
 
+# UC-03.5 — Main Success Scenario (Degree): editing one
 def update_degree(form) -> Degree:
     return form.save()
 
 
+# UC-03.5 — Main Success Scenario (Degree): removing one
 def remove_degree(degree: Degree) -> None:
     degree.delete()
 
@@ -43,9 +46,11 @@ def add_certificate(profile, form) -> Certificate:
     return form.save()
 
 
+# UC-03.5 — Main Success Scenario (Certification): editing one
 def update_certificate(form) -> Certificate:
     return form.save()
 
 
+# UC-03.5 — Main Success Scenario (Certification): removing one
 def remove_certificate(certificate: Certificate) -> None:
     certificate.delete()

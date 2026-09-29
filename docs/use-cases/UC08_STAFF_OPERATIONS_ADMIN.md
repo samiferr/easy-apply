@@ -9,6 +9,7 @@ The `staffportal` app provides operators, support agents, billing managers, and 
 
 - **Primary Actor:** Staff Member / Superuser
 - **Supporting System:** `staffportal.domain.access`, `staffportal.views.base.StaffPortalMixin`
+- **Implemented by:** `staffportal.services.portal_gate`, `staffportal.services.forbidden_context`, `staffportal.services.portal_context`, `staffportal.services.team_members`, `staffportal.services.unmanaged_staff`, `staffportal.services.role_matrix`, `staffportal.services.grant_portal_access`, `staffportal.services.change_staff_role`, `staffportal.services.revoke_portal_access`, `staffportal.services.dashboard`
 - **Objective:** Restrict operator functions using least privilege and hide portal existence from non-staff users.
 
 ### Security Rules & Capabilities Matrix
@@ -49,6 +50,7 @@ The `staffportal` app provides operators, support agents, billing managers, and 
 
 - **Primary Actor:** Support Operator / Admin
 - **Supporting System:** `staffportal.views.users.UserSuspendView`, `django.contrib.sessions`
+- **Implemented by:** `staffportal.services.accounts`, `staffportal.services.accounts_with_subscription`, `staffportal.services.account_count`, `staffportal.services.list_plans`, `staffportal.services.search_accounts`, `staffportal.services.export_accounts`, `staffportal.services.account_overview`, `staffportal.services.suspend_account`, `staffportal.services.reactivate_account`, `staffportal.services.send_password_reset`, `staffportal.services.touch_last_seen`
 - **Objective:** Locate customer accounts, view detailed status, and suspend abusive or compromised accounts with immediate session termination.
 
 ### Main Success Scenario
@@ -73,6 +75,7 @@ The `staffportal` app provides operators, support agents, billing managers, and 
 
 - **Primary Actor:** Support Operator / Superuser
 - **Supporting System:** `staffportal.domain.impersonation`, `ImpersonationSession`
+- **Implemented by:** `staffportal.services.start_impersonation`, `staffportal.services.stop_impersonation`, `staffportal.services.impersonation_sessions`, `staffportal.services.apply_impersonation_lifetime`
 - **Objective:** Log in as a customer to diagnose issues safely, bounded by strict time limits and audit records.
 
 ### Safety Invariants
@@ -107,6 +110,7 @@ The `staffportal` app provides operators, support agents, billing managers, and 
 
 - **Primary Actor:** Support Operator
 - **Supporting System:** `staffportal.models.SupportNote`
+- **Implemented by:** `staffportal.services.add_support_note`
 - **Objective:** Attach internal notes, investigation details, and support tickets to customer accounts.
 
 ### Main Success Scenario
@@ -123,6 +127,7 @@ The `staffportal` app provides operators, support agents, billing managers, and 
 
 - **Primary Actor:** Billing Operator / Admin
 - **Supporting System:** `staffportal.models.Plan`, `staffportal.models.Subscription`, `staffportal.domain.quotas`
+- **Implemented by:** `staffportal.services.list_plans`, `staffportal.services.billing_overview`, `staffportal.services.entitled_subscriber_count`, `staffportal.services.create_plan`, `staffportal.services.update_plan`, `staffportal.services.retire_plan`, `staffportal.services.search_subscriptions`, `staffportal.services.update_subscription`, `staffportal.services.change_account_plan`, `staffportal.services.reset_usage`, `staffportal.services.export_subscriptions`, `staffportal.services.seed_starter_data`
 - **Objective:** Define SaaS pricing tiers, configure monthly feature quotas, and adjust customer plans.
 
 ### Main Success Scenario
@@ -145,6 +150,7 @@ The `staffportal` app provides operators, support agents, billing managers, and 
 
 - **Primary Actor:** System Administrator
 - **Supporting System:** `staffportal.models.FeatureFlag`, `staffportal.domain.flags`
+- **Implemented by:** `staffportal.services.seed_starter_data`, `staffportal.services.list_flags`, `staffportal.services.flags_enabled_for`, `staffportal.services.save_flag`, `staffportal.services.delete_flag`
 - **Objective:** Toggle product features and release gradual rollouts without requiring code deployments.
 
 ### Main Success Scenario
@@ -170,6 +176,7 @@ The `staffportal` app provides operators, support agents, billing managers, and 
 
 - **Primary Actor:** System Administrator
 - **Supporting System:** `staffportal.domain.runtime_settings`, Django cache
+- **Implemented by:** `staffportal.services.save_settings`, `staffportal.services.maintenance_blocks`, `staffportal.services.health_report`
 - **Objective:** Toggle emergency kill switches and operational settings with immediate cache invalidation.
 
 ### Registry of Runtime Settings
@@ -200,6 +207,7 @@ The `staffportal` app provides operators, support agents, billing managers, and 
 
 - **Primary Actor:** System Administrator
 - **Supporting System:** `staffportal.models.Announcement`
+- **Implemented by:** `staffportal.services.list_announcements`, `staffportal.services.save_announcement`, `staffportal.services.delete_announcement`, `staffportal.services.live_announcements_for`
 - **Objective:** Display dismissible system announcements (maintenance notices, incident reports, product launches) across web sessions.
 
 ### Main Success Scenario
@@ -219,6 +227,7 @@ The `staffportal` app provides operators, support agents, billing managers, and 
 
 - **Primary Actor:** Support Operator / Admin
 - **Supporting System:** `staffportal.views.operations`, `core.models.AITask`
+- **Implemented by:** `staffportal.services.search_tasks`, `staffportal.services.queue_counts`, `staffportal.services.export_tasks`, `staffportal.services.ai_tasks`, `staffportal.services.retry_task`, `staffportal.services.cancel_task`
 - **Objective:** Monitor background AI jobs, detect failing tasks, view error traces, and manually re-dispatch failed tasks.
 
 ### Main Success Scenario
@@ -235,6 +244,7 @@ The `staffportal` app provides operators, support agents, billing managers, and 
 
 - **Primary Actor:** Support / Billing / Admin / Superuser
 - **Supporting System:** `staffportal.models.AuditLog`, `manage.py prune_audit_log`
+- **Implemented by:** `staffportal.services.export_accounts`, `staffportal.services.search_audit`, `staffportal.services.audit_actors`, `staffportal.services.export_audit`, `staffportal.services.prune_audit_log`
 - **Objective:** Maintain an unalterable forensic record of every action taken by staff accounts.
 
 ### Immutability Contract
@@ -255,6 +265,7 @@ The `staffportal` app provides operators, support agents, billing managers, and 
 
 - **Primary Actor:** Support Operator / Admin
 - **Supporting System:** `staffportal.domain.exports`, `staffportal.views.users.UserDeleteView`
+- **Implemented by:** `staffportal.services.export_account_data`, `staffportal.services.deletion_preview`, `staffportal.services.delete_account_as_operator`
 - **Objective:** Deliver full data portability (GDPR Art. 20) and perform regulatory account erasure (GDPR Art. 17).
 
 ### Main Success Scenario (Data Portability Export)

@@ -9,6 +9,7 @@ In Easy Apply, candidate data is isolated by **Workspace Profiles** (`accounts.P
 
 - **Primary Actor:** Candidate
 - **Supporting System:** `staffportal.domain.quotas`
+- **Implemented by:** `accounts.services.profiles_of`, `accounts.services.default_profile_name`, `accounts.services.bootstrap_profile`, `accounts.services.set_active_profile`, `accounts.services.create_profile`
 - **Objective:** Create a new isolated workspace with a specific name and language setting.
 
 ### Preconditions
@@ -53,6 +54,7 @@ In Easy Apply, candidate data is isolated by **Workspace Profiles** (`accounts.P
 
 - **Primary Actor:** Candidate
 - **Supporting System:** `core.middleware.ActiveProfileMiddleware`, `django.utils.translation`
+- **Implemented by:** `accounts.services.profiles_of`, `accounts.services.get_active_profile`, `accounts.services.set_active_profile`, `accounts.services.switch_profile`, `accounts.services.follow_profile_language`
 - **Objective:** Seamlessly switch context between profiles and synchronize the user interface and AI language context.
 
 ### Preconditions
@@ -82,6 +84,7 @@ In Easy Apply, candidate data is isolated by **Workspace Profiles** (`accounts.P
 
 - **Primary Actor:** Candidate
 - **Supporting System:** Completion Percentage Calculation (`Profile.update_completion_percent()`)
+- **Implemented by:** `accounts.services.update_personal_info`
 - **Objective:** Edit candidate contact info, biography, headline, portfolio links, and avatar image.
 
 ### Main Success Scenario
@@ -110,6 +113,7 @@ In Easy Apply, candidate data is isolated by **Workspace Profiles** (`accounts.P
 ## UC-02.4: Workspace Renaming & Deletion Guards
 
 - **Primary Actor:** Candidate
+- **Implemented by:** `accounts.services.profiles_of`, `accounts.services.rename_profile`, `accounts.services.ensure_profile_deletable`, `accounts.services.delete_profile`
 - **Objective:** Rename an existing profile or delete a redundant profile while enforcing data integrity rules.
 
 ### Main Success Scenario (Renaming)
@@ -137,6 +141,7 @@ In Easy Apply, candidate data is isolated by **Workspace Profiles** (`accounts.P
 
 - **Primary Actor:** Candidate
 - **Supporting System:** `core.services.generate_markdown_recap`, `core.language.use_language`
+- **Implemented by:** `core.services.generate_markdown_recap`, `core.services.recap_filename`
 - **Objective:** Generate and download a comprehensive, professional Markdown summary of the entire active profile.
 
 ### Main Success Scenario

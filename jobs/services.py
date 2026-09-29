@@ -45,16 +45,19 @@ def profile_jobs(profile):
     return JobPost.objects.filter(profile=profile)
 
 
+# UC-05.1 / UC-05.6 — the screens that show or count a job's sections
 def profile_jobs_with_sections(profile):
     """`profile_jobs` with the sections and their rows loaded in two queries, for
     the screens that show or count them."""
     return profile_jobs(profile).prefetch_related("sections__elements")
 
 
+# UC-05.5 — the per-tab Retry reaches a section only through its profile
 def profile_sections(profile):
     return JobSection.objects.filter(job__profile=profile)
 
 
+# UC-06.1 / UC-06.3 — a requirement row is reached only through its profile
 def profile_elements(profile):
     return JobElement.objects.select_related("section", "section__job").filter(
         section__job__profile=profile

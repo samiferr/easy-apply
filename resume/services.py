@@ -70,6 +70,7 @@ def profile_imports(profile):
     return ResumeImport.objects.filter(profile=profile)
 
 
+# UC-07.2 / UC-07.3 / UC-07.4 — a draft is reached only through its profile
 def profile_tailored_resumes(profile):
     return TailoredResume.objects.filter(profile=profile)
 

@@ -12,6 +12,7 @@ This group addresses cross-cutting architectural invariants in Easy Apply:
 
 - **Primary Actor:** Anonymous Visitor / Candidate
 - **Supporting System:** `legal.views.LegalPageView`, `legal.urls`
+- **Implemented by:** `legal.services.legal_page_context`
 - **Objective:** Provide accessible, transparent, legally compliant policies regarding data processing, terms of use, cookies, and identity.
 
 ### Main Success Scenario
@@ -33,6 +34,7 @@ This group addresses cross-cutting architectural invariants in Easy Apply:
 
 - **Primary Actor:** System Administrator (Deployment / Ops)
 - **Supporting System:** `settings.LEGAL_ENTITY`
+- **Implemented by:** `legal.services.legal_entity`
 - **Objective:** Dynamically inject legal operator details into translated policy documents from a centralized configuration dictionary.
 
 ### Main Success Scenario
@@ -56,6 +58,7 @@ This group addresses cross-cutting architectural invariants in Easy Apply:
 
 - **Primary Actor:** Candidate
 - **Supporting System:** `core.language`, `django.utils.translation`
+- **Implemented by:** `core.language.language_clause`, `core.language.use_language`
 - **Objective:** Maintain strict architectural separation between transient interface language and permanent workspace/AI document language.
 
 ### Dual-Tier Model Architecture
@@ -92,6 +95,7 @@ This group addresses cross-cutting architectural invariants in Easy Apply:
 
 - **Primary Actor:** Candidate (Browser Client / Alpine.js)
 - **Supporting System:** `core.models.AITask`, `core.views.AITaskStatusView`
+- **Implemented by:** `core.services.task_for_user`, `core.services.task_status`, `core.services.task_redirect_url`, `core.services.sweep_stuck_tasks`, `core.services.prune_finished_tasks`
 - **Objective:** Track multi-step background Celery execution reliably without WebSockets, surviving long-running LLM calls and network blips.
 
 ### State Transition Diagram

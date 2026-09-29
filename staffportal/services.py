@@ -216,14 +216,17 @@ def accounts():
     return User.objects.all()
 
 
+# UC-08.2 — step 3: the account detail page's lookup
 def accounts_with_subscription():
     return User.objects.select_related("subscription__plan", "staff_member")
 
 
+# UC-08.2 — step 1: how many accounts there are, above the list
 def account_count() -> int:
     return User.objects.count()
 
 
+# UC-08.2 (the plan filter) and UC-08.5 (the plans to choose from)
 def list_plans():
     return Plan.objects.all()
 
@@ -799,7 +802,6 @@ def save_settings(request, values: dict) -> list:
     return changed
 
 
-# UC-08.7 — the maintenance switch
 #: Paths that stay reachable in maintenance mode: the portal itself (so the
 #: switch can be turned back off), auth (so staff can sign in to do it), the
 #: language switcher, and assets.
@@ -808,6 +810,7 @@ MAINTENANCE_EXEMPT_PREFIXES = (
 )
 
 
+# UC-08.7 — the maintenance switch (the kill switches in the settings registry)
 def maintenance_blocks(request) -> bool:
     """Whether to serve the maintenance page instead of `request`. Staff keep full
     access on purpose: the point of a maintenance window is to verify the fix
@@ -820,13 +823,13 @@ def maintenance_blocks(request) -> bool:
     return bool(runtime_settings.get("maintenance_mode"))
 
 
-# UC-08.2 — step 2: the "activity: recent / dormant" filter (and the engagement
-# figures on the overview) read this
 #: `User.last_seen_at` is written at most this often per session.
 LAST_SEEN_THROTTLE = timedelta(minutes=5)
 LAST_SEEN_SESSION_KEY = "last_seen_ping"
 
 
+# UC-08.2 — step 2: the "activity: recent / dormant" filter (and the engagement
+# figures on the overview) read what this writes
 def touch_last_seen(request) -> None:
     """Keep `User.last_seen_at` roughly current, through a targeted UPDATE at most
     once every `LAST_SEEN_THROTTLE`: activity metrics are not worth a row write on
@@ -950,6 +953,7 @@ def export_tasks(request, params):
     )
 
 
+# UC-08.9 — step 3: retry and cancel address a job by its id
 def ai_tasks():
     return AITask.objects.all()
 

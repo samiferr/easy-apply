@@ -102,10 +102,11 @@ config/         Django project settings, root URLconf
 accounts/       Custom user model, the Profile (workspace) model, profile
                 CRUD/switching, auth & security views
 jobs/           Job post analysis: the fixed section enum (sections.py), the
-                add-to-profile registry (profile_targets.py), importer,
-                matcher and Celery tasks
+                add-to-profile registry (profile_targets.py), the Celery
+                tasks, and domain/ (AI client, importer, matcher)
 resume/         Resume upload -> AI parsing -> review -> profile auto-fill,
-                plus job-tailored resumes (Markdown draft -> edit -> PDF)
+                plus job-tailored resumes (Markdown draft -> edit -> PDF);
+                domain/ holds the extractor, AI parse, tailored writer, PDF
 skills/         Soft/technical skill categories and per-profile skills
 languages/      Languages and per-profile proficiency
 experience/     Work experience (each role has ExperienceHighlight bullet rows)
@@ -115,12 +116,15 @@ preferences/    Job preferences (salary, location, arrangement) and the
 legal/          Privacy, terms, cookies, legal notice and contact pages
 staffportal/    The operator console at /staff/: plans, subscriptions and
                 usage quotas, feature flags, announcements, runtime settings,
-                impersonation, health checks, the AI queue and the audit log
+                impersonation, health checks, the AI queue and the audit log;
+                domain/ holds its building blocks (access, audit, exports,
+                flags, health, metrics, quotas, ...)
 core/           Landing page, dashboard, Markdown export, scoped profile
-                slices (utils.py), shared AI client (ai.py), the active-profile
-                middleware (middleware.py), the AI language contract
-                (language.py) and the AITask progress model every AI path
-                reports through
+                slices (services.py), shared AI client (ai.py), the prompt
+                loader (prompts.py), the active-profile middleware
+                (middleware.py), the AI language contract (language.py), the
+                exceptions use cases raise (exceptions.py) and the AITask
+                progress model every AI path reports through
 prompts/        Every prompt sent to the AI, one plain-text file per prompt
                 (loaded by core/prompts.py — see prompts/README.md)
 locale/fr/      French message catalogue
@@ -131,6 +135,32 @@ static/dist/    Compiled Tailwind output (generated, but committed so the
                 app runs without a Node toolchain in production)
 static/js/      Bundled Alpine.js, plus ai-progress.js and job-analysis.js
 ```
+
+### How the code is organised
+
+Every app has a `services.py`, and that is where its **use cases** live — the
+things a candidate or an operator actually does: sign up, switch workspace,
+analyse a posting, import a resume, suspend an account. Each service carries a
+`# UC-xx.y — Title (step n)` comment naming the use case it implements in
+[`docs/use-cases/`](docs/use-cases/README.md); the docs point back with an
+*Implemented by* line, and `core.tests.ServiceTraceabilityTests` fails if a
+public service loses its citation or cites a use case that does not exist.
+
+```
+views.py / views/   read the request, call ONE service, choose the redirect,
+                    flash message or JSON — no queries, no business rules
+services.py         the use cases: what may happen, in what order, and what is
+                    refused (raises core.exceptions.Blocked / PreconditionFailed
+                    / Refused, whose text is fit to show the user)
+tasks.py            the Celery pipelines a service starts (jobs, resume, core)
+domain/             the building blocks below: AI clients and their parsing,
+                    the PDF writer, quotas, audit, exports, ...
+models.py, forms.py data and validation
+```
+
+A `services/` *package* would shadow a `services.py` *module* of the same name,
+so what used to be `jobs/services/`, `resume/services/` and
+`staffportal/services/` is now `domain/`.
 
 ## Getting started
 
@@ -533,16 +563,16 @@ chord(
 1. **`read_job_text`** takes the pasted description off the `JobPost` and
    hands it to the pipeline. There is no network call in this step — and, with
    no server-side URL fetching anywhere in the app, no SSRF surface to defend.
-2. **`services/deepseek_client.py`** makes three separate calls, kept apart
+2. **`jobs/domain/deepseek_client.py`** makes three separate calls, kept apart
    so each carries the smallest possible payload: extraction, per-section
    matching, and single-element matching. Their prompts are plain-text files in
    `prompts/jobs/`.
-3. **`services/importer.py`** defensively parses the response. Wrong types,
+3. **`jobs/domain/importer.py`** defensively parses the response. Wrong types,
    missing keys and invalid choices are coerced to safe defaults, and — the
    important part — **any section key outside the closed enum is discarded**,
    duplicates are merged, and a prose section never keeps rows (nor a row
    section prose).
-4. **`services/matcher.py`** evaluates one section at a time.
+4. **`jobs/domain/matcher.py`** evaluates one section at a time.
 
 Each `match_job_section` task records its own failure on the section and
 returns normally, so **one failing section never poisons the chord** — the
