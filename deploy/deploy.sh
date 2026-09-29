@@ -244,6 +244,14 @@ sed -e "s/__DOMAIN__/${DOMAIN}/g" \
     -e "s/__SERVER_NAMES__/${SERVER_NAMES}/g" \
     -e "s/__GUNICORN_PORT__/${GUNICORN_PORT}/g" \
     "$APP_DIR/deploy/nginx-easy-apply.conf" > "/etc/nginx/sites-available/${SITE_NAME}"
+# The standalone `http2 on;` directive needs nginx >= 1.25.1 (Ubuntu 24.04
+# ships 1.24). On older nginx, fall back to the deprecated listen parameter.
+NGINX_VERSION="$(nginx -v 2>&1 | sed -n 's|.*nginx/\([0-9.]*\).*|\1|p')"
+if [ "$(printf '%s\n' 1.25.1 "$NGINX_VERSION" | sort -V | head -n1)" != "1.25.1" ]; then
+    sed -i -e '/^[[:space:]]*http2 on;/d' \
+        -e 's/^\([[:space:]]*listen .*443 ssl\);/\1 http2;/' \
+        "/etc/nginx/sites-available/${SITE_NAME}"
+fi
 ln -sf "/etc/nginx/sites-available/${SITE_NAME}" "/etc/nginx/sites-enabled/${SITE_NAME}"
 nginx -t
 systemctl reload nginx
