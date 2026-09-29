@@ -23,13 +23,13 @@ from jobs.models import JobElement, JobPost, JobSection
 from languages.models import Language, UserLanguage
 from skills.models import SkillCategory, UserSkill
 from staffportal.models import Plan, UsageMetric, UsageRecord
-from staffportal.services import runtime_settings
+from staffportal.domain import runtime_settings
 
 from .models import ResumeImport, TailoredResume
-from .services.deepseek_resume import SYSTEM_PROMPT as PARSE_PROMPT
-from .services.tailored import SYSTEM_PROMPT as TAILORED_PROMPT
-from .services.pdf import markdown_to_flowables, render_markdown_pdf
-from .services.tailored import (
+from .domain.deepseek_resume import SYSTEM_PROMPT as PARSE_PROMPT
+from .domain.tailored import SYSTEM_PROMPT as TAILORED_PROMPT
+from .domain.pdf import markdown_to_flowables, render_markdown_pdf
+from .domain.tailored import (
     EDUCATION,
     EXPERIENCE,
     LANGUAGES,
@@ -204,7 +204,7 @@ class BuildJobPayloadTests(TailoredResumeTestMixin, TestCase):
 
 class GenerateTailoredResumeTests(TailoredResumeTestMixin, TestCase):
     def test_empty_profile_is_skipped_before_calling_the_ai(self):
-        with patch("resume.services.tailored.call_deepseek_json") as call:
+        with patch("resume.domain.tailored.call_deepseek_json") as call:
             result = generate_tailored_resume(self.job)
 
         call.assert_not_called()
@@ -214,7 +214,7 @@ class GenerateTailoredResumeTests(TailoredResumeTestMixin, TestCase):
     def test_draft_is_stored_as_markdown(self):
         self.add_profile_content()
         with patch(
-            "resume.services.tailored.call_deepseek_json", return_value=dict(AI_RESPONSE)
+            "resume.domain.tailored.call_deepseek_json", return_value=dict(AI_RESPONSE)
         ) as call:
             result = generate_tailored_resume(self.job)
 
@@ -232,7 +232,7 @@ class GenerateTailoredResumeTests(TailoredResumeTestMixin, TestCase):
             profile=self.profile, job=self.job, markdown="old draft", edited_by_user=True
         )
 
-        with patch("resume.services.tailored.call_deepseek_json", return_value=dict(AI_RESPONSE)):
+        with patch("resume.domain.tailored.call_deepseek_json", return_value=dict(AI_RESPONSE)):
             generate_tailored_resume(self.job)
 
         self.assertEqual(TailoredResume.objects.count(), 1)
@@ -288,7 +288,7 @@ class MarkdownPDFTests(TestCase):
     def test_unbalanced_markup_falls_back_to_plain_text(self):
         # `*one **two* three**` converts to overlapping tags; the export
         # must still succeed rather than 500 on a hand-edited line.
-        with self.assertLogs("resume.services.pdf", level="WARNING"):
+        with self.assertLogs("resume.domain.pdf", level="WARNING"):
             pdf_bytes = render_markdown_pdf("*one **two* three**\n\n## SKILLS\n")
 
         self.assertTrue(pdf_bytes.startswith(b"%PDF"))
@@ -309,7 +309,7 @@ class TailoredResumeViewTests(TailoredResumeTestMixin, TestCase):
         self.client.force_login(self.user)
 
     def generate(self):
-        with patch("resume.services.tailored.call_deepseek_json", return_value=dict(AI_RESPONSE)):
+        with patch("resume.domain.tailored.call_deepseek_json", return_value=dict(AI_RESPONSE)):
             return self.client.post(reverse("resume:tailored_generate", args=[self.job.pk]))
 
     def test_generate_redirects_to_the_editor(self):
@@ -410,7 +410,7 @@ class FrenchProfileResumeTests(TailoredResumeTestMixin, TestCase):
             return dict(AI_RESPONSE)
 
         with translation.override("en"), patch(
-            "resume.services.tailored.call_deepseek_json", side_effect=fake_call
+            "resume.domain.tailored.call_deepseek_json", side_effect=fake_call
         ):
             result = generate_tailored_resume(self.job)
 
@@ -427,7 +427,7 @@ class FrenchProfileResumeTests(TailoredResumeTestMixin, TestCase):
             captured["payload"] = user_content
             return dict(AI_RESPONSE)
 
-        with patch("resume.services.tailored.call_deepseek_json", side_effect=fake_call):
+        with patch("resume.domain.tailored.call_deepseek_json", side_effect=fake_call):
             generate_tailored_resume(self.job)
 
         # The current role's end marker is the giveaway: the snapshot carries
@@ -438,7 +438,7 @@ class FrenchProfileResumeTests(TailoredResumeTestMixin, TestCase):
 
     def test_the_resume_is_parsed_in_the_profile_language(self):
         from resume.models import ResumeImport
-        from resume.services import importer
+        from resume.domain import importer
 
         upload = ResumeImport.objects.create(profile=self.profile, file="resumes/x.txt")
         captured = {}
@@ -539,12 +539,12 @@ class ExtractorTests(TestCase):
     """UC-04.2, step 3: plain text out of whatever the user uploaded."""
 
     def extract(self, name, content):
-        from .services.extractor import extract_resume_text
+        from .domain.extractor import extract_resume_text
 
         return extract_resume_text(SimpleUploadedFile(name, content))
 
     def assertRejected(self, name, content, message):
-        from .services.extractor import ResumeExtractError
+        from .domain.extractor import ResumeExtractError
 
         with self.assertRaisesMessage(ResumeExtractError, message):
             self.extract(name, content)
@@ -584,7 +584,7 @@ class ExtractorTests(TestCase):
         self.assertTrue(text.endswith("Skill\nPython"))
 
     def test_a_pdf_yields_its_text(self):
-        from .services.pdf import render_markdown_pdf
+        from .domain.pdf import render_markdown_pdf
 
         pdf = render_markdown_pdf(f"**Jane Doe**\n\n## **SUMMARY**\n\n{RESUME_TEXT}\n")
         text = self.extract("cv.pdf", pdf)
@@ -739,7 +739,7 @@ class ResumeReviewTests(TempMediaMixin, TestCase):
         self.url = reverse("resume:review", args=[self.upload.pk])
 
     def sections(self):
-        from .services.importer import build_review_sections
+        from .domain.importer import build_review_sections
 
         return build_review_sections(self.upload, self.profile)
 
@@ -896,7 +896,7 @@ class ApplySelectedTests(TestCase):
         )
 
     def apply(self, *keys):
-        from .services.importer import apply_selected
+        from .domain.importer import apply_selected
 
         return apply_selected(self.upload, self.profile, set(keys))
 
@@ -1001,7 +1001,7 @@ class ApplySelectedTests(TestCase):
         self.assertFalse(WorkExperience.objects.filter(profile=other).exists())
 
     def test_it_is_all_or_nothing(self):
-        from .services import importer
+        from .domain import importer
 
         with patch.object(importer, "_parse_date", side_effect=RuntimeError("boom")):
             with self.assertRaises(RuntimeError):
@@ -1213,7 +1213,7 @@ class ParseResumePromptContractTests(TestCase):
         )
 
     def test_it_offers_exactly_the_choices_the_importer_maps(self):
-        from .services.importer import EMPLOYMENT_TYPES, LEVEL_MAP, PROFICIENCY_VALUES
+        from .domain.importer import EMPLOYMENT_TYPES, LEVEL_MAP, PROFICIENCY_VALUES
 
         self.assertMentions(PARSE_PROMPT, sorted(LEVEL_MAP))
         self.assertMentions(PARSE_PROMPT, sorted(PROFICIENCY_VALUES))

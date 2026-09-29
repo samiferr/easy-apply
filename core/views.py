@@ -16,7 +16,7 @@ from django.views.generic import TemplateView
 from jobs.models import JobPost
 
 from .models import AITask
-from .utils import generate_markdown_recap, recap_filename
+from .services import generate_markdown_recap, recap_filename
 
 
 class HomeView(TemplateView):

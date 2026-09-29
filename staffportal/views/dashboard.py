@@ -6,7 +6,7 @@ from django.views.generic import TemplateView
 from core.models import AITask
 
 from ..models import ImpersonationSession
-from ..services import access, health, metrics
+from ..domain import access, health, metrics
 from .base import StaffPortalMixin
 
 User = get_user_model()

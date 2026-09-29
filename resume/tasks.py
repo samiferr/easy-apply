@@ -19,7 +19,7 @@ MAX_RETRIES = 3
 @guard
 def analyze_resume_import(self, resume_import_id: int, task_id: int) -> dict:
     """Extract text from the uploaded file, then parse it with the AI."""
-    from .services.importer import run_analysis
+    from .domain.importer import run_analysis
 
     resume_import = ResumeImport.objects.filter(pk=resume_import_id).first()
     task = get_task(task_id)
@@ -75,7 +75,7 @@ def enqueue_resume_analysis(resume_import: ResumeImport) -> AITask:
 def generate_tailored_resume_task(self, job_id: int, task_id: int) -> dict:
     from jobs.models import JobPost
 
-    from .services.tailored import generate_tailored_resume
+    from .domain.tailored import generate_tailored_resume
 
     job = JobPost.objects.filter(pk=job_id).select_related("profile").first()
     task = get_task(task_id)

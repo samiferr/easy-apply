@@ -24,7 +24,7 @@ from core.models import AITask
 from core.prompts import PLACEHOLDER, PromptError, load_prompt
 from core.tasks import is_retryable
 from core.testing import fake_deepseek, pin_language
-from core.utils import (
+from core.services import (
     build_profile_slice,
     build_profile_snapshot,
     build_resume_snapshot,
@@ -35,7 +35,7 @@ from core.utils import (
     recap_filename,
 )
 from jobs.models import JobPost
-from jobs.services.importer import apply_analysis
+from jobs.domain.importer import apply_analysis
 from resume.models import TailoredResume
 
 User = get_user_model()

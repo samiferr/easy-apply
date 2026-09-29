@@ -19,9 +19,9 @@ from core.models import AITask
 from core.tasks import dispatch, fail_task, get_task, guard, is_retryable
 
 from .models import JobElement, JobPost, JobSection
-from .services.deepseek_client import analyze_job_text
-from .services.importer import apply_analysis, matched_sections_for
-from .services.matcher import (
+from .domain.deepseek_client import analyze_job_text
+from .domain.importer import apply_analysis, matched_sections_for
+from .domain.matcher import (
     finalize_job_match,
     match_element_to_profile,
     match_section_to_profile,

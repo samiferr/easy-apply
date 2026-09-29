@@ -8,7 +8,7 @@ The `jobs` app handles the ingestion, extraction, and evaluation of external job
 ## UC-05.1: Job Posting Creation & Allowance Verification
 
 - **Primary Actor:** Candidate
-- **Supporting System:** `staffportal.services.quotas`, `jobs.tasks.enqueue_job_analysis`
+- **Supporting System:** `staffportal.domain.quotas`, `jobs.tasks.enqueue_job_analysis`
 - **Objective:** Submit raw job posting text and initiate the background analysis pipeline.
 
 ### Preconditions
@@ -39,7 +39,7 @@ The `jobs` app handles the ingestion, extraction, and evaluation of external job
 ## UC-05.2: 13-Section Deep Extraction Pipeline (Celery Chain)
 
 - **Primary Actor:** Background AI Worker
-- **Supporting System:** `jobs.services.deepseek_client.analyze_job_text`, `jobs.sections.SECTIONS`
+- **Supporting System:** `jobs.domain.deepseek_client.analyze_job_text`, `jobs.sections.SECTIONS`
 - **Objective:** Parse raw job text into 13 canonical sections with classified elements in the profile's language.
 
 ### Main Success Scenario
@@ -61,7 +61,7 @@ The `jobs` app handles the ingestion, extraction, and evaluation of external job
      11. `education_certifications` (matched rows)
      12. `worth_noting` (prose)
      13. `red_flags` (prose)
-   - Calls `jobs.services.importer.apply_analysis`: Creates `JobSection` rows and child `JobElement` rows in SQLite.
+   - Calls `jobs.domain.importer.apply_analysis`: Creates `JobSection` rows and child `JobElement` rows in SQLite.
 3. System updates `JobPost.title` and `company_name` from extracted metadata.
 4. Celery chain hands off section IDs to `_dispatch_section_matches`.
 
@@ -74,7 +74,7 @@ The `jobs` app handles the ingestion, extraction, and evaluation of external job
 ## UC-05.3: Scoped Profile Slice Matching (Celery Chord Fan-Out)
 
 - **Primary Actor:** Background AI Worker
-- **Supporting System:** `jobs.services.matcher.match_section_to_profile`, `core.utils.build_profile_slice`
+- **Supporting System:** `jobs.domain.matcher.match_section_to_profile`, `core.services.build_profile_slice`
 - **Objective:** Match each extracted section in parallel using ONLY relevant parts of the candidate profile.
 
 ### Main Success Scenario
@@ -101,14 +101,14 @@ The `jobs` app handles the ingestion, extraction, and evaluation of external job
 ### Key Code References
 - Dispatcher: [`jobs.tasks._dispatch_section_matches`](file:///home/sami/PycharmProjects/Github/easy-apply/jobs/tasks.py#L206-L225)
 - Matching Task: [`jobs.tasks.match_job_section`](file:///home/sami/PycharmProjects/Github/easy-apply/jobs/tasks.py#L112-L152)
-- Slice Builder: [`core.utils.build_profile_slice`](file:///home/sami/PycharmProjects/Github/easy-apply/core/utils.py#L324-L352)
+- Slice Builder: [`core.services.build_profile_slice`](file:///home/sami/PycharmProjects/Github/easy-apply/core/services.py#L324-L352)
 
 ---
 
 ## UC-05.4: Zero-Cost Empty Slice Handling
 
 - **Primary Actor:** Background AI Worker
-- **Supporting System:** `core.utils.profile_slice_is_empty`, `core.utils.empty_slice_hint`
+- **Supporting System:** `core.services.profile_slice_is_empty`, `core.services.empty_slice_hint`
 - **Objective:** Eliminate redundant AI API calls when the candidate has not yet recorded the relevant slice data.
 
 ### Main Success Scenario
@@ -123,8 +123,8 @@ The `jobs` app handles the ingestion, extraction, and evaluation of external job
 5. Operation completes in sub-millisecond local DB query without consuming API quota or tokens.
 
 ### Key Code References
-- Matcher Logic: [`jobs.services.matcher.match_section_to_profile`](file:///home/sami/PycharmProjects/Github/easy-apply/jobs/services/matcher.py)
-- Utility: [`core.utils.profile_slice_is_empty`](file:///home/sami/PycharmProjects/Github/easy-apply/core/utils.py#L355-L368)
+- Matcher Logic: [`jobs.domain.matcher.match_section_to_profile`](file:///home/sami/PycharmProjects/Github/easy-apply/jobs/domain/matcher.py)
+- Utility: [`core.services.profile_slice_is_empty`](file:///home/sami/PycharmProjects/Github/easy-apply/core/services.py#L355-L368)
 
 ---
 

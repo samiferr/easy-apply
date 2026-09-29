@@ -35,8 +35,8 @@ from .models import (
     UsageMetric,
     UsageRecord,
 )
-from .services import access, audit, exports, flags, health, metrics, quotas
-from .services import runtime_settings, subscriptions
+from .domain import access, audit, exports, flags, health, metrics, quotas
+from .domain import runtime_settings, subscriptions
 
 User = get_user_model()
 

@@ -5,8 +5,8 @@ from django.db.models import Q
 from django.views import View
 
 from ..models import AuditLog
-from ..services import access, exports
-from ..services import audit as audit_service
+from ..domain import access, exports
+from ..domain import audit as audit_service
 from .base import PortalListView, StaffPortalMixin
 
 User = get_user_model()

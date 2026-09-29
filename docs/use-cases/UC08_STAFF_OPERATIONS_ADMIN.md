@@ -8,7 +8,7 @@ The `staffportal` app provides operators, support agents, billing managers, and 
 ## UC-08.1: Granular Role-Based Access Control & Portal Obfuscation
 
 - **Primary Actor:** Staff Member / Superuser
-- **Supporting System:** `staffportal.services.access`, `staffportal.views.base.StaffPortalMixin`
+- **Supporting System:** `staffportal.domain.access`, `staffportal.views.base.StaffPortalMixin`
 - **Objective:** Restrict operator functions using least privilege and hide portal existence from non-staff users.
 
 ### Security Rules & Capabilities Matrix
@@ -40,7 +40,7 @@ The `staffportal` app provides operators, support agents, billing managers, and 
 4. If authorized, renders the requested portal screen.
 
 ### Key Code References
-- Capabilities & Roles: [`staffportal.services.access`](file:///home/sami/PycharmProjects/Github/easy-apply/staffportal/services/access.py)
+- Capabilities & Roles: [`staffportal.domain.access`](file:///home/sami/PycharmProjects/Github/easy-apply/staffportal/domain/access.py)
 - Mixin: [`staffportal.views.base.StaffPortalMixin`](file:///home/sami/PycharmProjects/Github/easy-apply/staffportal/views/base.py)
 
 ---
@@ -72,7 +72,7 @@ The `staffportal` app provides operators, support agents, billing managers, and 
 ## UC-08.3: Audited, Time-Limited Customer Impersonation
 
 - **Primary Actor:** Support Operator / Superuser
-- **Supporting System:** `staffportal.services.impersonation`, `ImpersonationSession`
+- **Supporting System:** `staffportal.domain.impersonation`, `ImpersonationSession`
 - **Objective:** Log in as a customer to diagnose issues safely, bounded by strict time limits and audit records.
 
 ### Safety Invariants
@@ -98,7 +98,7 @@ The `staffportal` app provides operators, support agents, billing managers, and 
    - Restores the original staff account session and redirects to `/staff/dashboard/`.
 
 ### Key Code References
-- Service: [`staffportal.services.impersonation`](file:///home/sami/PycharmProjects/Github/easy-apply/staffportal/services/impersonation.py)
+- Service: [`staffportal.domain.impersonation`](file:///home/sami/PycharmProjects/Github/easy-apply/staffportal/domain/impersonation.py)
 - Views: [`staffportal.views.users.ImpersonateStartView`](file:///home/sami/PycharmProjects/Github/easy-apply/staffportal/views/users.py#L315), [`staffportal.views.users.ImpersonateStopView`](file:///home/sami/PycharmProjects/Github/easy-apply/staffportal/views/users.py#L338)
 
 ---
@@ -122,7 +122,7 @@ The `staffportal` app provides operators, support agents, billing managers, and 
 ## UC-08.5: Plan Tier Definition & Subscription Management
 
 - **Primary Actor:** Billing Operator / Admin
-- **Supporting System:** `staffportal.models.Plan`, `staffportal.models.Subscription`, `staffportal.services.quotas`
+- **Supporting System:** `staffportal.models.Plan`, `staffportal.models.Subscription`, `staffportal.domain.quotas`
 - **Objective:** Define SaaS pricing tiers, configure monthly feature quotas, and adjust customer plans.
 
 ### Main Success Scenario
@@ -144,7 +144,7 @@ The `staffportal` app provides operators, support agents, billing managers, and 
 ## UC-08.6: Dynamic Deterministic Feature Flags & Account Overrides
 
 - **Primary Actor:** System Administrator
-- **Supporting System:** `staffportal.models.FeatureFlag`, `staffportal.services.flags`
+- **Supporting System:** `staffportal.models.FeatureFlag`, `staffportal.domain.flags`
 - **Objective:** Toggle product features and release gradual rollouts without requiring code deployments.
 
 ### Main Success Scenario
@@ -161,7 +161,7 @@ The `staffportal` app provides operators, support agents, billing managers, and 
    - Guaranteed consistency: the same user always receives the exact same flag result across requests without cookie or session state.
 
 ### Key Code References
-- Service: [`staffportal.services.flags`](file:///home/sami/PycharmProjects/Github/easy-apply/staffportal/services/flags.py)
+- Service: [`staffportal.domain.flags`](file:///home/sami/PycharmProjects/Github/easy-apply/staffportal/domain/flags.py)
 - Views: [`staffportal.views.flags`](file:///home/sami/PycharmProjects/Github/easy-apply/staffportal/views/flags.py)
 
 ---
@@ -169,7 +169,7 @@ The `staffportal` app provides operators, support agents, billing managers, and 
 ## UC-08.7: Runtime Configuration & Emergency Service Kill Switches
 
 - **Primary Actor:** System Administrator
-- **Supporting System:** `staffportal.services.runtime_settings`, Django cache
+- **Supporting System:** `staffportal.domain.runtime_settings`, Django cache
 - **Objective:** Toggle emergency kill switches and operational settings with immediate cache invalidation.
 
 ### Registry of Runtime Settings
@@ -191,7 +191,7 @@ The `staffportal` app provides operators, support agents, billing managers, and 
 4. All worker processes and web threads immediately respect the new setting.
 
 ### Key Code References
-- Service: [`staffportal.services.runtime_settings`](file:///home/sami/PycharmProjects/Github/easy-apply/staffportal/services/runtime_settings.py)
+- Service: [`staffportal.domain.runtime_settings`](file:///home/sami/PycharmProjects/Github/easy-apply/staffportal/domain/runtime_settings.py)
 - View: [`staffportal.views.operations.SettingsView`](file:///home/sami/PycharmProjects/Github/easy-apply/staffportal/views/operations.py)
 
 ---
@@ -244,7 +244,7 @@ The `staffportal` app provides operators, support agents, billing managers, and 
 
 ### Main Success Scenario
 1. Staff member executes any mutation in the portal (suspension, plan change, impersonation, setting change, note creation).
-2. System invokes `staffportal.services.audit.log(request, action, target, summary, ...)`:
+2. System invokes `staffportal.domain.audit.log(request, action, target, summary, ...)`:
    - Captures actor ID, `actor_email`, `ip_address` (handling proxy headers `X-Forwarded-For`), user agent, action key, target ID/repr, metadata JSON, and `while_impersonating` flag.
 3. Records are viewable at `/staff/audit/` ([`staffportal:audit_list`](file:///home/sami/PycharmProjects/Github/easy-apply/staffportal/urls.py#L73)) and exportable as CSV.
 4. Old audit entries beyond `audit_retention_days` are safely trimmed in bulk via the scheduled management command `prune_audit_log`.
@@ -254,12 +254,12 @@ The `staffportal` app provides operators, support agents, billing managers, and 
 ## UC-08.11: GDPR Art. 20 JSON Portability & Operator-Initiated Account Erasure
 
 - **Primary Actor:** Support Operator / Admin
-- **Supporting System:** `staffportal.services.exports`, `staffportal.views.users.UserDeleteView`
+- **Supporting System:** `staffportal.domain.exports`, `staffportal.views.users.UserDeleteView`
 - **Objective:** Deliver full data portability (GDPR Art. 20) and perform regulatory account erasure (GDPR Art. 17).
 
 ### Main Success Scenario (Data Portability Export)
 1. Support Operator visits `/staff/users/<pk>/` and clicks *"Download Data Export (JSON)"* (`/staff/users/<pk>/export.json`).
-2. System runs `staffportal.services.exports.account_export_response(account)`:
+2. System runs `staffportal.domain.exports.account_export_response(account)`:
    - Compiles user identity, profile details, skills, languages, work experiences with highlights, degrees, certificates, preferences, benefits, job posts with analyzed sections, tailored resumes, and usage records into a structured JSON file.
 3. System writes `AuditLog` entry `user.exported`.
 4. System streams JSON response.

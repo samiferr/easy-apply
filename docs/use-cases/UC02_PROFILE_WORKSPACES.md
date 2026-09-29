@@ -8,7 +8,7 @@ In Easy Apply, candidate data is isolated by **Workspace Profiles** (`accounts.P
 ## UC-02.1: Workspace / Profile Creation with Immutable Language Contract
 
 - **Primary Actor:** Candidate
-- **Supporting System:** `staffportal.services.quotas`
+- **Supporting System:** `staffportal.domain.quotas`
 - **Objective:** Create a new isolated workspace with a specific name and language setting.
 
 ### Preconditions
@@ -45,7 +45,7 @@ In Easy Apply, candidate data is isolated by **Workspace Profiles** (`accounts.P
 ### Key Code References
 - View: [`accounts.views.ProfileCreateView`](file:///home/sami/PycharmProjects/Github/easy-apply/accounts/views.py#L254-L288)
 - Model: [`accounts.models.Profile`](file:///home/sami/PycharmProjects/Github/easy-apply/accounts/models.py#L55)
-- Quota Service: [`staffportal.services.quotas.profile_limit`](file:///home/sami/PycharmProjects/Github/easy-apply/staffportal/services/quotas.py#L76-L84)
+- Quota Service: [`staffportal.domain.quotas.profile_limit`](file:///home/sami/PycharmProjects/Github/easy-apply/staffportal/domain/quotas.py#L76-L84)
 
 ---
 
@@ -136,14 +136,14 @@ In Easy Apply, candidate data is isolated by **Workspace Profiles** (`accounts.P
 ## UC-02.5: Full Profile Recap Export & Markdown Preview
 
 - **Primary Actor:** Candidate
-- **Supporting System:** `core.utils.generate_markdown_recap`, `core.language.use_language`
+- **Supporting System:** `core.services.generate_markdown_recap`, `core.language.use_language`
 - **Objective:** Generate and download a comprehensive, professional Markdown summary of the entire active profile.
 
 ### Main Success Scenario
 1. Candidate clicks *"Export Markdown Recap"* from profile settings or dashboard.
 2. Candidate can preview the document at `/export/preview/` ([`core:export_preview`](file:///home/sami/PycharmProjects/Github/easy-apply/core/views.py)).
 3. Candidate clicks download, sending GET to `/export/markdown/` ([`core:export_markdown`](file:///home/sami/PycharmProjects/Github/easy-apply/core/views.py)).
-4. System executes `core.utils.generate_markdown_recap(request.profile)`:
+4. System executes `core.services.generate_markdown_recap(request.profile)`:
    - Wraps execution inside `use_language(profile.language)`.
    - Formats contact details, bio, soft skills, technical skills by category with level displays.
    - Formats languages with proficiencies.
@@ -153,4 +153,4 @@ In Easy Apply, candidate data is isolated by **Workspace Profiles** (`accounts.P
 
 ### Key Code References
 - Views: [`core.views.ExportMarkdownView`](file:///home/sami/PycharmProjects/Github/easy-apply/core/views.py#L102-L115), [`core.views.ExportPreviewView`](file:///home/sami/PycharmProjects/Github/easy-apply/core/views.py#L118-L126)
-- Logic: [`core.utils.generate_markdown_recap`](file:///home/sami/PycharmProjects/Github/easy-apply/core/utils.py#L24-L135)
+- Logic: [`core.services.generate_markdown_recap`](file:///home/sami/PycharmProjects/Github/easy-apply/core/services.py#L24-L135)

@@ -11,7 +11,7 @@ from django.contrib.auth import get_user_model, logout
 from django.shortcuts import render
 from django.utils import timezone
 
-from .services import impersonation, runtime_settings
+from .domain import impersonation, runtime_settings
 
 User = get_user_model()
 

@@ -21,7 +21,7 @@ from django.views import View
 from django.views.decorators.cache import never_cache
 from django.views.generic import ListView
 
-from ..services import access, impersonation
+from ..domain import access, impersonation
 
 
 @method_decorator(never_cache, name="dispatch")

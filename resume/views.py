@@ -10,12 +10,12 @@ from django.views.generic import CreateView, ListView
 from core.models import AITask
 from jobs.models import JobPost
 from staffportal.models import UsageMetric
-from staffportal.services import quotas
+from staffportal.domain import quotas
 
 from .forms import ResumeUploadForm, TailoredResumeForm
 from .models import ResumeImport, TailoredResume
-from .services.importer import apply_selected, build_review_sections
-from .services.pdf import render_markdown_pdf
+from .domain.importer import apply_selected, build_review_sections
+from .domain.pdf import render_markdown_pdf
 from .tasks import enqueue_resume_analysis, enqueue_tailored_resume
 
 

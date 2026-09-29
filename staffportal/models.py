@@ -31,7 +31,7 @@ class StaffRole(models.TextChoices):
     `is_staff` alone is the door; the role is what is behind it. A staff
     account with no `StaffMember` row gets `VIEWER`, so adding someone to the
     portal by mistake exposes read-only screens rather than the delete button.
-    Superusers bypass roles entirely — see `services.access`.
+    Superusers bypass roles entirely — see `domain.access`.
     """
 
     VIEWER = "viewer", "Viewer — read-only"
@@ -289,7 +289,7 @@ class UsageRecord(models.Model):
 class FeatureFlag(models.Model):
     """A switch that can be flipped without a deploy.
 
-    Evaluation is pure and deterministic (see `services.flags`): the same user
+    Evaluation is pure and deterministic (see `domain.flags`): the same user
     and the same flag always land in the same bucket, so a 10% rollout does not
     reshuffle on every request.
     """
@@ -350,7 +350,7 @@ class FeatureFlag(models.Model):
 class SystemSetting(models.Model):
     """A typed key/value an operator can change from the portal.
 
-    The set of keys is a registry in `services.runtime_settings`, not free
+    The set of keys is a registry in `domain.runtime_settings`, not free
     text: a setting nothing reads is a lie in the UI, and a typo in a key is a
     silent behaviour change.
     """

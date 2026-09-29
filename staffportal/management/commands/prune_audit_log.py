@@ -11,7 +11,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from staffportal.models import AuditLog
-from staffportal.services import runtime_settings
+from staffportal.domain import runtime_settings
 
 
 class Command(BaseCommand):

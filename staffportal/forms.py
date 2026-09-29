@@ -20,7 +20,7 @@ from .models import (
     Subscription,
     SupportNote,
 )
-from .services import runtime_settings
+from .domain import runtime_settings
 
 User = get_user_model()
 
@@ -169,7 +169,7 @@ class StaffRoleForm(StyledModelForm):
 
 
 class SystemSettingsForm(StyledFormMixin, forms.Form):
-    """Built from the registry in `services.runtime_settings`.
+    """Built from the registry in `domain.runtime_settings`.
 
     Generated rather than hand-written so a new setting is one entry in one
     list: declare it, and it appears here, typed and labelled, with nothing to

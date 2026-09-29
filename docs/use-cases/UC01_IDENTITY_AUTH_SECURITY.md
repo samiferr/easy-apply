@@ -8,7 +8,7 @@ The `accounts` app handles identity verification, credential security, session m
 ## UC-01.1: User Registration & Auto-Subscription
 
 - **Primary Actor:** Anonymous Visitor
-- **Supporting System:** `staffportal.services.runtime_settings`, `staffportal.services.subscriptions`, `accounts.models.Profile`
+- **Supporting System:** `staffportal.domain.runtime_settings`, `staffportal.domain.subscriptions`, `accounts.models.Profile`
 - **Objective:** Establish a new customer account, instantiate their primary workspace profile, and enroll them into the SaaS default subscription plan.
 
 ### Preconditions
@@ -22,7 +22,7 @@ The `accounts` app handles identity verification, credential security, session m
 4. System validates inputs and creates an `accounts.User` record with `is_active=True`.
 5. In an atomic transaction, the system:
    a. Creates a default `accounts.Profile` titled *"Default Profile"* in the system's active language context (`request.LANGUAGE_CODE`).
-   b. Seeds the customer's subscription via [`subscriptions.ensure_subscription(user)`](file:///home/sami/PycharmProjects/Github/easy-apply/staffportal/services/subscriptions.py), linking the account to the active default `staffportal.Plan`.
+   b. Seeds the customer's subscription via [`subscriptions.ensure_subscription(user)`](file:///home/sami/PycharmProjects/Github/easy-apply/staffportal/domain/subscriptions.py), linking the account to the active default `staffportal.Plan`.
 6. System logs the user into the session via Django auth backend.
 7. System sets the `active_profile_id` session variable to the newly created profile ID.
 8. System redirects the user to the onboarding dashboard ([`core:dashboard`](file:///home/sami/PycharmProjects/Github/easy-apply/core/views.py)).
@@ -45,7 +45,7 @@ The `accounts` app handles identity verification, credential security, session m
 - View: [`accounts.views.RegisterView`](file:///home/sami/PycharmProjects/Github/easy-apply/accounts/views.py#L42-L73)
 - Form: [`accounts.forms.RegistrationForm`](file:///home/sami/PycharmProjects/Github/easy-apply/accounts/forms.py)
 - Models: [`accounts.models.User`](file:///home/sami/PycharmProjects/Github/easy-apply/accounts/models.py#L14), [`accounts.models.Profile`](file:///home/sami/PycharmProjects/Github/easy-apply/accounts/models.py#L55)
-- Services: [`staffportal.services.subscriptions.ensure_subscription`](file:///home/sami/PycharmProjects/Github/easy-apply/staffportal/services/subscriptions.py)
+- Services: [`staffportal.domain.subscriptions.ensure_subscription`](file:///home/sami/PycharmProjects/Github/easy-apply/staffportal/domain/subscriptions.py)
 
 ---
 

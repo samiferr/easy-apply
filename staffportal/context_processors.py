@@ -1,7 +1,7 @@
 """What the customer-facing shell needs to know about the portal."""
 
 from .models import Announcement
-from .services import impersonation
+from .domain import impersonation
 
 
 def portal_banners(request):

@@ -2,8 +2,8 @@
 
 from django import template
 
-from ..services import access as access_service
-from ..services import flags as flags_service
+from ..domain import access as access_service
+from ..domain import flags as flags_service
 
 register = template.Library()
 

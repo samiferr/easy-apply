@@ -25,7 +25,7 @@ from resume.models import TailoredResume
 
 from ..forms import ImpersonationForm, PlanChangeForm, SupportNoteForm
 from ..models import AuditLog, ImpersonationSession, Plan, SupportNote, UsageRecord
-from ..services import access, audit, exports, flags, impersonation, quotas, subscriptions
+from ..domain import access, audit, exports, flags, impersonation, quotas, subscriptions
 from .base import PortalActionView, PortalListView, StaffPortalMixin
 
 User = get_user_model()

@@ -12,7 +12,7 @@ from django.views.generic import UpdateView
 
 from ..forms import StaffAccessForm, StaffRoleForm
 from ..models import StaffMember
-from ..services import access, audit
+from ..domain import access, audit
 from .base import PortalActionView, PortalListView, StaffPortalMixin
 
 User = get_user_model()

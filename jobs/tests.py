@@ -17,19 +17,19 @@ from django.urls import reverse
 from accounts.models import Profile
 from core.models import AITask
 from core.testing import fake_deepseek, pin_language
-from core.utils import build_profile_slice, profile_slice_is_empty
+from core.services import build_profile_slice, profile_slice_is_empty
 from education.models import Certificate, Degree
 from experience.models import ExperienceHighlight, WorkExperience
 from jobs.models import JobElement, JobPost, JobSection
 from jobs.sections import MATCHED_SECTION_KEYS, SECTION_KEYS, SECTIONS
-from jobs.services.deepseek_client import EXTRACTION_SYSTEM_PROMPT, MATCH_SYSTEM_PROMPT
-from jobs.services.importer import apply_analysis, normalize_sections
+from jobs.domain.deepseek_client import EXTRACTION_SYSTEM_PROMPT, MATCH_SYSTEM_PROMPT
+from jobs.domain.importer import apply_analysis, normalize_sections
 from languages.models import Language, UserLanguage
 from preferences.models import BenefitPreference, get_or_create_preference
 from resume.models import TailoredResume
 from skills.models import SkillCategory, UserSkill
 from staffportal.models import Plan, UsageMetric, UsageRecord
-from staffportal.services import runtime_settings
+from staffportal.domain import runtime_settings
 
 JOB_TEXT = (
     "Senior Backend Engineer at Acme. You will design and ship Python "
@@ -182,10 +182,10 @@ class EmptySliceShortCircuitTests(TestCase):
         apply_analysis(self.job, ai_payload(), "raw")
 
     def test_empty_slice_never_calls_the_api(self):
-        from jobs.services.matcher import match_section_to_profile
+        from jobs.domain.matcher import match_section_to_profile
 
         section = self.job.sections.get(key="languages")
-        with patch("jobs.services.deepseek_client.call_deepseek_json") as mocked:
+        with patch("jobs.domain.deepseek_client.call_deepseek_json") as mocked:
             result = match_section_to_profile(section)
         mocked.assert_not_called()
         self.assertEqual(result["skipped"], "empty_slice")
@@ -194,7 +194,7 @@ class EmptySliceShortCircuitTests(TestCase):
             self.assertTrue(element.match_evidence)
 
     def test_populated_slice_sends_only_its_own_data(self):
-        from jobs.services.matcher import match_section_to_profile
+        from jobs.domain.matcher import match_section_to_profile
 
         category = SkillCategory.objects.create(name="Programming", kind=SkillCategory.TECHNICAL)
         UserSkill.objects.create(profile=self.profile, category=category, name="Python", level=4)
@@ -211,7 +211,7 @@ class EmptySliceShortCircuitTests(TestCase):
             ]}
 
         with patch("core.ai.call_deepseek_json", side_effect=fake_call), \
-             patch("jobs.services.deepseek_client.call_deepseek_json", side_effect=fake_call):
+             patch("jobs.domain.deepseek_client.call_deepseek_json", side_effect=fake_call):
             match_section_to_profile(section)
 
         payload = captured["payload"]
@@ -391,7 +391,7 @@ class ProfileLanguageTests(TestCase):
         apply_analysis(self.job, ai_payload(), "raw", language="fr")
 
     def test_extraction_asks_for_the_profile_language(self):
-        from jobs.services.deepseek_client import analyze_job_text
+        from jobs.domain.deepseek_client import analyze_job_text
 
         captured = {}
 
@@ -400,14 +400,14 @@ class ProfileLanguageTests(TestCase):
             return {}
 
         with patch("core.ai.call_deepseek_json", side_effect=fake_call), \
-             patch("jobs.services.deepseek_client.call_deepseek_json", side_effect=fake_call):
+             patch("jobs.domain.deepseek_client.call_deepseek_json", side_effect=fake_call):
             analyze_job_text("raw posting", language=self.profile.language)
 
         self.assertIn("in French", captured["payload"])
         self.assertNotIn("in English", captured["payload"])
 
     def test_matching_uses_the_profile_language_even_under_an_english_ui(self):
-        from jobs.services.matcher import match_section_to_profile
+        from jobs.domain.matcher import match_section_to_profile
 
         category = SkillCategory.objects.create(name="Programming", kind=SkillCategory.TECHNICAL)
         UserSkill.objects.create(profile=self.profile, category=category, name="Python", level=4)
@@ -424,7 +424,7 @@ class ProfileLanguageTests(TestCase):
 
         with translation.override("en"), \
              patch("core.ai.call_deepseek_json", side_effect=fake_call), \
-             patch("jobs.services.deepseek_client.call_deepseek_json", side_effect=fake_call):
+             patch("jobs.domain.deepseek_client.call_deepseek_json", side_effect=fake_call):
             match_section_to_profile(section)
 
         payload = captured["payload"]
@@ -435,7 +435,7 @@ class ProfileLanguageTests(TestCase):
         self.assertIn("Expert", payload)
 
     def test_an_empty_slice_writes_its_hint_in_the_profile_language(self):
-        from jobs.services.matcher import match_section_to_profile
+        from jobs.domain.matcher import match_section_to_profile
 
         section = self.job.sections.get(key="languages")
         with translation.override("en"):
@@ -457,14 +457,14 @@ class ProfileLanguageTests(TestCase):
             seen.append(user_content)
             return {"matches": []}
 
-        from jobs.services.matcher import match_section_to_profile
+        from jobs.domain.matcher import match_section_to_profile
 
         category = SkillCategory.objects.create(name="Programming", kind=SkillCategory.TECHNICAL)
         UserSkill.objects.create(profile=self.profile, category=category, name="Python", level=4)
         UserSkill.objects.create(profile=english, category=category, name="Python", level=4)
 
         with patch("core.ai.call_deepseek_json", side_effect=fake_call), \
-             patch("jobs.services.deepseek_client.call_deepseek_json", side_effect=fake_call):
+             patch("jobs.domain.deepseek_client.call_deepseek_json", side_effect=fake_call):
             match_section_to_profile(self.job.sections.get(key="required_technical_skills"))
             match_section_to_profile(
                 english_job.sections.get(key="required_technical_skills")
@@ -986,7 +986,7 @@ class ReanalyzeTests(TestCase):
     def test_an_exhausted_allowance_explains_and_starts_nothing(self):
         runtime_settings.set_value("enforce_quotas", True)
         UsageRecord.objects.all().delete()
-        from staffportal.services import quotas
+        from staffportal.domain import quotas
 
         quotas.consume(self.profile.user, UsageMetric.JOB_ANALYSIS)
         sections_before = set(self.job.sections.values_list("pk", flat=True))
@@ -1527,7 +1527,7 @@ class ExtractionPromptContractTests(TestCase):
     """`prompts/jobs/extract_sections.txt` and `apply_analysis` are two halves of one
     contract: what the prompt asks the model for is what the importer reads."""
 
-    #: Every key `jobs.services.importer.apply_analysis` reads from the reply.
+    #: Every key `jobs.domain.importer.apply_analysis` reads from the reply.
     IMPORTER_READS = (
         "title", "seniority_level", "summary", "location", "work_arrangement",
         "timezone_expectations", "relocation_offered", "travel_percentage", "salary_min",

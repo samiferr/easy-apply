@@ -20,11 +20,11 @@ prompts/
 | File | Sent as | Used by | Variables |
 | --- | --- | --- | --- |
 | `core/language_clause.txt` | start of the **user** message, every call | `core.language.language_clause` | `language` |
-| `jobs/extract_sections.txt` | **system** | `jobs.services.deepseek_client.analyze_job_text` (UC-05.2) | `section_spec` |
+| `jobs/extract_sections.txt` | **system** | `jobs.domain.deepseek_client.analyze_job_text` (UC-05.2) | `section_spec` |
 | `jobs/match_section.txt` | **system** | `match_section` and `match_single_element` (UC-05.3, UC-06.3) | — |
-| `resume/parse_resume.txt` | **system** | `resume.services.deepseek_resume.analyze_resume_text` (UC-04.2) | — |
+| `resume/parse_resume.txt` | **system** | `resume.domain.deepseek_resume.analyze_resume_text` (UC-04.2) | — |
 | `resume/skill_categories_note.txt` | **user** message, after the language clause | `analyze_resume_text` (UC-04.2) | `soft_categories`, `technical_categories` |
-| `resume/write_tailored_resume.txt` | **system** | `resume.services.tailored.generate_tailored_resume` (UC-07.1) | — |
+| `resume/write_tailored_resume.txt` | **system** | `resume.domain.tailored.generate_tailored_resume` (UC-07.1) | — |
 
 ## Why plain `.txt` and not `.md`
 
@@ -49,10 +49,10 @@ the model reads. A `.txt` file is shown, diffed and shipped raw.
   deliberately no way to write a literal `{{ name }}`.
 * **UTF-8**, LF line endings.
 * **A prompt is half of a contract.** Each prompt that asks for JSON names the
-  keys the parsing code reads (`jobs/services/importer.py`,
-  `jobs/services/matcher.py`, `resume/services/importer.py`,
-  `resume/services/tailored.py`). If you rename a key here, rename it there —
-  the `Prompt…ContractTests` in `jobs/tests.py` and `resume/tests.py` fail when
+  keys the parsing code reads (`jobs/domain/importer.py`,
+  `jobs/domain/matcher.py`, `resume/domain/importer.py`,
+  `resume/domain/tailored.py`). If you rename a key here, rename it there —
+  the `*PromptContractTests` classes in `jobs/tests.py` and `resume/tests.py` fail when
   the two drift apart.
 
 ## Editing a prompt

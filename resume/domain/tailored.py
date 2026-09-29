@@ -17,7 +17,7 @@ from django.utils.translation import gettext_lazy as _
 from core.ai import AIServiceError, call_deepseek_json
 from core.language import language_clause, use_language
 from core.prompts import load_prompt
-from core.utils import build_resume_snapshot, profile_snapshot_is_empty
+from core.services import build_resume_snapshot, profile_snapshot_is_empty
 
 from ..models import TailoredResume
 

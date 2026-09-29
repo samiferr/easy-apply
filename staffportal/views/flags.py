@@ -7,8 +7,8 @@ from django.views.generic import CreateView, UpdateView
 
 from ..forms import FeatureFlagForm
 from ..models import FeatureFlag
-from ..services import access, audit
-from ..services import flags as flag_service
+from ..domain import access, audit
+from ..domain import flags as flag_service
 from .base import PortalActionView, PortalListView, StaffPortalMixin
 
 

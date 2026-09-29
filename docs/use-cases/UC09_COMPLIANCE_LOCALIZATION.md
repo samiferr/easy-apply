@@ -84,7 +84,7 @@ This group addresses cross-cutting architectural invariants in Easy Apply:
 
 ### Key Code References
 - Language Utilities: [`core.language`](file:///home/sami/PycharmProjects/Github/easy-apply/core/language.py)
-- Recap Builder: [`core.utils.generate_markdown_recap`](file:///home/sami/PycharmProjects/Github/easy-apply/core/utils.py#L24)
+- Recap Builder: [`core.services.generate_markdown_recap`](file:///home/sami/PycharmProjects/Github/easy-apply/core/services.py#L24)
 
 ---
 

@@ -15,7 +15,7 @@ from preferences.models import get_or_create_preference
 from resume.models import TailoredResume
 from skills.models import SkillCategory, UserSkill
 from staffportal.models import Plan, Subscription
-from staffportal.services import runtime_settings
+from staffportal.domain import runtime_settings
 
 User = get_user_model()
 
@@ -267,7 +267,7 @@ class RecapLanguageTests(TestCase):
         self.client.force_login(self.user)
 
     def test_recap_is_french_even_when_the_interface_is_english(self):
-        from core.utils import generate_markdown_recap
+        from core.services import generate_markdown_recap
 
         self.client.cookies["django_language"] = "en"
         recap = generate_markdown_recap(self.profile)

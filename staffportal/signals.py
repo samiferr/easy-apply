@@ -16,6 +16,6 @@ def provision_subscription(sender, instance, created, raw=False, **kwargs):
     # should be written into it.
     if not created or raw:
         return
-    from .services.subscriptions import ensure_subscription
+    from .domain.subscriptions import ensure_subscription
 
     ensure_subscription(instance)

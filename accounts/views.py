@@ -43,7 +43,7 @@ class RegisterView(CreateView):
             return redirect("core:dashboard")
         # Registration can be closed from the staff portal without a deploy —
         # the switch an operator reaches for during an incident or a launch.
-        from staffportal.services import runtime_settings
+        from staffportal.domain import runtime_settings
 
         if not runtime_settings.get("signups_enabled"):
             messages.info(
@@ -178,7 +178,7 @@ class ProfileCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         # Workspaces are a ceiling rather than a meter: the check is how many
         # exist, not how many were created this month.
-        from staffportal.services import quotas
+        from staffportal.domain import quotas
 
         blocked = quotas.profile_blocked_message(self.request.user)
         if blocked:

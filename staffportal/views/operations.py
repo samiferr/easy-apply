@@ -11,7 +11,7 @@ from django.views.generic import FormView, TemplateView
 from core.models import AITask
 
 from ..forms import SystemSettingsForm
-from ..services import access, audit, exports, health
+from ..domain import access, audit, exports, health
 from .base import PortalActionView, PortalListView, StaffPortalMixin
 
 

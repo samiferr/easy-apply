@@ -17,7 +17,7 @@ from django.utils import timezone
 
 from core.ai import AIServiceError
 from core.language import use_language
-from core.utils import build_profile_slice, empty_slice_hint, profile_slice_is_empty
+from core.services import build_profile_slice, empty_slice_hint, profile_slice_is_empty
 
 from ..models import JobElement, JobSection
 from .deepseek_client import match_section, match_single_element

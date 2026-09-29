@@ -7,7 +7,7 @@ from django.views.generic import CreateView, UpdateView
 
 from ..forms import AnnouncementForm
 from ..models import Announcement
-from ..services import access, audit
+from ..domain import access, audit
 from .base import PortalActionView, PortalListView, StaffPortalMixin
 
 

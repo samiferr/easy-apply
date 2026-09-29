@@ -13,7 +13,7 @@ from core.mixins import ConfirmDeleteMixin
 from core.models import AITask
 from resume.models import TailoredResume
 from staffportal.models import UsageMetric
-from staffportal.services import quotas
+from staffportal.domain import quotas
 
 from .forms import JobAnalysisForm
 from .models import JobElement, JobPost, JobSection

@@ -570,7 +570,7 @@ branches across services, views and templates.
 
 ### Scoped matching
 
-`core.utils.build_profile_slice(profile, section_key)` returns **only** the
+`core.services.build_profile_slice(profile, section_key)` returns **only** the
 mapped part of that profile. A technical-skills check receives your technical skills
 and nothing else — not your salary expectations, not your languages. This is
 both a privacy property and a cost one: payloads are a fraction of the size of
@@ -621,12 +621,12 @@ deterministic — fail immediately rather than burning quota.
 ## Tailored resume & PDF export
 
 On an analyzed job's detail page, **Generate tailored resume**
-(`resume/services/tailored.py`) writes a resume for that specific posting:
+(`resume/domain/tailored.py`) writes a resume for that specific posting:
 
 1. The job — its framing plus every extracted requirement, tagged with the
    `strong`/`partial`/`none` verdict and evidence from "Match to my profile"
    when it has been run — goes to DeepSeek together with a full snapshot of
-   the user's profile (`core.utils.build_resume_snapshot`, which adds contact
+   the user's profile (`core.services.build_resume_snapshot`, which adds contact
    details, locations and dates to the snapshot the matcher uses) and the raw
    `templates/resume_template.md` skeleton.
 2. The model returns only the *content* of each section (summary, grouped
@@ -650,7 +650,7 @@ The draft is stored on a `TailoredResume` row (one per job) and opened in a
 Markdown editor. Nothing is auto-sent anywhere: the user edits the text,
 saves, and exports when happy.
 
-**PDF export** (`resume/services/pdf.py`) renders that Markdown with
+**PDF export** (`resume/domain/pdf.py`) renders that Markdown with
 ReportLab — no headless browser or system libraries needed. It covers the
 subset a resume uses (headings, bullets, bold/italic/code, links, rules);
 everything above the first `##` heading becomes the centered header block,
@@ -661,7 +661,7 @@ Set `RESUME_PDF_PAGE_SIZE=a4` in `.env` for A4 instead of US Letter.
 
 Under `/resume/upload/` (also linked from the Profile page and dashboard), a
 user uploads a resume and DeepSeek turns it into the same shape used
-throughout the rest of the app. The pipeline (`resume/services/`):
+throughout the rest of the app. The pipeline (`resume/domain/`):
 
 1. **`extractor.py`** pulls plain text out of the uploaded PDF (`pypdf`),
    DOCX (`python-docx`), or TXT file — with friendly errors for encrypted
