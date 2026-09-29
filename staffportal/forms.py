@@ -173,7 +173,7 @@ class SystemSettingsForm(StyledFormMixin, forms.Form):
 
     Generated rather than hand-written so a new setting is one entry in one
     list: declare it, and it appears here, typed and labelled, with nothing to
-    keep in sync.
+    keep in sync. Writing the values is `staffportal.services.save_settings`.
     """
 
     def __init__(self, *args, **kwargs):
@@ -198,15 +198,3 @@ class SystemSettingsForm(StyledFormMixin, forms.Form):
         for spec in runtime_settings.REGISTRY:
             grouped.setdefault(spec.group, []).append(self[spec.key])
         return list(grouped.items())
-
-    def save(self, user=None) -> list[str]:
-        """Writes only what changed, and says what that was — the audit entry
-        should read "maintenance_mode: off → on", not "settings saved"."""
-        changed = []
-        current = runtime_settings.all_values()
-        for spec in runtime_settings.REGISTRY:
-            new = self.cleaned_data[spec.key]
-            if new != current[spec.key]:
-                runtime_settings.set_value(spec.key, new, user=user)
-                changed.append(f"{spec.key}: {current[spec.key]!r} → {new!r}")
-        return changed

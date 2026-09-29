@@ -1,4 +1,4 @@
-"""Give every new account a subscription the moment it exists.
+"""Give every new account a subscription the moment it exists (UC-01.1).
 
 Provisioning at registration rather than lazily on first use means no code path
 anywhere has to cope with a user that has no plan, and the portal's subscriber
@@ -16,6 +16,6 @@ def provision_subscription(sender, instance, created, raw=False, **kwargs):
     # should be written into it.
     if not created or raw:
         return
-    from .domain.subscriptions import ensure_subscription
+    from . import services
 
-    ensure_subscription(instance)
+    services.provision_subscription(instance)

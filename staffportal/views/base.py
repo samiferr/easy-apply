@@ -11,6 +11,9 @@ Three rules are enforced here and nowhere else, so no screen can forget one:
    audit trail attributes to the customer.
 3. **Nothing here is cached or indexed.** Every page is somebody's personal
    data.
+
+The decision for 1 and 2 is `staffportal.services.portal_gate` (UC-08.1); this
+module only turns it into a redirect, a 404 or a 403 page.
 """
 
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -21,7 +24,8 @@ from django.views import View
 from django.views.decorators.cache import never_cache
 from django.views.generic import ListView
 
-from ..domain import access, impersonation
+from .. import services
+from ..domain import access
 
 
 @method_decorator(never_cache, name="dispatch")
@@ -34,25 +38,16 @@ class StaffPortalMixin(LoginRequiredMixin):
     page_subtitle = ""
 
     def dispatch(self, request, *args, **kwargs):
-        user = request.user
-        if not user.is_authenticated:
+        gate = services.portal_gate(request, self.required_capability)
+        if gate == services.LOGIN:
             return self.handle_no_permission()
-        if impersonation.is_impersonating(request):
+        if gate == services.HIDDEN:
             raise Http404
-        if not (user.is_staff and user.is_active):
-            raise Http404
-        if not access.has_capability(user, self.required_capability):
+        if gate == services.FORBIDDEN:
             return render(
                 request,
                 "staffportal/forbidden.html",
-                {
-                    "capability": self.required_capability,
-                    "capability_label": access.CAPABILITY_LABELS.get(
-                        self.required_capability, self.required_capability
-                    ),
-                    "role_label": access.role_label(user),
-                    "section": self.section,
-                },
+                services.forbidden_context(request.user, self.required_capability, self.section),
                 status=403,
             )
 
@@ -71,8 +66,7 @@ class StaffPortalMixin(LoginRequiredMixin):
         ctx.setdefault("page_title", self.get_page_title())
         ctx.setdefault("page_subtitle", self.get_page_subtitle())
         ctx["section"] = self.section
-        ctx["portal_role"] = access.role_label(self.request.user)
-        ctx["portal_capabilities"] = access.capabilities_for(self.request.user)
+        ctx.update(services.portal_context(self.request.user))
         return ctx
 
 

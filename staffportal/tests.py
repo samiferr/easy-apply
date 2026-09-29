@@ -7,21 +7,26 @@ inert until an operator turns it on.
 """
 
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AnonymousUser
 from django.contrib.messages import get_messages
 from django.core import mail
 from django.core.management import call_command
-from django.test import TestCase
+from django.test import RequestFactory, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import Profile
+from core.exceptions import PreconditionFailed, Refused, ServiceError
 from core.models import AITask
 from core.testing import fake_deepseek
 from jobs.models import JobPost
 from resume.models import ResumeImport, TailoredResume
 
+from . import services
+from .forms import ImpersonationForm
 from .models import (
     Announcement,
     AuditLog,
@@ -1361,7 +1366,7 @@ class BillingTests(PortalTestCase):
         Subscription.objects.filter(user=self.customer).update(
             status=Subscription.PAST_DUE, external_customer_id="cus_123"
         )
-        other = make_user("other@example.com")
+        make_user("other@example.com")  # a second account, so a filter has something to exclude
 
         def listed(**params):
             response = self.client.get(reverse("staffportal:subscription_list"), params)
@@ -1801,3 +1806,354 @@ class PruneAuditLogCommandTests(PortalTestCase):
         runtime_settings.set_value("audit_retention_days", 500)
         call_command("prune_audit_log", verbosity=0)
         self.assertEqual(AuditLog.objects.count(), 2)
+
+
+# ---------------------------------------------------------------------------
+# The use cases in staffportal/services.py, called directly
+# ---------------------------------------------------------------------------
+class StaffPortalServiceTests(PortalTestCase):
+    """What each service refuses, in which words, and what it leaves in the audit
+    trail — with a bare request standing in for the operator's."""
+
+    def setUp(self):
+        super().setUp()
+        self.free, self.pro = make_plans()
+        self.operator = make_staff("admin@example.com", StaffRole.ADMIN)
+        self.customer = make_user("customer@example.com")
+
+    def request_as(self, user, session=None):
+        request = RequestFactory().post("/staff/")
+        request.user = user
+        request.session = {} if session is None else session
+        return request
+
+    def actions(self):
+        return list(AuditLog.objects.order_by("id").values_list("action", flat=True))
+
+    # --- UC-08.1 -----------------------------------------------------------
+    def test_the_gate_admits_only_active_staff_who_hold_the_capability(self):
+        viewer = make_staff("viewer@example.com", StaffRole.VIEWER)
+        suspended = make_staff("gone@example.com", StaffRole.ADMIN, is_active=False)
+
+        def gate(user, capability, session=None):
+            return services.portal_gate(self.request_as(user, session), capability)
+
+        self.assertEqual(gate(AnonymousUser(), access.VIEW_PORTAL), services.LOGIN)
+        self.assertEqual(gate(self.customer, access.VIEW_PORTAL), services.HIDDEN)
+        self.assertEqual(gate(suspended, access.VIEW_PORTAL), services.HIDDEN)
+        self.assertEqual(gate(viewer, access.MANAGE_USERS), services.FORBIDDEN)
+        self.assertEqual(gate(viewer, access.VIEW_PORTAL), services.ALLOW)
+        self.assertEqual(gate(self.operator, access.MANAGE_USERS), services.ALLOW)
+
+    def test_an_impersonated_session_never_gets_past_the_gate_even_for_a_staff_account(self):
+        session = {impersonation_key(): self.operator.pk}
+        outcome = services.portal_gate(
+            self.request_as(self.operator, session), access.VIEW_PORTAL
+        )
+        self.assertEqual(outcome, services.HIDDEN)
+
+    def test_the_forbidden_page_names_the_capability_and_the_role(self):
+        viewer = make_staff("viewer@example.com", StaffRole.VIEWER)
+        context = services.forbidden_context(viewer, access.MANAGE_USERS, "users")
+        self.assertEqual(
+            context,
+            {
+                "capability": access.MANAGE_USERS,
+                "capability_label": "Suspend, reactivate and annotate accounts",
+                "role_label": access.role_label(viewer),
+                "section": "users",
+            },
+        )
+
+    def test_revoking_your_own_access_is_refused_and_someone_elses_is_audited(self):
+        other = make_staff("other@example.com", StaffRole.SUPPORT)
+        mine = StaffMember.objects.get(user=self.operator)
+        with self.assertRaisesMessage(Refused, "You cannot revoke your own access."):
+            services.revoke_portal_access(self.request_as(self.operator), mine)
+        self.assertTrue(StaffMember.objects.filter(pk=mine.pk).exists())
+
+        services.revoke_portal_access(
+            self.request_as(self.operator), StaffMember.objects.get(user=other)
+        )
+        other.refresh_from_db()
+        self.assertFalse(other.is_staff)
+        self.assertFalse(StaffMember.objects.filter(user=other).exists())
+        self.assertEqual(self.actions(), [audit.TEAM_REVOKED])
+
+    # --- UC-08.2 -----------------------------------------------------------
+    def test_suspension_refuses_yourself_and_a_superuser_but_ends_a_customers_sessions(self):
+        boss = make_user("boss@example.com", is_superuser=True, is_staff=True)
+        with self.assertRaisesMessage(Refused, "You cannot suspend your own account."):
+            services.suspend_account(self.request_as(self.operator), self.operator, "")
+        with self.assertRaisesMessage(Refused, "Only a superuser may suspend a superuser."):
+            services.suspend_account(self.request_as(self.operator), boss, "")
+        self.assertEqual(self.actions(), [])
+
+        self.client.force_login(self.customer)
+        services.suspend_account(self.request_as(self.operator), self.customer, "Chargeback")
+        self.customer.refresh_from_db()
+        self.assertFalse(self.customer.is_active)
+        self.assertEqual(self.client.get(reverse("core:dashboard")).status_code, 302)
+        entry = AuditLog.objects.get()
+        self.assertEqual((entry.action, entry.summary), (audit.USER_SUSPENDED, "Chargeback"))
+
+    def test_a_suspension_without_a_reason_says_so_in_the_trail(self):
+        services.suspend_account(self.request_as(self.operator), self.customer, "")
+        self.assertEqual(AuditLog.objects.get().summary, "Account suspended.")
+
+    def test_changing_a_plan_reads_before_and_after_and_needs_a_plan_to_exist(self):
+        services.change_account_plan(
+            self.request_as(self.operator), self.customer, self.pro, "active", "Upgrade"
+        )
+        subscription = Subscription.objects.get(user=self.customer)
+        self.assertEqual(subscription.plan, self.pro)
+        self.assertEqual(
+            AuditLog.objects.get().summary, "Free/active → Pro/active. Upgrade"
+        )
+
+        Subscription.objects.all().delete()
+        Plan.objects.all().delete()
+        with self.assertRaisesMessage(PreconditionFailed, "No plans are configured yet."):
+            services.change_account_plan(
+                self.request_as(self.operator), self.customer, self.pro, "active"
+            )
+
+    def test_search_reads_the_same_filters_the_screen_offers(self):
+        make_user("ada@example.com", first_name="Ada")
+        User.objects.filter(pk=self.customer.pk).update(is_active=False)
+
+        def emails(**params):
+            return {u.email for u in services.search_accounts(params)}
+
+        self.assertEqual(emails(q="ADA"), {"ada@example.com"})
+        self.assertEqual(emails(status="suspended"), {"customer@example.com"})
+        self.assertEqual(emails(status="staff"), {"admin@example.com"})
+        self.assertEqual(emails(plan=str(self.pro.pk)), set())
+
+    # --- UC-08.3 -----------------------------------------------------------
+    def test_impersonation_names_the_fundamental_problem_before_the_missing_reason(self):
+        request = self.request_as(self.operator)
+        with self.assertRaisesMessage(
+            Refused, "You are already signed in as this account."
+        ):
+            services.start_impersonation(request, self.operator, ImpersonationForm({}))
+        with self.assertRaisesMessage(
+            PreconditionFailed, "A reason is required before impersonating an account."
+        ):
+            services.start_impersonation(request, self.customer, ImpersonationForm({}))
+        self.assertFalse(ImpersonationSession.objects.exists())
+
+    def test_only_an_impersonating_request_can_stop_one(self):
+        with self.assertRaises(PreconditionFailed):
+            services.stop_impersonation(self.request_as(self.operator))
+
+    # --- UC-08.5 -----------------------------------------------------------
+    def test_a_plan_with_subscribers_is_deactivated_and_an_empty_one_deleted(self):
+        outcome, name = services.retire_plan(self.request_as(self.operator), self.free.pk)
+        self.assertEqual((outcome, name), (services.PLAN_DEACTIVATED, "Free"))
+        self.free.refresh_from_db()
+        self.assertEqual((self.free.is_active, self.free.is_default), (False, False))
+
+        outcome, name = services.retire_plan(self.request_as(self.operator), self.pro.pk)
+        self.assertEqual((outcome, name), (services.PLAN_DELETED, "Pro"))
+        self.assertFalse(Plan.objects.filter(pk=self.pro.pk).exists())
+
+        outcome, name = services.retire_plan(self.request_as(self.operator), 9999)
+        self.assertEqual((outcome, name), (services.PLAN_MISSING, ""))
+
+    def test_resetting_usage_zeroes_this_periods_counters_and_says_how_many(self):
+        quotas.consume(self.customer, UsageMetric.JOB_ANALYSIS, 2)
+        quotas.consume(self.customer, UsageMetric.RESUME_IMPORT)
+        cleared = services.reset_usage(self.request_as(self.operator), self.customer)
+        self.assertEqual(cleared, 2)
+        self.assertEqual(
+            list(UsageRecord.objects.filter(user=self.customer).values_list("count", flat=True)),
+            [0, 0],
+        )
+        self.assertEqual(AuditLog.objects.get().summary, "Reset 2 usage counter(s) for the current period.")
+
+    def test_the_starter_data_is_created_once_and_never_rewritten(self):
+        Subscription.objects.all().delete()
+        Plan.objects.all().delete()
+        first = services.seed_starter_data()
+        self.assertTrue(all(created for _plan, created in first["plans"]))
+        self.assertIsNone(first["backfilled"])
+
+        Plan.objects.filter(slug="pro").update(price_cents=1)
+        second = services.seed_starter_data(backfill=True)
+        self.assertFalse(any(created for _plan, created in second["plans"]))
+        self.assertFalse(any(created for _flag, created in second["flags"]))
+        self.assertEqual(Plan.objects.get(slug="pro").price_cents, 1)
+        self.assertEqual(second["backfilled"], User.objects.count())
+
+    # --- UC-08.7 -----------------------------------------------------------
+    def test_saving_settings_writes_and_reports_only_what_changed(self):
+        values = dict(runtime_settings.all_values())
+        request = self.request_as(self.operator)
+        self.assertEqual(services.save_settings(request, values), [])
+        self.assertEqual(self.actions(), [])
+
+        values["maintenance_mode"] = True
+        self.assertEqual(
+            services.save_settings(request, values), ["maintenance_mode: False → True"]
+        )
+        self.assertIs(runtime_settings.get("maintenance_mode"), True)
+        entry = AuditLog.objects.get()
+        self.assertEqual(
+            (entry.action, entry.summary), (audit.SETTING_UPDATED, "maintenance_mode: False → True")
+        )
+
+    def test_maintenance_stops_customers_but_never_staff_or_the_portal(self):
+        def blocked(path, user):
+            request = RequestFactory().get(path)
+            request.user = user
+            return services.maintenance_blocks(request)
+
+        self.assertFalse(blocked("/dashboard/", self.customer))
+        runtime_settings.set_value("maintenance_mode", True)
+        self.assertTrue(blocked("/dashboard/", self.customer))
+        self.assertTrue(blocked("/dashboard/", AnonymousUser()))
+        self.assertFalse(blocked("/dashboard/", self.operator))
+        for path in ("/staff/", "/accounts/login/", "/static/app.css", "/i18n/setlang/"):
+            with self.subTest(path=path):
+                self.assertFalse(blocked(path, AnonymousUser()))
+
+    # --- UC-08.8 -----------------------------------------------------------
+    def test_each_announcement_reaches_only_its_audience(self):
+        for audience in (Announcement.EVERYONE, Announcement.AUTHENTICATED, Announcement.STAFF):
+            Announcement.objects.create(title=audience, audience=audience)
+
+        def seen(user):
+            return {a.title for a in services.live_announcements_for(user)}
+
+        self.assertEqual(seen(None), {"everyone"})
+        self.assertEqual(seen(AnonymousUser()), {"everyone"})
+        self.assertEqual(seen(self.customer), {"everyone", "authenticated"})
+        self.assertEqual(seen(self.operator), {"everyone", "authenticated", "staff"})
+
+    def test_deleting_an_announcement_or_a_flag_that_is_gone_is_a_quiet_no_op(self):
+        request = self.request_as(self.operator)
+        self.assertIsNone(services.delete_announcement(request, 9999))
+        self.assertIsNone(services.delete_flag(request, 9999))
+        note = Announcement.objects.create(title="Maintenance")
+        flag = FeatureFlag.objects.create(key="beta", name="Beta")
+        self.assertEqual(services.delete_announcement(request, note.pk), "Maintenance")
+        self.assertEqual(services.delete_flag(request, flag.pk), "beta")
+        self.assertEqual(self.actions(), [audit.ANNOUNCEMENT_DELETED, audit.FLAG_DELETED])
+
+    # --- UC-08.9 -----------------------------------------------------------
+    def make_task(self, **fields):
+        profile = Profile.objects.get(user=self.customer)
+        job = JobPost.objects.create(profile=profile, description_text="x" * 120)
+        return AITask.start_for(profile, AITask.JOB_ANALYSIS, job), job
+
+    def test_retrying_needs_the_target_to_exist_and_reports_a_failure_to_queue(self):
+        task, job = self.make_task()
+        request = self.request_as(self.operator)
+
+        with patch("jobs.tasks.enqueue_job_analysis", side_effect=RuntimeError("broker down")):
+            with self.assertRaisesMessage(ServiceError, "Could not re-queue: broker down"):
+                services.retry_task(request, task)
+        self.assertEqual(self.actions(), [])
+
+        with patch("jobs.tasks.enqueue_job_analysis") as enqueue:
+            services.retry_task(request, task)
+        enqueue.assert_called_once_with(job)
+        self.assertEqual(self.actions(), [audit.TASK_RETRIED])
+
+        job.delete()
+        task = AITask.objects.get(pk=task.pk)
+        with self.assertRaisesMessage(
+            PreconditionFailed, "The object this job was about no longer exists."
+        ):
+            services.retry_task(request, task)
+
+    def test_only_a_job_that_is_still_open_can_be_canceled(self):
+        task, _job = self.make_task()
+        request = self.request_as(self.operator)
+        self.assertTrue(services.cancel_task(request, task))
+        task.refresh_from_db()
+        self.assertEqual(task.state, AITask.CANCELED)
+        self.assertIsNotNone(task.finished_at)
+        self.assertFalse(services.cancel_task(request, task))
+        self.assertEqual(self.actions(), [audit.TASK_CANCELED])
+
+    def test_the_queue_can_be_searched_and_counted(self):
+        task, _job = self.make_task()
+        AITask.objects.filter(pk=task.pk).update(state=AITask.FAILED, error_message="Timed out")
+        self.assertEqual(list(services.search_tasks({"state": "failed"})), [task])
+        self.assertEqual(list(services.search_tasks({"q": "timed"})), [task])
+        self.assertEqual(list(services.search_tasks({"kind": AITask.TAILORED_RESUME})), [])
+        self.assertEqual(services.queue_counts(), {"queued": 0, "running": 0, "failed": 1})
+
+    # --- UC-08.10 ----------------------------------------------------------
+    def test_pruning_counts_first_and_only_deletes_when_asked(self):
+        old = AuditLog.objects.create(action="old")
+        AuditLog.objects.filter(pk=old.pk).update(created_at=timezone.now() - timedelta(days=400))
+        AuditLog.objects.create(action="recent")
+
+        self.assertEqual(services.prune_audit_log(365, dry_run=True), (1, 365))
+        self.assertEqual(AuditLog.objects.count(), 2)
+        self.assertEqual(services.prune_audit_log(365), (1, 365))
+        self.assertEqual(list(AuditLog.objects.values_list("action", flat=True)), ["recent"])
+
+        count, days = services.prune_audit_log()
+        self.assertEqual((count, days), (0, int(runtime_settings.get("audit_retention_days"))))
+
+    def test_the_audit_search_filters_by_actor_text_and_impersonation(self):
+        audit.log(self.request_as(self.operator), audit.USER_NOTE_ADDED, target=self.customer,
+                  summary="Called about billing.")
+        audit.log(self.request_as(self.operator, {"impersonator_id": 1}), audit.USER_EXPORTED,
+                  target=self.customer, summary="Export.")
+
+        def found(**params):
+            return sorted(e.summary for e in services.search_audit(params))
+
+        self.assertEqual(found(), ["Called about billing.", "Export."])
+        self.assertEqual(found(q="billing"), ["Called about billing."])
+        self.assertEqual(found(impersonated="1"), ["Export."])
+        self.assertEqual(found(actor=str(self.operator.pk)), ["Called about billing.", "Export."])
+        self.assertEqual(found(action=audit.USER_EXPORTED), ["Export."])
+        self.assertEqual(list(services.audit_actors()), [self.operator])
+
+    # --- UC-08.11 ----------------------------------------------------------
+    def test_erasure_needs_the_address_typed_and_is_audited_before_it_happens(self):
+        request = self.request_as(self.operator)
+        boss = make_user("boss@example.com", is_superuser=True, is_staff=True)
+        with self.assertRaisesMessage(
+            Refused, "Only a superuser may delete a superuser account."
+        ):
+            services.delete_account_as_operator(request, boss, "boss@example.com", "")
+        with self.assertRaisesMessage(
+            PreconditionFailed, "The email address did not match. Nothing was deleted."
+        ):
+            services.delete_account_as_operator(request, self.customer, "customer@example.co", "")
+        self.assertTrue(User.objects.filter(pk=self.customer.pk).exists())
+        self.assertEqual(self.actions(), [])
+
+        customer_id = self.customer.pk
+        email = services.delete_account_as_operator(
+            request, self.customer, "  CUSTOMER@example.com ", "x" * 500
+        )
+        self.assertEqual(email, "customer@example.com")
+        self.assertFalse(User.objects.filter(email="customer@example.com").exists())
+        entry = AuditLog.objects.get()
+        self.assertEqual(entry.action, audit.USER_DELETED)
+        # Written before the delete, while the account still had an id to record.
+        self.assertEqual((entry.target_repr, entry.target_id), ("customer@example.com", str(customer_id)))
+        self.assertEqual(len(entry.metadata["reason"]), 200)
+
+    def test_the_erasure_page_warns_about_what_will_go_and_blocks_a_superuser_target(self):
+        profile = Profile.objects.get(user=self.customer)
+        JobPost.objects.create(profile=profile, description_text="x" * 120)
+        preview = services.deletion_preview(self.customer, self.operator)
+        self.assertEqual(preview, {"profile_count": 1, "job_post_count": 1, "blocked": False})
+        boss = make_user("boss@example.com", is_superuser=True, is_staff=True)
+        self.assertTrue(services.deletion_preview(boss, self.operator)["blocked"])
+        self.assertFalse(services.deletion_preview(boss, boss)["blocked"])
+
+
+def impersonation_key():
+    from .domain import impersonation
+
+    return impersonation.SESSION_ACTOR_KEY
