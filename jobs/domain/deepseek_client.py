@@ -10,6 +10,9 @@ this file: they are loaded from `prompts/jobs/` (see `prompts/README.md`).
 
 None of these may be called from a view: they run inside the Celery tasks in
 jobs/tasks.py.
+
+Use cases: UC-05.2 (extraction), UC-05.3 (section matching) and UC-06.3 (one
+row) in docs/use-cases/.
 """
 
 import json
@@ -38,6 +41,7 @@ _SECTION_SPEC_LINES = "\n".join(
 EXTRACTION_SYSTEM_PROMPT = load_prompt("jobs/extract_sections", section_spec=_SECTION_SPEC_LINES)
 
 
+# UC-05.2 — 13-Section Deep Extraction Pipeline (step 2: the AI call)
 def analyze_job_text(raw_text: str, language: str = "en") -> dict:
     truncated = raw_text[:18000]
     user_content = (
@@ -71,6 +75,7 @@ def _match_payload(section_key: str, elements, profile_slice: dict, language: st
     )
 
 
+# UC-05.3 — Scoped Profile Slice Matching (step 3: one call per section)
 def match_section(section_key: str, elements, profile_slice: dict, language: str = "en") -> dict:
     """Evaluate every element of one section against only its profile slice."""
     payload = _match_payload(section_key, elements, profile_slice, language)
@@ -78,6 +83,7 @@ def match_section(section_key: str, elements, profile_slice: dict, language: str
     return call_deepseek_json(MATCH_SYSTEM_PROMPT, user_content, temperature=0.1)
 
 
+# UC-06.3 — Profile Record Creation & Targeted Single-Element Re-Evaluation (step 7)
 def match_single_element(section_key: str, element, profile_slice: dict, language: str = "en") -> dict:
     """Re-evaluate exactly one element — used after "Add to my profile"."""
     payload = _match_payload(section_key, [element], profile_slice, language)

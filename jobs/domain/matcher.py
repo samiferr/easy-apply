@@ -8,6 +8,8 @@ Two entry points, both called from Celery tasks (never from a view):
 
 Both short-circuit without any HTTP call when the mapped profile slice is
 empty, and both keep the AI call outside the write transaction.
+
+Use cases: UC-05.3, UC-05.4 and UC-06.3 in docs/use-cases/.
 """
 
 import logging
@@ -87,6 +89,8 @@ def _save(elements: list[JobElement]):
         )
 
 
+# UC-05.3 — Scoped Profile Slice Matching (step 3), and UC-05.4 — Zero-Cost Empty
+# Slice Handling (an empty slice never costs an API call)
 def match_section_to_profile(section: JobSection, profile=None) -> dict:
     """Evaluate every element of one section. Returns a small summary dict.
 
@@ -128,6 +132,7 @@ def match_section_to_profile(section: JobSection, profile=None) -> dict:
     return {"matched": len(updated), "total": len(elements)}
 
 
+# UC-06.3 — Profile Record Creation & Targeted Single-Element Re-Evaluation (step 7)
 def match_element_to_profile(element: JobElement, profile=None) -> dict:
     """Re-evaluate exactly one element — nothing else on the job is touched."""
     section = element.section
@@ -152,6 +157,7 @@ def match_element_to_profile(element: JobElement, profile=None) -> dict:
     return {"matched": 1}
 
 
+# UC-05.3 — Scoped Profile Slice Matching (step 4)
 def finalize_job_match(job) -> dict:
     """Stamp the job once every section has been through the matcher."""
     job.profile_matched_at = timezone.now()

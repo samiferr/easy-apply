@@ -6,6 +6,10 @@ a section later is one entry here, not a chain of `if` branches.
 
 Every handler is responsible for rejecting duplicates against the existing
 UniqueConstraints and surfacing the conflict as a form error rather than a 500.
+
+`jobs/services.py` chooses the target for a row and builds its form (UC-06.1,
+UC-06.2); saving a valid form is what creates the profile record (UC-06.3).
+See docs/use-cases/UC06_INTERACTIVE_ADD_TO_PROFILE.md.
 """
 
 from dataclasses import dataclass

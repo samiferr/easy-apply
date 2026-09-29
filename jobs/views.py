@@ -1,30 +1,18 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Q
-from django.http import JsonResponse
+from django.http import HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.template.loader import render_to_string
 from django.urls import reverse_lazy
-from django.utils import timezone
 from django.utils.translation import gettext as _, gettext_lazy
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, View
 
+from core.exceptions import Blocked, PreconditionFailed, Refused
 from core.mixins import ConfirmDeleteMixin
-from core.models import AITask
-from resume.models import TailoredResume
-from staffportal.models import UsageMetric
-from staffportal.domain import quotas
 
+from . import services
 from .forms import JobAnalysisForm
-from .models import JobElement, JobPost, JobSection
-from .profile_targets import get_add_target
-from .sections import SECTIONS
-from .tasks import (
-    enqueue_element_match,
-    enqueue_full_match,
-    enqueue_job_analysis,
-    enqueue_section_match,
-)
+from .models import JobPost
 
 
 class JobPostListView(LoginRequiredMixin, ListView):
@@ -34,27 +22,18 @@ class JobPostListView(LoginRequiredMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        qs = JobPost.objects.filter(profile=self.request.profile).prefetch_related(
-            "sections__elements"
+        return services.search_jobs(
+            self.request.profile,
+            self.request.GET.get("q", ""),
+            self.request.GET.get("status", ""),
         )
-        query = self.request.GET.get("q", "").strip()
-        if query:
-            qs = qs.filter(
-                Q(title__icontains=query)
-                | Q(company_name__icontains=query)
-                | Q(location__icontains=query)
-            )
-        status = self.request.GET.get("status", "").strip()
-        if status in dict(JobPost.STATUS_CHOICES):
-            qs = qs.filter(status=status)
-        return qs
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["q"] = self.request.GET.get("q", "")
         ctx["status"] = self.request.GET.get("status", "")
         ctx["status_choices"] = JobPost.STATUS_CHOICES
-        ctx["total_count"] = JobPost.objects.filter(profile=self.request.profile).count()
+        ctx["total_count"] = services.profile_jobs(self.request.profile).count()
         return ctx
 
 
@@ -69,25 +48,20 @@ class JobPostCreateView(LoginRequiredMixin, CreateView):
     template_name = "jobs/job_form.html"
 
     def form_valid(self, form):
-        # Checked before the row is written: an analysis the plan does not allow
-        # should not leave a half-created job post behind. `form_invalid` keeps
-        # the pasted posting on screen rather than throwing it away.
-        blocked = quotas.blocked_message(self.request.user, UsageMetric.JOB_ANALYSIS)
-        if blocked:
-            messages.error(self.request, blocked)
+        try:
+            self.object = services.start_job_analysis(
+                self.request.user, self.request.profile, form
+            )
+        except Blocked as blocked:
+            # `form_invalid` keeps the pasted posting on screen rather than
+            # throwing it away.
+            messages.error(self.request, str(blocked))
             return self.form_invalid(form)
-
-        form.instance.profile = self.request.profile
-        response = super().form_valid(form)
-        # The profile's language, not the browser's: a job analyzed in a French
-        # workspace stays French even if the UI is being read in English.
-        enqueue_job_analysis(self.object)
-        quotas.consume(self.request.user, UsageMetric.JOB_ANALYSIS)
         messages.info(
             self.request,
             _("Analyzing this job post — the sections will fill in as they finish."),
         )
-        return response
+        return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
         return self.object.get_absolute_url()
@@ -99,23 +73,11 @@ class JobPostDetailView(LoginRequiredMixin, DetailView):
     context_object_name = "job"
 
     def get_queryset(self):
-        return JobPost.objects.filter(profile=self.request.profile).prefetch_related(
-            "sections__elements"
-        )
+        return services.profile_jobs_with_sections(self.request.profile)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        job = self.object
-        by_key = {s.key: s for s in job.sections.all()}
-        # Always render the rail in the canonical order, including sections the
-        # posting had nothing for — they show as empty rather than disappearing.
-        ctx["rail"] = [
-            {"spec": spec, "section": by_key.get(spec.key)} for spec in SECTIONS
-        ]
-        ctx["match_summary"] = job.element_match_summary()
-        ctx["tailored_resume"] = TailoredResume.objects.filter(job=job).first()
-        ctx["ai_task"] = AITask.latest_for(job, AITask.JOB_ANALYSIS)
-        ctx["match_task"] = AITask.latest_for(job, AITask.JOB_MATCH)
+        ctx.update(services.job_detail_context(self.object))
         return ctx
 
 
@@ -126,7 +88,7 @@ class JobPostDeleteView(ConfirmDeleteMixin, LoginRequiredMixin, DeleteView):
     parent_label = gettext_lazy("Job posts")
 
     def get_queryset(self):
-        return JobPost.objects.filter(profile=self.request.profile)
+        return services.profile_jobs(self.request.profile)
 
     def get_heading(self):
         return _("Delete this job post analysis?")
@@ -135,9 +97,14 @@ class JobPostDeleteView(ConfirmDeleteMixin, LoginRequiredMixin, DeleteView):
         return self.object.title or _("Untitled role")
 
     def get_warning(self):
-        if TailoredResume.objects.filter(job=self.object).exists():
+        if services.has_tailored_resume(self.object):
             return _("This also deletes the tailored resume written for it. This can't be undone.")
         return _("This can't be undone.")
+
+    def form_valid(self, form):
+        success_url = self.get_success_url()
+        services.remove_job(self.object)
+        return HttpResponseRedirect(success_url)
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
@@ -150,16 +117,13 @@ class JobPostDeleteView(ConfirmDeleteMixin, LoginRequiredMixin, DeleteView):
 
 class JobPostReanalyzeView(LoginRequiredMixin, View):
     def post(self, request, pk):
-        job = get_object_or_404(JobPost, pk=pk, profile=request.profile)
-        # A re-analysis is a second trip to the AI provider, so it costs the
-        # same as the first one and is metered the same way.
-        blocked = quotas.blocked_message(request.user, UsageMetric.JOB_ANALYSIS)
-        if blocked:
-            messages.error(request, blocked)
-            return redirect(job.get_absolute_url())
-        enqueue_job_analysis(job)
-        quotas.consume(request.user, UsageMetric.JOB_ANALYSIS)
-        messages.info(request, _("Re-analyzing this job post."))
+        job = get_object_or_404(services.profile_jobs(request.profile), pk=pk)
+        try:
+            services.reanalyze_job(request.user, job)
+        except Blocked as blocked:
+            messages.error(request, str(blocked))
+        else:
+            messages.info(request, _("Re-analyzing this job post."))
         return redirect(job.get_absolute_url())
 
 
@@ -167,20 +131,15 @@ class JobPostMatchProfileView(LoginRequiredMixin, View):
     """Re-run matching across every section of an already-extracted job."""
 
     def post(self, request, pk):
-        job = get_object_or_404(JobPost, pk=pk, profile=request.profile)
-        if not job.sections.exists():
-            messages.warning(
-                request, _("Analyze this job post first, then match it to your profile.")
-            )
-            return redirect(job.get_absolute_url())
-        # Matching is part of the analysis the account was already charged for,
-        # so only the kill switch applies here — not the quota.
-        unavailable = quotas.ai_unavailable_message()
-        if unavailable:
-            messages.error(request, unavailable)
-            return redirect(job.get_absolute_url())
-        enqueue_full_match(job)
-        messages.info(request, _("Matching this job against your profile."))
+        job = get_object_or_404(services.profile_jobs(request.profile), pk=pk)
+        try:
+            services.rematch_job(job)
+        except PreconditionFailed as error:
+            messages.warning(request, str(error))
+        except Blocked as blocked:
+            messages.error(request, str(blocked))
+        else:
+            messages.info(request, _("Matching this job against your profile."))
         return redirect(job.get_absolute_url())
 
 
@@ -189,9 +148,9 @@ class JobSectionRematchView(LoginRequiredMixin, View):
 
     def post(self, request, pk, section_pk):
         section = get_object_or_404(
-            JobSection, pk=section_pk, job__pk=pk, job__profile=request.profile
+            services.profile_sections(request.profile), pk=section_pk, job__pk=pk
         )
-        enqueue_section_match(section)
+        services.rematch_section(section)
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             section.refresh_from_db()
             return JsonResponse(
@@ -220,53 +179,22 @@ class JobAnalysisStateView(LoginRequiredMixin, View):
     13 separate requests (spec §7.5)."""
 
     def get(self, request, pk):
-        job = get_object_or_404(
-            JobPost.objects.prefetch_related("sections__elements"), pk=pk, profile=request.profile
-        )
-        task = AITask.latest_for(job, AITask.JOB_ANALYSIS)
-        match_task = AITask.latest_for(job, AITask.JOB_MATCH)
-        live = [t for t in (task, match_task) if t and not t.is_terminal]
-        sections = []
-        for section in job.sections.all():
-            summary = section.match_summary()
-            sections.append(
-                {
-                    "key": section.key,
-                    "id": section.pk,
-                    "state": section.match_state,
-                    "error": section.match_error,
-                    "total": summary["total"],
-                    "strong": summary["strong"],
-                    "partial": summary["partial"],
-                    "none": summary["none"],
-                    "analyzed": summary["analyzed"],
-                }
-            )
-        return JsonResponse(
-            {
-                "job_status": job.status,
-                "sections": sections,
-                "summary": job.element_match_summary(),
-                "is_running": bool(live) or job.status in (JobPost.STATUS_PENDING, JobPost.STATUS_PROCESSING),
-                "task_id": live[0].pk if live else None,
-            }
-        )
+        job = get_object_or_404(services.profile_jobs_with_sections(request.profile), pk=pk)
+        return JsonResponse(services.analysis_state(job))
 
 
 # ---------------------------------------------------------------------------
 # Per-element: "Add to my profile" and single-element re-evaluation
 # ---------------------------------------------------------------------------
+def _get_element(request, pk, element_pk):
+    return get_object_or_404(
+        services.profile_elements(request.profile), pk=element_pk, section__job__pk=pk
+    )
+
+
 class JobElementAddToProfileView(LoginRequiredMixin, View):
     """GET renders the modal form fragment; POST creates the profile object and
     enqueues a re-evaluation of that one element (spec §4)."""
-
-    def get_element(self, request, pk, element_pk):
-        return get_object_or_404(
-            JobElement.objects.select_related("section", "section__job"),
-            pk=element_pk,
-            section__job__pk=pk,
-            section__job__profile=request.profile,
-        )
 
     def _modal_html(self, request, element, target, form):
         return render_to_string(
@@ -276,30 +204,24 @@ class JobElementAddToProfileView(LoginRequiredMixin, View):
         )
 
     def get(self, request, pk, element_pk):
-        element = self.get_element(request, pk, element_pk)
-        target = get_add_target(element.section.key)
-        if target is None:
-            return JsonResponse(
-                {"ok": False, "error": _("This section can't be added to your profile.")},
-                status=400,
-            )
-        form = target.form_class(
-            profile=request.profile, element=element, initial=target.initial_for(element)
-        )
+        element = _get_element(request, pk, element_pk)
+        try:
+            target = services.add_target_for(element)
+        except Refused as refused:
+            return JsonResponse({"ok": False, "error": str(refused)}, status=400)
+        form = services.add_to_profile_form(request.profile, element, target)
         return JsonResponse(
             {"ok": True, "modal_html": self._modal_html(request, element, target, form)}
         )
 
     def post(self, request, pk, element_pk):
-        element = self.get_element(request, pk, element_pk)
-        target = get_add_target(element.section.key)
-        if target is None:
-            return JsonResponse(
-                {"ok": False, "error": _("This section can't be added to your profile.")},
-                status=400,
-            )
+        element = _get_element(request, pk, element_pk)
+        try:
+            target = services.add_target_for(element)
+        except Refused as refused:
+            return JsonResponse({"ok": False, "error": str(refused)}, status=400)
 
-        form = target.form_class(request.POST, profile=request.profile, element=element)
+        form = services.add_to_profile_form(request.profile, element, target, request.POST)
         if not form.is_valid():
             # Duplicates and conflicts come back in the modal, never as a 500.
             return JsonResponse(
@@ -307,12 +229,7 @@ class JobElementAddToProfileView(LoginRequiredMixin, View):
                 status=422,
             )
 
-        form.save()
-        element.added_to_profile_at = timezone.now()
-        element.save(update_fields=["added_to_profile_at"])
-
-        task = enqueue_element_match(element)
-        element.refresh_from_db()
+        task = services.add_to_profile(element, form)
         return JsonResponse(
             {
                 "ok": True,
@@ -327,14 +244,8 @@ class JobElementRematchView(LoginRequiredMixin, View):
     """Re-evaluate one element on demand, without adding anything."""
 
     def post(self, request, pk, element_pk):
-        element = get_object_or_404(
-            JobElement.objects.select_related("section", "section__job"),
-            pk=element_pk,
-            section__job__pk=pk,
-            section__job__profile=request.profile,
-        )
-        task = enqueue_element_match(element)
-        element.refresh_from_db()
+        element = _get_element(request, pk, element_pk)
+        task = services.rematch_element(element)
         return JsonResponse(
             {
                 "ok": True,
@@ -349,20 +260,13 @@ class JobElementRowView(LoginRequiredMixin, View):
     """The finished row, fetched once a re-evaluation task reaches a terminal state."""
 
     def get(self, request, pk, element_pk):
-        element = get_object_or_404(
-            JobElement.objects.select_related("section", "section__job"),
-            pk=element_pk,
-            section__job__pk=pk,
-            section__job__profile=request.profile,
-        )
-        job = element.section.job
+        element = _get_element(request, pk, element_pk)
         return JsonResponse(
             {
                 "ok": True,
                 "element_id": element.pk,
                 "row_html": _render_element_row(request, element),
-                "section_summary": element.section.match_summary(),
-                "summary": job.element_match_summary(),
+                **services.element_row_state(element),
             }
         )
 
@@ -374,7 +278,7 @@ def _render_element_row(request, element):
             "element": element,
             "section": element.section,
             "job": element.section.job,
-            "can_add": bool(get_add_target(element.section.key)),
+            "can_add": services.can_add_to_profile(element),
         },
         request=request,
     )

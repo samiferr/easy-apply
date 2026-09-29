@@ -15,11 +15,14 @@ from django.utils import translation
 from django.urls import reverse
 
 from accounts.models import Profile
+from core.exceptions import Blocked, PreconditionFailed, Refused
 from core.models import AITask
 from core.services import build_profile_slice
 from core.testing import fake_deepseek, pin_language
 from education.models import Certificate, Degree
 from experience.models import ExperienceHighlight, WorkExperience
+from jobs import services
+from jobs.forms import JobAnalysisForm
 from jobs.models import JobElement, JobPost, JobSection
 from jobs.sections import MATCHED_SECTION_KEYS, SECTION_KEYS, SECTIONS
 from jobs.domain.deepseek_client import EXTRACTION_SYSTEM_PROMPT, MATCH_SYSTEM_PROMPT
@@ -1522,6 +1525,132 @@ class ElementReevaluationTests(TestCase):
                 self.assertEqual(method(url).status_code, 404)
                 mixed = reverse(f"jobs:{name}", args=[self.job.pk, theirs.pk])
                 self.assertEqual(method(mixed).status_code, 404)
+
+
+class JobServiceTests(TestCase):
+    """The use cases in `jobs/services.py` called directly, with no request: what
+    they refuse, in which words, and what they leave behind when they do."""
+
+    def setUp(self):
+        pin_language(self)
+        runtime_settings.invalidate()
+        self.addCleanup(runtime_settings.invalidate)
+        self.plan = Plan.objects.create(
+            slug="free", name="Free", price_cents=0, is_default=True, monthly_job_analyses=1
+        )
+        self.profile = make_profile("services@example.com")
+        self.user = self.profile.user
+
+    def form(self, text=JOB_TEXT):
+        form = JobAnalysisForm({"description_text": text})
+        self.assertTrue(form.is_valid(), form.errors)
+        return form
+
+    def analyses_used(self):
+        record = UsageRecord.objects.filter(user=self.user, metric=UsageMetric.JOB_ANALYSIS).first()
+        return record.count if record else 0
+
+    def test_starting_an_analysis_saves_the_posting_under_the_profile_and_meters_it(self):
+        with fake_deepseek(answering()):
+            job = services.start_job_analysis(self.user, self.profile, self.form())
+        self.assertEqual(job.profile, self.profile)
+        job.refresh_from_db()
+        self.assertEqual(job.status, JobPost.STATUS_COMPLETED)
+        self.assertEqual(self.analyses_used(), 1)
+
+    def test_an_analysis_the_plan_does_not_allow_is_refused_before_anything_is_written(self):
+        Plan.objects.filter(pk=self.plan.pk).update(monthly_job_analyses=0)
+        runtime_settings.set_value("enforce_quotas", True)
+        with self.assertRaisesMessage(
+            Blocked, "Your plan doesn't include this feature. Upgrade to use it."
+        ):
+            services.start_job_analysis(self.user, self.profile, self.form())
+        self.assertFalse(JobPost.objects.exists())
+        self.assertEqual(self.analyses_used(), 0)
+
+    def test_a_reanalysis_spends_the_allowance_like_the_first_one(self):
+        job = analyzed_job(self.profile)
+        runtime_settings.set_value("enforce_quotas", True)
+        with fake_deepseek(answering()):
+            services.reanalyze_job(self.user, job)
+        self.assertEqual(self.analyses_used(), 1)
+        with self.assertRaises(Blocked) as refused:
+            services.reanalyze_job(self.user, job)
+        self.assertIn("all 1 of this month's job analyses", str(refused.exception))
+        self.assertEqual(self.analyses_used(), 1)
+
+    def test_a_rematch_needs_extracted_sections_and_the_ai_switched_on_but_no_allowance(self):
+        with self.assertRaisesMessage(
+            PreconditionFailed, "Analyze this job post first, then match it to your profile."
+        ):
+            services.rematch_job(make_job(self.profile))
+
+        job = analyzed_job(self.profile)
+        runtime_settings.set_value("enforce_quotas", True)
+        with fake_deepseek(answering()):
+            services.reanalyze_job(self.user, job)  # spends the month's only analysis
+            task = services.rematch_job(job)  # matching is free all the same
+        self.assertEqual(task.kind, AITask.JOB_MATCH)
+        self.assertEqual(self.analyses_used(), 1)
+
+        runtime_settings.set_value("ai_features_enabled", False)
+        with self.assertRaises(Blocked):
+            services.rematch_job(job)
+
+    def test_search_is_scoped_to_the_profile_and_ignores_a_status_it_does_not_know(self):
+        make_job(self.profile, title="Python developer", company_name="Acme")
+        make_job(self.profile, title="Cook", location="Lyon", status=JobPost.STATUS_COMPLETED)
+        make_job(make_profile("services-other@example.com"), title="Python developer")
+
+        def titles(**filters):
+            return sorted(job.title for job in services.search_jobs(self.profile, **filters))
+
+        self.assertEqual(titles(), ["Cook", "Python developer"])
+        self.assertEqual(titles(query="  PYTHON "), ["Python developer"])
+        self.assertEqual(titles(query="acme"), ["Python developer"])
+        self.assertEqual(titles(query="lyon"), ["Cook"])
+        self.assertEqual(titles(status=JobPost.STATUS_COMPLETED), ["Cook"])
+        self.assertEqual(titles(status="nonsense"), ["Cook", "Python developer"])
+
+    def test_selectors_never_reach_another_workspace(self):
+        theirs = analyzed_job(make_profile("services-foreign@example.com"))
+        section = theirs.sections.first()
+        element = element_of(theirs, "required_technical_skills")
+        self.assertFalse(services.profile_jobs(self.profile).filter(pk=theirs.pk).exists())
+        self.assertFalse(services.profile_sections(self.profile).filter(pk=section.pk).exists())
+        self.assertFalse(services.profile_elements(self.profile).filter(pk=element.pk).exists())
+        self.assertTrue(services.profile_elements(theirs.profile).filter(pk=element.pk).exists())
+
+    def test_only_a_section_with_a_profile_counterpart_can_be_added(self):
+        job = analyzed_job(self.profile)
+        skill = element_of(job, "required_technical_skills", "Python")
+        self.assertTrue(services.can_add_to_profile(skill))
+        self.assertEqual(services.add_target_for(skill).key, "technical_skill")
+
+        prose = JobElement.objects.create(section=job.sections.get(key="overview"), text="Build APIs.")
+        self.assertFalse(services.can_add_to_profile(prose))
+        with self.assertRaisesMessage(Refused, "This section can't be added to your profile."):
+            services.add_target_for(prose)
+
+    def test_the_add_form_is_prefilled_from_the_row_and_saved_against_the_profile(self):
+        job = analyzed_job(self.profile)
+        skill = element_of(job, "required_technical_skills", "Python")
+        target = services.add_target_for(skill)
+
+        form = services.add_to_profile_form(self.profile, skill, target)
+        self.assertEqual(form.initial["name"], "Python")
+
+        category = SkillCategory.objects.filter(kind=SkillCategory.TECHNICAL).first()
+        data = {"name": "Python", "category": category.pk, "level": UserSkill.ADVANCED}
+        form = services.add_to_profile_form(self.profile, skill, target, data)
+        self.assertTrue(form.is_valid(), form.errors)
+        with fake_deepseek(answering("strong")):
+            task = services.add_to_profile(skill, form)
+        self.assertTrue(UserSkill.objects.filter(profile=self.profile, name="Python").exists())
+        self.assertIsNotNone(skill.added_to_profile_at)
+        task.refresh_from_db()  # it ran eagerly, after the row was returned
+        self.assertEqual((task.kind, task.state), (AITask.JOB_MATCH, AITask.DONE))
+        self.assertEqual(skill.match_status, "strong")
 
 
 class ExtractionPromptContractTests(TestCase):

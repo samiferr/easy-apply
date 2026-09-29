@@ -7,6 +7,12 @@
 
 A section that fails records its own failure and returns normally, so one bad
 section never poisons the chord (spec §7.3).
+
+Views do not call this module: `jobs/services.py` decides whether a request may
+start the work and then calls the `enqueue_*` functions at the bottom.
+
+Use cases: docs/use-cases/UC05_JOB_POSTING_MATCHING.md and
+UC06_INTERACTIVE_ADD_TO_PROFILE.md.
 """
 
 import logging
@@ -35,6 +41,7 @@ RETRY_KWARGS = {"max_retries": 3, "countdown": 5}
 # ---------------------------------------------------------------------------
 # Step 1 — read the pasted posting
 # ---------------------------------------------------------------------------
+# UC-05.2 — 13-Section Deep Extraction Pipeline (step 1)
 @shared_task(bind=True, soft_time_limit=60)
 @guard
 def read_job_text(self, job_id: int, task_id: int) -> dict:
@@ -67,6 +74,7 @@ def read_job_text(self, job_id: int, task_id: int) -> dict:
 # ---------------------------------------------------------------------------
 # Step 2 — extract the 13 sections
 # ---------------------------------------------------------------------------
+# UC-05.2 — 13-Section Deep Extraction Pipeline (steps 2-3)
 @shared_task(bind=True, soft_time_limit=300)
 @guard
 def extract_job_sections(self, payload: dict) -> dict:
@@ -125,6 +133,8 @@ def extract_job_sections(self, payload: dict) -> dict:
 # ---------------------------------------------------------------------------
 # Step 3 — one task per matched section
 # ---------------------------------------------------------------------------
+# UC-05.3 — Scoped Profile Slice Matching (step 3), and UC-05.5 — Non-Poisoning
+# Fault Isolation (steps 1-2: a failure stays on its own section)
 @shared_task(bind=True, soft_time_limit=300)
 @guard
 def match_job_section(self, section_id: int, task_id: int | None = None) -> dict:
@@ -171,6 +181,8 @@ def match_job_section(self, section_id: int, task_id: int | None = None) -> dict
 # ---------------------------------------------------------------------------
 # Step 4 — finalize
 # ---------------------------------------------------------------------------
+# UC-05.3 — Scoped Profile Slice Matching (step 4), and UC-05.5 (step 3: the
+# chord still completes when some sections failed)
 @shared_task(bind=True)
 def finalize_job_analysis(self, results, job_id: int, task_id: int) -> dict:
     task = get_task(task_id)
@@ -189,8 +201,11 @@ def finalize_job_analysis(self, results, job_id: int, task_id: int) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Public entry points — the only things views call
+# Entry points — the only things `jobs/services.py` calls. (An operator's retry
+# in the staff portal calls them too, so it behaves exactly like the button.)
 # ---------------------------------------------------------------------------
+# UC-05.1 — Job Posting Creation & Allowance Verification (step 7), and
+# UC-05.7 (the metered full re-analysis)
 def enqueue_job_analysis(job: JobPost) -> AITask:
     """Kick off the full pipeline: read -> extract -> match every section."""
     task = AITask.start_for(
@@ -216,6 +231,7 @@ def enqueue_job_analysis(job: JobPost) -> AITask:
     return task
 
 
+# UC-05.3 — Scoped Profile Slice Matching (steps 1-2)
 @shared_task(bind=True)
 def _dispatch_section_matches(self, payload: dict):
     """Fan the extracted sections out into a chord.
@@ -238,6 +254,7 @@ def _dispatch_section_matches(self, payload: dict):
     ).apply_async()
 
 
+# UC-05.5 — Non-Poisoning Fault Isolation & Per-Section Tab Retries (step 5)
 def enqueue_section_match(section: JobSection) -> AITask:
     """Re-run matching for a single section (the per-tab Retry button)."""
     job = section.job
@@ -256,6 +273,7 @@ def enqueue_section_match(section: JobSection) -> AITask:
     return task
 
 
+# UC-05.7 — Full Job Re-Analysis vs. Profile Re-Match (the free re-match, step 5)
 def enqueue_full_match(job: JobPost) -> AITask:
     """Re-match every section of an already-extracted job."""
     sections = matched_sections_for(job)
@@ -278,6 +296,7 @@ def enqueue_full_match(job: JobPost) -> AITask:
     return task
 
 
+# UC-06.3 — Profile Record Creation & Targeted Single-Element Re-Evaluation (step 7)
 @shared_task(bind=True, soft_time_limit=120)
 @guard
 def match_job_element(self, element_id: int, task_id: int) -> dict:
@@ -314,6 +333,7 @@ def match_job_element(self, element_id: int, task_id: int) -> dict:
     return {"ok": True}
 
 
+# UC-06.3 — step 4
 def enqueue_element_match(element: JobElement) -> AITask:
     job = element.section.job
     task = AITask.start_for(
