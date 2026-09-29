@@ -11,6 +11,8 @@ from contextlib import contextmanager
 from django.conf import settings
 from django.utils import translation
 
+from .prompts import load_prompt
+
 #: English names for the languages we offer, because the instruction itself is
 #: written in English (the model follows an English instruction more reliably
 #: than one written in the target language).
@@ -37,15 +39,7 @@ def language_name(language: str | None) -> str:
 
 def language_clause(language: str | None) -> str:
     """The sentence prepended to every prompt's user message."""
-    name = language_name(language)
-    return (
-        f"Write EVERYTHING you produce in {name}: summaries, section bodies, "
-        f"explanations, bullet points, headings and labels. This is not "
-        f"negotiable — even when the source text is in another language, your "
-        f"output must be in {name}. Keep proper nouns (people, company, product "
-        f"and technology names) in their original form, and keep any value that "
-        f"is an enum defined in these instructions exactly as spelled here."
-    )
+    return load_prompt("core/language_clause", language=language_name(language)).strip()
 
 
 @contextmanager

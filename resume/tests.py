@@ -26,6 +26,8 @@ from staffportal.models import Plan, UsageMetric, UsageRecord
 from staffportal.services import runtime_settings
 
 from .models import ResumeImport, TailoredResume
+from .services.deepseek_resume import SYSTEM_PROMPT as PARSE_PROMPT
+from .services.tailored import SYSTEM_PROMPT as TAILORED_PROMPT
 from .services.pdf import markdown_to_flowables, render_markdown_pdf
 from .services.tailored import (
     EDUCATION,
@@ -1177,3 +1179,73 @@ class TailoredResumeFlowTests(TailoredResumeTestMixin, TestCase):
         TailoredResume.objects.create(profile=other, job=other_job, markdown="x")
         response = self.client.get(reverse("resume:tailored_list"))
         self.assertEqual([r.job for r in response.context["tailored_resumes"]], [self.job])
+
+
+class ParseResumePromptContractTests(TestCase):
+    """`prompts/resume/parse_resume.txt` and the review/apply code agree on the JSON shape."""
+
+    def assertMentions(self, prompt, tokens):
+        for token in tokens:
+            with self.subTest(token=token):
+                self.assertIn(f'"{token}"', prompt)
+
+    def test_it_is_fully_rendered(self):
+        self.assertNotIn("{{", PARSE_PROMPT)
+
+    def test_it_asks_for_every_section_the_importer_reads(self):
+        self.assertMentions(
+            PARSE_PROMPT,
+            ("profile", "soft_skills", "technical_skills", "languages", "experience",
+             "degrees", "certificates"),
+        )
+
+    def test_it_asks_for_every_field_of_each_section(self):
+        self.assertMentions(
+            PARSE_PROMPT,
+            ("first_name", "last_name", "headline", "phone", "location", "bio", "linkedin_url",
+             "portfolio_url", "github_url",
+             "name", "category", "level", "proficiency",
+             "job_title", "company", "employment_type", "start_date", "end_date", "is_current",
+             "highlights",
+             "school", "degree", "field_of_study", "grade",
+             "issuing_organization", "issue_date", "expiry_date", "does_not_expire",
+             "credential_id", "credential_url"),
+        )
+
+    def test_it_offers_exactly_the_choices_the_importer_maps(self):
+        from .services.importer import EMPLOYMENT_TYPES, LEVEL_MAP, PROFICIENCY_VALUES
+
+        self.assertMentions(PARSE_PROMPT, sorted(LEVEL_MAP))
+        self.assertMentions(PARSE_PROMPT, sorted(PROFICIENCY_VALUES))
+        self.assertMentions(PARSE_PROMPT, sorted(EMPLOYMENT_TYPES))
+
+    def test_the_categories_hint_names_both_kinds_and_is_fully_rendered(self):
+        from core.prompts import load_prompt
+
+        note = load_prompt(
+            "resume/skill_categories_note", soft_categories="A, B", technical_categories="C"
+        )
+        self.assertIn("soft-skill categories where it reasonably fits: A, B.", note)
+        self.assertIn("existing categories where it reasonably fits: C.", note)
+        self.assertNotIn("{{", note)
+
+
+class TailoredResumePromptContractTests(TestCase):
+    """`prompts/resume/write_tailored_resume.txt` and `render_markdown` agree on the JSON shape."""
+
+    def test_it_is_fully_rendered(self):
+        self.assertNotIn("{{", TAILORED_PROMPT)
+
+    def test_it_describes_the_payload_the_writer_sends(self):
+        for token in ("job", "candidate_profile", "resume_template"):
+            with self.subTest(token=token):
+                self.assertIn(f'"{token}"', TAILORED_PROMPT)
+
+    def test_it_asks_for_every_field_render_markdown_reads(self):
+        for token in (
+            "professional_summary", "skills", "group", "items", "experience", "job_title",
+            "company", "location", "dates", "highlights", "education", "title", "organization",
+            "details", "languages",
+        ):
+            with self.subTest(token=token):
+                self.assertIn(f'"{token}"', TAILORED_PROMPT)

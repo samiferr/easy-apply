@@ -240,6 +240,10 @@ DEEPSEEK_API_BASE = config("DEEPSEEK_API_BASE", default="https://api.deepseek.co
 DEEPSEEK_MODEL = config("DEEPSEEK_MODEL", default="deepseek-v4-flash")
 DEEPSEEK_TIMEOUT = config("DEEPSEEK_TIMEOUT", default=60, cast=int)
 
+# Where the prompts sent to the AI live: one plain-text file per prompt. See
+# prompts/README.md and core/prompts.py.
+PROMPTS_DIR = BASE_DIR / "prompts"
+
 # Resume upload (jobs -> profile auto-fill)
 RESUME_MAX_UPLOAD_BYTES = config("RESUME_MAX_UPLOAD_BYTES", default=8_000_000, cast=int)
 

@@ -102,8 +102,8 @@ config/         Django project settings, root URLconf
 accounts/       Custom user model, the Profile (workspace) model, profile
                 CRUD/switching, auth & security views
 jobs/           Job post analysis: the fixed section enum (sections.py), the
-                add-to-profile registry (profile_targets.py), prompts,
-                importer, matcher and Celery tasks
+                add-to-profile registry (profile_targets.py), importer,
+                matcher and Celery tasks
 resume/         Resume upload -> AI parsing -> review -> profile auto-fill,
                 plus job-tailored resumes (Markdown draft -> edit -> PDF)
 skills/         Soft/technical skill categories and per-profile skills
@@ -121,6 +121,8 @@ core/           Landing page, dashboard, Markdown export, scoped profile
                 middleware (middleware.py), the AI language contract
                 (language.py) and the AITask progress model every AI path
                 reports through
+prompts/        Every prompt sent to the AI, one plain-text file per prompt
+                (loaded by core/prompts.py — see prompts/README.md)
 locale/fr/      French message catalogue
 templates/      Shared base layout, partials, and per-app templates
                 (resume_template.md is the tailored-resume skeleton)
@@ -266,9 +268,10 @@ profile permanently mixed.
 `core/language.py` is the single place that turns a language code into
 instructions for the model:
 
-- `language_clause(code)` is prepended to the user message of **every** AI call
-  — job extraction, section matching, single-element re-matching, resume
-  parsing and tailored-resume writing.
+- `language_clause(code)` (its wording is `prompts/core/language_clause.txt`) is
+  prepended to the user message of **every** AI call — job extraction, section
+  matching, single-element re-matching, resume parsing and tailored-resume
+  writing.
 - `use_language(code)` is a `translation.override` wrapper used around anything
   the app assembles itself, so the parts we write match the parts the model
   writes: the Markdown recap, the tailored resume's section headings, the
@@ -530,9 +533,10 @@ chord(
 1. **`read_job_text`** takes the pasted description off the `JobPost` and
    hands it to the pipeline. There is no network call in this step — and, with
    no server-side URL fetching anywhere in the app, no SSRF surface to defend.
-2. **`services/deepseek_client.py`** holds three separate prompts, kept apart
-   so each call carries the smallest possible payload: extraction, per-section
-   matching, and single-element matching.
+2. **`services/deepseek_client.py`** makes three separate calls, kept apart
+   so each carries the smallest possible payload: extraction, per-section
+   matching, and single-element matching. Their prompts are plain-text files in
+   `prompts/jobs/`.
 3. **`services/importer.py`** defensively parses the response. Wrong types,
    missing keys and invalid choices are coerced to safe defaults, and — the
    important part — **any section key outside the closed enum is discarded**,

@@ -21,7 +21,8 @@ from core.utils import build_profile_slice, profile_slice_is_empty
 from education.models import Certificate, Degree
 from experience.models import ExperienceHighlight, WorkExperience
 from jobs.models import JobElement, JobPost, JobSection
-from jobs.sections import MATCHED_SECTION_KEYS, SECTION_KEYS
+from jobs.sections import MATCHED_SECTION_KEYS, SECTION_KEYS, SECTIONS
+from jobs.services.deepseek_client import EXTRACTION_SYSTEM_PROMPT, MATCH_SYSTEM_PROMPT
 from jobs.services.importer import apply_analysis, normalize_sections
 from languages.models import Language, UserLanguage
 from preferences.models import BenefitPreference, get_or_create_preference
@@ -1520,3 +1521,58 @@ class ElementReevaluationTests(TestCase):
                 self.assertEqual(method(url).status_code, 404)
                 mixed = reverse(f"jobs:{name}", args=[self.job.pk, theirs.pk])
                 self.assertEqual(method(mixed).status_code, 404)
+
+
+class ExtractionPromptContractTests(TestCase):
+    """`prompts/jobs/extract_sections.txt` and `apply_analysis` are two halves of one
+    contract: what the prompt asks the model for is what the importer reads."""
+
+    #: Every key `jobs.services.importer.apply_analysis` reads from the reply.
+    IMPORTER_READS = (
+        "title", "seniority_level", "summary", "location", "work_arrangement",
+        "timezone_expectations", "relocation_offered", "travel_percentage", "salary_min",
+        "salary_max", "salary_currency", "salary_period", "compensation_notes", "benefits",
+        "company_name", "company_size", "company_stage", "company_industry", "company_mission",
+        "reports_to", "application_instructions", "application_deadline", "red_flags",
+        "growth_language_notes", "diversity_statement", "sections",
+    )
+
+    def test_it_is_fully_rendered(self):
+        self.assertNotIn("{{", EXTRACTION_SYSTEM_PROMPT)
+
+    def test_it_asks_for_every_field_the_importer_reads(self):
+        for key in self.IMPORTER_READS:
+            with self.subTest(key=key):
+                self.assertIn(f'"{key}"', EXTRACTION_SYSTEM_PROMPT)
+
+    def test_it_lists_every_section_and_says_whether_it_carries_rows_or_prose(self):
+        lines = EXTRACTION_SYSTEM_PROMPT.splitlines()
+        for spec in SECTIONS:
+            with self.subTest(section=spec.key):
+                (line,) = [line for line in lines if line.startswith(f'  - "{spec.key}":')]
+                expected = "[elements: atomic rows]" if spec.has_elements else "[body: prose]"
+                self.assertTrue(line.endswith(expected), line)
+
+    def test_it_offers_exactly_the_work_arrangements_the_importer_accepts(self):
+        for value, _label in JobPost.WORK_ARRANGEMENT_CHOICES:
+            with self.subTest(value=value):
+                self.assertIn(f'"{value}"', EXTRACTION_SYSTEM_PROMPT)
+
+
+class MatchPromptContractTests(TestCase):
+    """`prompts/jobs/match_section.txt` and the matcher agree on the payload and the verdicts."""
+
+    def test_it_describes_the_payload_the_matcher_sends(self):
+        for token in ('"section"', '"elements"', '"candidate_profile"', '"id"', '"text"'):
+            with self.subTest(token=token):
+                self.assertIn(token, MATCH_SYSTEM_PROMPT)
+
+    def test_it_asks_for_the_answer_the_matcher_parses(self):
+        for token in ('"matches"', '"element_id"', '"status"', '"evidence"'):
+            with self.subTest(token=token):
+                self.assertIn(token, MATCH_SYSTEM_PROMPT)
+
+    def test_it_defines_exactly_the_verdicts_the_model_may_return(self):
+        for value, _label in JobElement.MATCH_CHOICES:
+            with self.subTest(value=value):
+                self.assertIn(f'"{value}"', MATCH_SYSTEM_PROMPT)

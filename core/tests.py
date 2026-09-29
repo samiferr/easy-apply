@@ -1,19 +1,27 @@
 """Smoke tests: every route renders under the new layout, in both languages."""
 
 import json
+import re
+import shutil
+import tempfile
 from datetime import date, timedelta
 from io import StringIO
+from pathlib import Path
 
 import requests
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone, translation
+from django.utils.translation import gettext_lazy
 
 from accounts.models import Profile
 from core.ai import AIConfigError, AIServiceError, call_deepseek_json
+from core.language import language_clause
 from core.models import AITask
+from core.prompts import PLACEHOLDER, PromptError, load_prompt
 from core.tasks import is_retryable
 from core.testing import fake_deepseek, pin_language
 from core.utils import (
@@ -1258,3 +1266,131 @@ class PruneAITasksCommandTests(TestCase):
         with override_settings(AI_TASK_RETENTION_DAYS=5):
             call_command("prune_ai_tasks", stdout=StringIO())
         self.assertFalse(AITask.objects.filter(pk=old.pk).exists())
+
+
+class PromptLoaderTests(TestCase):
+    """`load_prompt` fills `{{ placeholders }}` and touches nothing else."""
+
+    def setUp(self):
+        self.directory = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.directory, ignore_errors=True)
+        override = override_settings(PROMPTS_DIR=self.directory)
+        override.enable()
+        self.addCleanup(override.disable)
+
+    def write(self, name, text):
+        path = self.directory / f"{name}.txt"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(text.encode("utf-8"))
+
+    def test_a_prompt_without_placeholders_is_returned_exactly_as_written(self):
+        text = 'Line one — “quoted”.\n\n{"key": {"nested": [1, 2]}} costs $5 \\n and {braces}\n'
+        self.write("plain", text)
+        self.assertEqual(load_prompt("plain"), text)
+
+    def test_placeholders_are_filled_wherever_they_appear_however_they_are_spaced(self):
+        self.write("spaced", "a={{x}} b={{ x }} c={{   x }} d={{ y }}")
+        self.assertEqual(load_prompt("spaced", x="1", y="2"), "a=1 b=1 c=1 d=2")
+
+    def test_only_a_well_formed_placeholder_is_a_placeholder(self):
+        self.write("odd", '{{ }} {{1x}} {{ a b }} {"a": {"b": 1}} {{ ok }}')
+        self.assertEqual(
+            load_prompt("odd", ok="!"), '{{ }} {{1x}} {{ a b }} {"a": {"b": 1}} !'
+        )
+
+    def test_values_are_inserted_verbatim_and_never_reinterpreted(self):
+        self.write("verbatim", "[{{ first }}] [{{ second }}]")
+        result = load_prompt("verbatim", first="{{ second }} \\1 $x", second="B")
+        self.assertEqual(result, "[{{ second }} \\1 $x] [B]")
+
+    def test_values_are_converted_to_text(self):
+        self.write("kinds", "{{ n }} / {{ label }}")
+        with translation.override("en"):
+            self.assertEqual(load_prompt("kinds", n=3, label=gettext_lazy("Overview")), "3 / Overview")
+
+    def test_prompts_can_live_in_subdirectories(self):
+        self.write("jobs/nested", "deep")
+        self.assertEqual(load_prompt("jobs/nested"), "deep")
+
+    def test_a_placeholder_without_a_value_is_an_error(self):
+        self.write("needs", "{{ a }} {{ b }}")
+        with self.assertRaisesMessage(PromptError, "no value for b"):
+            load_prompt("needs", a="1")
+
+    def test_a_value_the_prompt_never_uses_is_an_error(self):
+        self.write("uses", "{{ a }}")
+        with self.assertRaisesMessage(PromptError, "unused variable(s) typo"):
+            load_prompt("uses", a="1", typo="2")
+        self.write("none", "nothing to fill")
+        with self.assertRaisesMessage(PromptError, "unused variable(s) extra"):
+            load_prompt("none", extra="x")
+
+    def test_a_missing_file_is_an_error_naming_the_file(self):
+        with self.assertRaisesMessage(PromptError, "missing.txt"):
+            load_prompt("missing")
+
+
+class ShippedPromptTests(TestCase):
+    """The prompts in `prompts/` follow the conventions the README promises."""
+
+    def files(self):
+        return sorted(Path(settings.PROMPTS_DIR).rglob("*.txt"))
+
+    def name(self, path):
+        return path.relative_to(settings.PROMPTS_DIR).with_suffix("").as_posix()
+
+    def test_there_are_prompts_to_check(self):
+        self.assertGreaterEqual(len(self.files()), 6)
+
+    def test_every_prompt_loads_and_leaves_no_placeholder_unfilled(self):
+        for path in self.files():
+            with self.subTest(prompt=self.name(path)):
+                variables = {name: "x" for name in PLACEHOLDER.findall(path.read_text(encoding="utf-8"))}
+                text = load_prompt(self.name(path), **variables)
+                self.assertTrue(text.strip())
+                self.assertIsNone(PLACEHOLDER.search(text))
+
+    def test_files_are_utf8_with_lf_endings_and_one_final_newline(self):
+        for path in self.files():
+            with self.subTest(prompt=self.name(path)):
+                raw = path.read_bytes()
+                raw.decode("utf-8")
+                self.assertNotIn(b"\r", raw)
+                self.assertTrue(raw.endswith(b"\n"))
+                self.assertFalse(raw.endswith(b"\n\n"))
+
+    def test_every_variable_a_prompt_declares_is_documented_in_the_readme(self):
+        readme = (Path(settings.PROMPTS_DIR) / "README.md").read_text(encoding="utf-8")
+        for path in self.files():
+            with self.subTest(prompt=self.name(path)):
+                self.assertIn(f"`{self.name(path)}.txt`", readme)
+                for variable in PLACEHOLDER.findall(path.read_text(encoding="utf-8")):
+                    self.assertIn(f"`{variable}`", readme)
+
+    def test_the_dev_server_is_told_to_watch_the_prompt_directory(self):
+        from core.apps import watch_prompt_files
+
+        watched = []
+
+        class Reloader:
+            def watch_dir(self, path, glob):
+                watched.append((path, glob))
+
+        watch_prompt_files(Reloader())
+        self.assertEqual(watched, [(settings.PROMPTS_DIR, "**/*.txt")])
+
+
+class LanguageClauseTests(TestCase):
+    def test_it_names_the_profile_language_twice_and_carries_no_stray_whitespace(self):
+        for code, name in (("en", "English"), ("fr", "French")):
+            with self.subTest(code=code):
+                clause = language_clause(code)
+                self.assertEqual(clause.count(f"in {name}"), 2)
+                self.assertEqual(clause, clause.strip())
+                self.assertNotIn("\n", clause)
+
+    def test_anything_unsupported_falls_back_to_english(self):
+        for code in (None, "", "xx", "  "):
+            with self.subTest(code=code):
+                self.assertEqual(language_clause(code), language_clause("en"))
+        self.assertEqual(language_clause("fr-CA"), language_clause("fr"))

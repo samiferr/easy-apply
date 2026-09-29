@@ -1,0 +1,3 @@
+When choosing a `category` for each skill, prefer one of these existing soft-skill categories where it reasonably fits: {{ soft_categories }}.
+For technical skills, prefer one of these existing categories where it reasonably fits: {{ technical_categories }}.
+Only use a different category name if nothing listed is a reasonable fit.
