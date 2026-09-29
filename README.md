@@ -89,7 +89,7 @@ call made inside it.
 
 - **Database:** PostgreSQL in production (set `DATABASE_URL`; required
   when `DEBUG=False`), SQLite in WAL mode for local development and tests
-- **Backend:** Django 5
+- **Backend:** Django 5.2 LTS (Python 3.10–3.14)
 - **Background jobs:** Celery + Redis — every AI call runs off the request cycle
 - **Frontend:** Django templates + Tailwind CSS (compiled via the Tailwind CLI)
   + Alpine.js for lightweight interactivity (tabs, modals, dark mode)

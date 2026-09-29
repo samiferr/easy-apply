@@ -123,8 +123,7 @@ elif DEBUG:
             "NAME": BASE_DIR / "db.sqlite3",
             # SQLite runs with WAL + a busy timeout because the Celery worker
             # can write to the same file as the web process. WAL itself is set
-            # by the connection_created receiver in core/apps.py — Django 5.0's
-            # SQLite backend has no `init_command` option.
+            # by the connection_created receiver in core/apps.py.
             "OPTIONS": {"timeout": 20},
         }
     }
@@ -254,6 +253,29 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
+
+
+# Logging — everything goes to stderr, which systemd sends to the journal
+# (`journalctl -u gunicorn-easy-apply`, `-u celery-easy-apply`). Without this,
+# Django's defaults with DEBUG=False only email unhandled exceptions to ADMINS
+# (none are set), so a Server Error (500) would leave no traceback anywhere.
+LOG_LEVEL = config("LOG_LEVEL", default="INFO")
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "plain": {"format": "{levelname} {asctime} {name}: {message}", "style": "{"},
+    },
+    "handlers": {
+        "console": {"class": "logging.StreamHandler", "formatter": "plain"},
+    },
+    "root": {"handlers": ["console"], "level": LOG_LEVEL},
+    "loggers": {
+        # ERROR only: unhandled exceptions with their traceback, without a
+        # line for every 404 or every request (gunicorn's access log has those).
+        "django": {"handlers": ["console"], "level": "ERROR", "propagate": False},
+    },
+}
 
 
 # Celery — every AI call runs off the request cycle (see config/celery.py and

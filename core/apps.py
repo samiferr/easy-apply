@@ -8,8 +8,9 @@ def set_sqlite_pragmas(sender, connection, **kwargs):
     """Put SQLite in WAL mode with a busy timeout.
 
     The Celery worker writes to the same database file as the web process, so
-    without WAL a long-running write blocks readers outright. Django 5.0 has no
-    `init_command` OPTION for SQLite, hence the signal.
+    without WAL a long-running write blocks readers outright. This predates
+    the SQLite `init_command` OPTION added in Django 5.1; the signal does the
+    same job and applies to any SQLite connection, however it's configured.
     """
     if connection.vendor != "sqlite":
         return
