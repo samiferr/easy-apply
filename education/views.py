@@ -1,11 +1,13 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import HttpResponseRedirect
 from django.urls import reverse_lazy
 from django.utils.translation import gettext as _, gettext_lazy
 from django.views.generic import CreateView, DeleteView, TemplateView, UpdateView
 
 from core.mixins import ConfirmDeleteMixin
 
+from . import services
 from .forms import CertificateForm, DegreeForm
 from .models import Certificate, Degree
 
@@ -15,8 +17,7 @@ class EducationListView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["degrees"] = Degree.objects.filter(profile=self.request.profile)
-        ctx["certificates"] = Certificate.objects.filter(profile=self.request.profile)
+        ctx.update(services.education_overview(self.request.profile))
         return ctx
 
 
@@ -27,20 +28,21 @@ class DegreeFormMixin(LoginRequiredMixin):
     success_url = reverse_lazy("education:list")
 
     def get_queryset(self):
-        return Degree.objects.filter(profile=self.request.profile)
+        return services.profile_degrees(self.request.profile)
 
 
 class DegreeCreateView(DegreeFormMixin, CreateView):
     def form_valid(self, form):
-        form.instance.profile = self.request.profile
-        messages.success(self.request, f"Added your degree from {form.instance.school}.")
-        return super().form_valid(form)
+        self.object = services.add_degree(self.request.profile, form)
+        messages.success(self.request, f"Added your degree from {self.object.school}.")
+        return HttpResponseRedirect(self.get_success_url())
 
 
 class DegreeUpdateView(DegreeFormMixin, UpdateView):
     def form_valid(self, form):
+        self.object = services.update_degree(form)
         messages.success(self.request, "Degree updated.")
-        return super().form_valid(form)
+        return HttpResponseRedirect(self.get_success_url())
 
 
 class DegreeDeleteView(ConfirmDeleteMixin, LoginRequiredMixin, DeleteView):
@@ -50,13 +52,18 @@ class DegreeDeleteView(ConfirmDeleteMixin, LoginRequiredMixin, DeleteView):
     parent_label = gettext_lazy("Education")
 
     def get_queryset(self):
-        return Degree.objects.filter(profile=self.request.profile)
+        return services.profile_degrees(self.request.profile)
 
     def get_heading(self):
         return _("Delete this degree?")
 
     def get_detail(self):
         return f"{self.object.degree} — {self.object.school}"
+
+    def form_valid(self, form):
+        success_url = self.get_success_url()
+        services.remove_degree(self.object)
+        return HttpResponseRedirect(success_url)
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
@@ -71,20 +78,21 @@ class CertificateFormMixin(LoginRequiredMixin):
     success_url = reverse_lazy("education:list")
 
     def get_queryset(self):
-        return Certificate.objects.filter(profile=self.request.profile)
+        return services.profile_certificates(self.request.profile)
 
 
 class CertificateCreateView(CertificateFormMixin, CreateView):
     def form_valid(self, form):
-        form.instance.profile = self.request.profile
-        messages.success(self.request, f"Added the “{form.instance.name}” certificate.")
-        return super().form_valid(form)
+        self.object = services.add_certificate(self.request.profile, form)
+        messages.success(self.request, f"Added the “{self.object.name}” certificate.")
+        return HttpResponseRedirect(self.get_success_url())
 
 
 class CertificateUpdateView(CertificateFormMixin, UpdateView):
     def form_valid(self, form):
+        self.object = services.update_certificate(form)
         messages.success(self.request, "Certificate updated.")
-        return super().form_valid(form)
+        return HttpResponseRedirect(self.get_success_url())
 
 
 class CertificateDeleteView(ConfirmDeleteMixin, LoginRequiredMixin, DeleteView):
@@ -94,13 +102,18 @@ class CertificateDeleteView(ConfirmDeleteMixin, LoginRequiredMixin, DeleteView):
     parent_label = gettext_lazy("Education")
 
     def get_queryset(self):
-        return Certificate.objects.filter(profile=self.request.profile)
+        return services.profile_certificates(self.request.profile)
 
     def get_heading(self):
         return _("Delete this certificate?")
 
     def get_detail(self):
         return f"{self.object.name} — {self.object.issuing_organization}"
+
+    def form_valid(self, form):
+        success_url = self.get_success_url()
+        services.remove_certificate(self.object)
+        return HttpResponseRedirect(success_url)
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()

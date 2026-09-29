@@ -17,7 +17,8 @@ from core.forms import StyledFormMixin
 from education.models import Certificate, Degree
 from experience.models import ExperienceHighlight, WorkExperience
 from languages.models import Language, UserLanguage
-from preferences.models import BenefitPreference, get_or_create_preference
+from preferences.models import BenefitPreference
+from preferences.services import get_or_create_preference
 from skills.models import SkillCategory, UserSkill
 
 

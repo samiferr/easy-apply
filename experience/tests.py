@@ -97,7 +97,7 @@ class ExperienceManagementTests(TestCase):
         keep = ExperienceHighlight.objects.create(experience=role, text="Old one")
         drop = ExperienceHighlight.objects.create(experience=role, text="Drop me")
         data = {**experience_data(job_title="Senior Dev"), **formset("Brand new", initial=[(keep, "Reworded"), (drop, "Drop me")])}
-        data[f"highlights-1-DELETE"] = "on"
+        data["highlights-1-DELETE"] = "on"
         response = self.client.post(reverse("experience:edit", args=[role.pk]), data)
         self.assertRedirects(response, reverse("experience:list"), fetch_redirect_response=False)
         role.refresh_from_db()

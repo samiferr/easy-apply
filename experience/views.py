@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.utils.translation import gettext as _, gettext_lazy
@@ -8,6 +9,7 @@ from django.views.generic import DeleteView, ListView
 
 from core.mixins import ConfirmDeleteMixin
 
+from . import services
 from .forms import HighlightFormSet, WorkExperienceForm
 from .models import WorkExperience
 
@@ -18,9 +20,7 @@ class ExperienceListView(LoginRequiredMixin, ListView):
     context_object_name = "experiences"
 
     def get_queryset(self):
-        return WorkExperience.objects.filter(profile=self.request.profile).prefetch_related(
-            "highlights"
-        )
+        return services.list_experiences(self.request.profile)
 
 
 class BaseExperienceFormView(LoginRequiredMixin, View):
@@ -50,11 +50,7 @@ class BaseExperienceFormView(LoginRequiredMixin, View):
         )
 
         if form.is_valid() and formset.is_valid():
-            experience = form.save(commit=False)
-            experience.profile = request.profile
-            experience.save()
-            formset.instance = experience
-            formset.save()
+            experience = services.save_experience(request.profile, form, formset)
             messages.success(request, self.get_success_message(experience))
             return redirect(self.success_url)
 
@@ -71,7 +67,7 @@ class ExperienceCreateView(BaseExperienceFormView):
 class ExperienceUpdateView(BaseExperienceFormView):
     def get_object(self):
         return get_object_or_404(
-            WorkExperience, pk=self.kwargs["pk"], profile=self.request.profile
+            services.profile_experiences(self.request.profile), pk=self.kwargs["pk"]
         )
 
     def get_success_message(self, experience):
@@ -85,13 +81,18 @@ class ExperienceDeleteView(ConfirmDeleteMixin, LoginRequiredMixin, DeleteView):
     parent_label = gettext_lazy("Work experience")
 
     def get_queryset(self):
-        return WorkExperience.objects.filter(profile=self.request.profile)
+        return services.profile_experiences(self.request.profile)
 
     def get_heading(self):
         return _("Delete this role?")
 
     def get_detail(self):
         return f"{self.object.job_title} — {self.object.company}"
+
+    def form_valid(self, form):
+        success_url = self.get_success_url()
+        services.remove_experience(self.object)
+        return HttpResponseRedirect(success_url)
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()

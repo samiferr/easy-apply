@@ -8,7 +8,8 @@ from django.urls import reverse
 from accounts.models import Profile
 from core.testing import pin_language
 
-from .models import SEED_BENEFITS, BenefitPreference, JobPreference, get_or_create_preference
+from .models import BenefitPreference, JobPreference
+from .services import SEED_BENEFITS, get_or_create_preference
 
 User = get_user_model()
 

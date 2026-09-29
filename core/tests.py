@@ -1,7 +1,6 @@
 """Smoke tests: every route renders under the new layout, in both languages."""
 
 import json
-import re
 import shutil
 import tempfile
 from datetime import date, timedelta
@@ -22,8 +21,6 @@ from core.ai import AIConfigError, AIServiceError, call_deepseek_json
 from core.language import language_clause
 from core.models import AITask
 from core.prompts import PLACEHOLDER, PromptError, load_prompt
-from core.tasks import is_retryable
-from core.testing import fake_deepseek, pin_language
 from core.services import (
     build_profile_slice,
     build_profile_snapshot,
@@ -34,8 +31,10 @@ from core.services import (
     profile_snapshot_is_empty,
     recap_filename,
 )
-from jobs.models import JobPost
+from core.tasks import is_retryable
+from core.testing import fake_deepseek
 from jobs.domain.importer import apply_analysis
+from jobs.models import JobPost
 from resume.models import TailoredResume
 
 User = get_user_model()
@@ -219,7 +218,7 @@ class ResponsiveContractTests(TestCase):
         overflows on a phone — this is how the preferences textareas broke."""
         from jobs.profile_targets import ADD_TARGETS
         from preferences.forms import BenefitPreferenceForm, JobPreferenceForm
-        from preferences.models import get_or_create_preference
+        from preferences.services import get_or_create_preference
 
         preference = get_or_create_preference(self.profile)
         forms_to_check = [
@@ -279,7 +278,7 @@ class ProfileCompletionVisibilityTests(TestCase):
         from education.models import Degree
         from experience.models import ExperienceHighlight, WorkExperience
         from languages.models import Language, UserLanguage
-        from preferences.models import get_or_create_preference
+        from preferences.services import get_or_create_preference
         from skills.models import SkillCategory, UserSkill
 
         self.profile.headline = "Backend developer"
@@ -466,7 +465,8 @@ class ConfirmDeleteTests(TestCase):
         self.assertFalse(TailoredResume.objects.filter(job=job).exists())
 
     def test_benefit_delete_has_a_confirm_page(self):
-        from preferences.models import BenefitPreference, get_or_create_preference
+        from preferences.models import BenefitPreference
+        from preferences.services import get_or_create_preference
 
         preference = get_or_create_preference(self.profile)
         benefit = BenefitPreference.objects.create(preference=preference, name="Gym membership")
@@ -544,7 +544,7 @@ def make_rich_profile(*, language="en"):
     from education.models import Certificate, Degree
     from experience.models import ExperienceHighlight, WorkExperience
     from languages.models import Language, UserLanguage
-    from preferences.models import get_or_create_preference
+    from preferences.services import get_or_create_preference
     from skills.models import SkillCategory, UserSkill
 
     user = User.objects.create_user(

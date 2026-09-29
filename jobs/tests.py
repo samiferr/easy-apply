@@ -11,13 +11,13 @@ from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.contrib.messages import get_messages
 from django.test import TestCase, override_settings
-from django.utils import timezone, translation
+from django.utils import translation
 from django.urls import reverse
 
 from accounts.models import Profile
 from core.models import AITask
+from core.services import build_profile_slice
 from core.testing import fake_deepseek, pin_language
-from core.services import build_profile_slice, profile_slice_is_empty
 from education.models import Certificate, Degree
 from experience.models import ExperienceHighlight, WorkExperience
 from jobs.models import JobElement, JobPost, JobSection
@@ -25,7 +25,8 @@ from jobs.sections import MATCHED_SECTION_KEYS, SECTION_KEYS, SECTIONS
 from jobs.domain.deepseek_client import EXTRACTION_SYSTEM_PROMPT, MATCH_SYSTEM_PROMPT
 from jobs.domain.importer import apply_analysis, normalize_sections
 from languages.models import Language, UserLanguage
-from preferences.models import BenefitPreference, get_or_create_preference
+from preferences.models import BenefitPreference
+from preferences.services import get_or_create_preference
 from resume.models import TailoredResume
 from skills.models import SkillCategory, UserSkill
 from staffportal.models import Plan, UsageMetric, UsageRecord

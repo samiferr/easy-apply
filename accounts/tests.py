@@ -11,7 +11,7 @@ from education.models import Certificate, Degree
 from experience.models import WorkExperience
 from jobs.models import JobPost
 from languages.models import Language, UserLanguage
-from preferences.models import get_or_create_preference
+from preferences.services import get_or_create_preference
 from resume.models import TailoredResume
 from skills.models import SkillCategory, UserSkill
 from staffportal.models import Plan, Subscription

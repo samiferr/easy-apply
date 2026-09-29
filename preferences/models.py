@@ -147,36 +147,3 @@ class BenefitPreference(models.Model):
 
     def __str__(self):
         return f"{self.name} — {self.get_importance_display()}"
-
-
-#: Seeded the first time a user opens the Job preferences tab, so it is never empty.
-SEED_BENEFITS = [
-    _("Health benefits"),
-    _("Dental care"),
-    _("Vision care"),
-    _("Life insurance"),
-    _("Retirement / pension matching"),
-    _("Paid time off"),
-    _("Parental leave"),
-    _("Professional development budget"),
-    _("Flexible hours"),
-    _("Equity / stock options"),
-    _("Remote work stipend"),
-    _("Wellness / gym"),
-]
-
-
-def get_or_create_preference(profile) -> JobPreference:
-    """Return the profile's JobPreference, seeding the starter benefit list the
-    first time it is created."""
-    preference, created = JobPreference.objects.get_or_create(profile=profile)
-    if created:
-        BenefitPreference.objects.bulk_create(
-            BenefitPreference(
-                preference=preference,
-                name=str(name),
-                importance=BenefitPreference.NICE_TO_HAVE,
-            )
-            for name in SEED_BENEFITS
-        )
-    return preference
