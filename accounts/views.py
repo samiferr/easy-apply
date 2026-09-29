@@ -1,6 +1,5 @@
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import login, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -11,16 +10,18 @@ from django.contrib.auth.views import (
     PasswordResetDoneView,
     PasswordResetView,
 )
+from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
-from django.utils import translation
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import gettext as _
 from django.views import View
 from django.views.generic import CreateView, ListView, TemplateView, UpdateView
 
+from core.exceptions import Blocked, Refused
 from core.forms import TEXT_INPUT_CLASSES
 
+from . import services
 from .forms import (
     AccountDeleteForm,
     EmailAuthenticationForm,
@@ -30,7 +31,6 @@ from .forms import (
     RegisterForm,
 )
 from .models import Profile
-from .services import set_active_profile
 
 
 class RegisterView(CreateView):
@@ -43,9 +43,7 @@ class RegisterView(CreateView):
             return redirect("core:dashboard")
         # Registration can be closed from the staff portal without a deploy —
         # the switch an operator reaches for during an incident or a launch.
-        from staffportal.domain import runtime_settings
-
-        if not runtime_settings.get("signups_enabled"):
+        if not services.signups_open():
             messages.info(
                 request,
                 _("New sign-ups are paused right now. Please check back shortly."),
@@ -55,11 +53,9 @@ class RegisterView(CreateView):
 
     def form_valid(self, form):
         response = super().form_valid(form)
-        # The signal already made this account's first profile; the form asked
-        # which language it should speak, so stamp it before anything is written.
-        language = form.cleaned_data["profile_language"]
-        Profile.objects.filter(user=self.object).update(language=language)
-        login(self.request, self.object)
+        services.complete_registration(
+            self.request, self.object, form.cleaned_data["profile_language"]
+        )
         messages.success(
             self.request,
             f"Welcome to Easy Apply, {self.object.get_short_name()}! Let's build your recap.",
@@ -74,8 +70,7 @@ class EmailLoginView(LoginView):
 
     def form_valid(self, form):
         response = super().form_valid(form)
-        if not form.cleaned_data.get("remember_me"):
-            self.request.session.set_expiry(0)
+        services.apply_remember_me(self.request, form.cleaned_data.get("remember_me"))
         return response
 
 
@@ -102,8 +97,9 @@ class ProfileView(LoginRequiredMixin, UpdateView):
         return kwargs
 
     def form_valid(self, form):
+        self.object = services.update_personal_info(form)
         messages.success(self.request, "Your profile has been updated.")
-        return super().form_valid(form)
+        return HttpResponseRedirect(self.get_success_url())
 
 
 class SecurityView(LoginRequiredMixin, TemplateView):
@@ -129,8 +125,7 @@ class SecurityView(LoginRequiredMixin, TemplateView):
         for field in form.fields.values():
             field.widget.attrs.setdefault("class", TEXT_INPUT_CLASSES)
         if form.is_valid():
-            user = form.save()
-            update_session_auth_hash(request, user)
+            services.change_password(request, form)
             messages.success(request, "Your password has been changed successfully.")
             return redirect("accounts:security")
         return render(request, self.template_name, self.get_context_data(password_form=form))
@@ -138,11 +133,7 @@ class SecurityView(LoginRequiredMixin, TemplateView):
     def _handle_account_delete(self, request):
         form = AccountDeleteForm(request.POST, user=request.user)
         if form.is_valid():
-            user = request.user
-            from django.contrib.auth import logout
-
-            logout(request)
-            user.delete()
+            services.delete_account(request, request.user)
             messages.info(request, "Your account and all associated data have been deleted.")
             return redirect("core:home")
         return render(request, self.template_name, self.get_context_data(delete_form=form))
@@ -161,7 +152,7 @@ class ProfileListView(LoginRequiredMixin, ListView):
     extra_context = {"active_tab": "profiles"}
 
     def get_queryset(self):
-        return Profile.objects.filter(user=self.request.user)
+        return services.profiles_of(self.request.user)
 
 
 class ProfileCreateView(LoginRequiredMixin, CreateView):
@@ -176,24 +167,18 @@ class ProfileCreateView(LoginRequiredMixin, CreateView):
         return kwargs
 
     def form_valid(self, form):
-        # Workspaces are a ceiling rather than a meter: the check is how many
-        # exist, not how many were created this month.
-        from staffportal.domain import quotas
-
-        blocked = quotas.profile_blocked_message(self.request.user)
-        if blocked:
-            messages.error(self.request, blocked)
+        try:
+            self.object = services.create_profile(self.request, form)
+        except Blocked as exc:
+            messages.error(self.request, str(exc))
             return self.form_invalid(form)
 
-        response = super().form_valid(form)
-        # A profile you just created is the one you meant to work in.
-        set_active_profile(self.request, self.object)
         messages.success(
             self.request,
             _("Created “%(name)s” (%(language)s). You're now working in it.")
             % {"name": self.object.name, "language": self.object.language_label},
         )
-        return response
+        return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
         return reverse("accounts:profile")
@@ -207,7 +192,7 @@ class ProfileRenameView(LoginRequiredMixin, UpdateView):
     success_url = reverse_lazy("accounts:profile_list")
 
     def get_queryset(self):
-        return Profile.objects.filter(user=self.request.user)
+        return services.profiles_of(self.request.user)
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -215,16 +200,17 @@ class ProfileRenameView(LoginRequiredMixin, UpdateView):
         return kwargs
 
     def form_valid(self, form):
+        self.object = services.rename_profile(form)
         messages.success(self.request, _("Profile renamed."))
-        return super().form_valid(form)
+        return HttpResponseRedirect(self.get_success_url())
 
 
 class ProfileSwitchView(LoginRequiredMixin, View):
     """Make another profile the active one, and follow it into its language."""
 
     def post(self, request, pk):
-        profile = get_object_or_404(Profile, pk=pk, user=request.user)
-        set_active_profile(request, profile)
+        profile = get_object_or_404(services.profiles_of(request.user), pk=pk)
+        services.switch_profile(request, profile)
         messages.info(
             request, _("Switched to “%(name)s”.") % {"name": profile.name}
         )
@@ -236,19 +222,7 @@ class ProfileSwitchView(LoginRequiredMixin, View):
             next_url = reverse("core:dashboard")
 
         response = redirect(next_url)
-        # The interface follows the workspace: reading a French profile in an
-        # English UI would show its content and its labels in two languages.
-        translation.activate(profile.language)
-        response.set_cookie(
-            settings.LANGUAGE_COOKIE_NAME,
-            profile.language,
-            max_age=settings.LANGUAGE_COOKIE_AGE,
-            path=settings.LANGUAGE_COOKIE_PATH,
-            domain=settings.LANGUAGE_COOKIE_DOMAIN,
-            secure=settings.LANGUAGE_COOKIE_SECURE,
-            httponly=settings.LANGUAGE_COOKIE_HTTPONLY,
-            samesite=settings.LANGUAGE_COOKIE_SAMESITE,
-        )
+        services.follow_profile_language(response, profile)
         return response
 
 
@@ -260,14 +234,13 @@ class ProfileDeleteView(LoginRequiredMixin, View):
     """
 
     def get(self, request, pk):
-        profile = get_object_or_404(Profile, pk=pk, user=request.user)
-        if not Profile.objects.filter(user=request.user).exclude(pk=profile.pk).exists():
+        profile = get_object_or_404(services.profiles_of(request.user), pk=pk)
+        try:
             # Same guard as post(): showing a confirm page for a delete that
             # can only fail would just be a second click before the same error.
-            messages.error(
-                request,
-                _("You can't delete your only profile — create another one first."),
-            )
+            services.ensure_profile_deletable(request.user, profile)
+        except Refused as exc:
+            messages.error(request, str(exc))
             return redirect("accounts:profile_list")
 
         return render(
@@ -290,20 +263,13 @@ class ProfileDeleteView(LoginRequiredMixin, View):
         )
 
     def post(self, request, pk):
-        profile = get_object_or_404(Profile, pk=pk, user=request.user)
-        remaining = Profile.objects.filter(user=request.user).exclude(pk=profile.pk)
-        if not remaining.exists():
-            messages.error(
-                request,
-                _("You can't delete your only profile — create another one first."),
-            )
-            return redirect("accounts:profile_list")
-
+        profile = get_object_or_404(services.profiles_of(request.user), pk=pk)
         name = profile.name
-        was_active = request.profile and request.profile.pk == profile.pk
-        profile.delete()
-        if was_active:
-            set_active_profile(request, remaining.first())
+        try:
+            services.delete_profile(request, profile)
+        except Refused as exc:
+            messages.error(request, str(exc))
+            return redirect("accounts:profile_list")
         messages.info(
             request, _("Deleted “%(name)s” and everything in it.") % {"name": name}
         )
