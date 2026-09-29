@@ -50,7 +50,7 @@ the model reads. A `.txt` file is shown, diffed and shipped raw.
 * **UTF-8**, LF line endings.
 * **A prompt is half of a contract.** Each prompt that asks for JSON names the
   keys the parsing code reads (`jobs/domain/importer.py`,
-  `jobs/domain/matcher.py`, `resume/domain/importer.py`,
+  `jobs/domain/matcher.py`, `resume/services.py`,
   `resume/domain/tailored.py`). If you rename a key here, rename it there —
   the `*PromptContractTests` classes in `jobs/tests.py` and `resume/tests.py` fail when
   the two drift apart.

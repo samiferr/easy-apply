@@ -5,6 +5,8 @@ speak the job's language, ordered by what that job asks for) as JSON; the
 document itself is then assembled here, following the section skeleton in
 `templates/resume_template.md`, so the layout — and the contact details in
 the header — never depend on the model getting them right.
+
+Use case: UC-07.1 in docs/use-cases/UC07_TAILORED_RESUME_GENERATION.md.
 """
 
 import json
@@ -251,6 +253,8 @@ SECTION_BUILDERS = {
 }
 
 
+# UC-07.1 — AI Generation of Job-Tailored Resume Draft (the document, laid out
+# from the template's section skeleton)
 def render_markdown(profile, data: dict, sections=None) -> str:
     """Assemble the AI's section content into one Markdown document laid
     out like resume_template.md. Sections the AI returned nothing for are
@@ -281,6 +285,8 @@ def render_markdown(profile, data: dict, sections=None) -> str:
 # --- Entry point ------------------------------------------------------------
 
 
+# UC-07.1 — AI Generation of Job-Tailored Resume Draft (the AI call and the
+# stored draft, as run by the Celery task)
 def generate_tailored_resume(job, profile=None) -> dict:
     """Draft (or re-draft) the tailored resume for `job` and store it as
     editable Markdown. Returns {"skipped": "empty_profile"} when there's

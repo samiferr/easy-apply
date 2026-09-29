@@ -1,22 +1,18 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.translation import gettext as _
 from django.views import View
 from django.views.generic import CreateView, ListView
 
-from core.models import AITask
-from jobs.models import JobPost
-from staffportal.models import UsageMetric
-from staffportal.domain import quotas
+from core.exceptions import Blocked, PreconditionFailed
+from jobs.services import profile_jobs
 
+from . import services
 from .forms import ResumeUploadForm, TailoredResumeForm
-from .models import ResumeImport, TailoredResume
-from .domain.importer import apply_selected, build_review_sections
-from .domain.pdf import render_markdown_pdf
-from .tasks import enqueue_resume_analysis, enqueue_tailored_resume
+from .models import ResumeImport
 
 
 class ResumeUploadView(LoginRequiredMixin, CreateView):
@@ -25,18 +21,14 @@ class ResumeUploadView(LoginRequiredMixin, CreateView):
     template_name = "resume/resume_upload.html"
 
     def form_valid(self, form):
-        blocked = quotas.blocked_message(self.request.user, UsageMetric.RESUME_IMPORT)
-        if blocked:
-            messages.error(self.request, blocked)
+        try:
+            self.object = services.start_resume_import(
+                self.request.user, self.request.profile, form
+            )
+        except Blocked as blocked:
+            messages.error(self.request, str(blocked))
             return self.form_invalid(form)
-
-        form.instance.profile = self.request.profile
-        form.instance.original_filename = form.instance.file.name
-        response = super().form_valid(form)
-        # Never block the POST on an AI call — the review page shows progress.
-        enqueue_resume_analysis(self.object)
-        quotas.consume(self.request.user, UsageMetric.RESUME_IMPORT)
-        return response
+        return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
         return reverse("resume:review", args=[self.object.pk])
@@ -46,51 +38,37 @@ class ResumeReviewView(LoginRequiredMixin, View):
     template_name = "resume/resume_review.html"
 
     def get_object(self, pk, profile):
-        return get_object_or_404(ResumeImport, pk=pk, profile=profile)
+        return get_object_or_404(services.profile_imports(profile), pk=pk)
 
     def get(self, request, pk):
         resume_import = self.get_object(pk, request.profile)
-        sections = None
-        if resume_import.status == ResumeImport.STATUS_COMPLETED:
-            sections = build_review_sections(resume_import, request.profile)
         return render(
             request,
             self.template_name,
             {
                 "resume_import": resume_import,
-                "sections": sections,
-                "ai_task": AITask.latest_for(resume_import, AITask.RESUME_IMPORT),
+                "sections": services.review_checklist(resume_import, request.profile),
+                "ai_task": services.import_task(resume_import),
             },
         )
 
     def post(self, request, pk):
         resume_import = self.get_object(pk, request.profile)
-        if resume_import.status != ResumeImport.STATUS_COMPLETED:
+        if not services.is_reviewable(resume_import):
             return redirect("resume:review", pk=pk)
 
-        selected_keys = set(request.POST.getlist("selected"))
-        if not selected_keys:
-            messages.warning(request, _("Select at least one item to add it to your profile."))
-            sections = build_review_sections(resume_import, request.profile)
+        try:
+            summary = services.apply_review(
+                resume_import, request.profile, set(request.POST.getlist("selected"))
+            )
+        except PreconditionFailed as error:
+            messages.warning(request, str(error))
+            sections = services.build_review_sections(resume_import, request.profile)
             return render(
                 request, self.template_name, {"resume_import": resume_import, "sections": sections}
             )
 
-        counts = apply_selected(resume_import, request.profile, selected_keys)
-        added = [
-            f"{counts['skills']} skill(s)" if counts["skills"] else None,
-            f"{counts['languages']} language(s)" if counts["languages"] else None,
-            f"{counts['experience']} work experience entr{'y' if counts['experience'] == 1 else 'ies'}"
-            if counts["experience"]
-            else None,
-            f"{counts['degrees']} degree(s)" if counts["degrees"] else None,
-            f"{counts['certificates']} certificate(s)" if counts["certificates"] else None,
-        ]
-        added = [item for item in added if item]
-        if counts["profile"]:
-            added.insert(0, "your profile")
-        summary = ", ".join(added) if added else "nothing new"
-        messages.success(request, f"Updated {summary} from your resume.")
+        messages.success(request, summary)
         return redirect("accounts:profile")
 
 
@@ -98,10 +76,12 @@ class TailoredResumeMixin(LoginRequiredMixin):
     """Shared lookup: a tailored resume is always addressed by its job."""
 
     def get_job(self, job_pk):
-        return get_object_or_404(JobPost, pk=job_pk, profile=self.request.profile)
+        return get_object_or_404(profile_jobs(self.request.profile), pk=job_pk)
 
     def get_tailored_resume(self, job_pk):
-        return get_object_or_404(TailoredResume, job_id=job_pk, profile=self.request.profile)
+        return get_object_or_404(
+            services.profile_tailored_resumes(self.request.profile), job_id=job_pk
+        )
 
 
 class TailoredResumeGenerateView(TailoredResumeMixin, View):
@@ -109,19 +89,15 @@ class TailoredResumeGenerateView(TailoredResumeMixin, View):
 
     def post(self, request, job_pk):
         job = self.get_job(job_pk)
-        if job.status != JobPost.STATUS_COMPLETED:
-            messages.warning(
-                request, _("Analyze this job post first, then generate a resume for it.")
-            )
+        try:
+            services.start_tailored_resume(request.user, job)
+        except PreconditionFailed as error:
+            messages.warning(request, str(error))
+            return redirect(job.get_absolute_url())
+        except Blocked as blocked:
+            messages.error(request, str(blocked))
             return redirect(job.get_absolute_url())
 
-        blocked = quotas.blocked_message(request.user, UsageMetric.TAILORED_RESUME)
-        if blocked:
-            messages.error(request, blocked)
-            return redirect(job.get_absolute_url())
-
-        enqueue_tailored_resume(job)
-        quotas.consume(request.user, UsageMetric.TAILORED_RESUME)
         messages.info(request, _("Writing your tailored resume — this takes a moment."))
         return redirect("resume:tailored", job_pk=job.pk)
 
@@ -139,7 +115,7 @@ class TailoredResumeEditView(TailoredResumeMixin, View):
                 "tailored_resume": tailored_resume,
                 "job": tailored_resume.job,
                 "form": form,
-                "ai_task": AITask.latest_for(tailored_resume, AITask.TAILORED_RESUME),
+                "ai_task": services.tailored_resume_task(tailored_resume),
             },
         )
 
@@ -154,9 +130,7 @@ class TailoredResumeEditView(TailoredResumeMixin, View):
         if not form.is_valid():
             return self.render_editor(request, tailored_resume, form)
 
-        if form.has_changed():
-            form.instance.edited_by_user = True
-        tailored_resume = form.save()
+        tailored_resume = services.save_tailored_edits(form)
 
         if request.POST.get("action") == "pdf":
             return tailored_resume_pdf_response(tailored_resume)
@@ -208,19 +182,15 @@ class TailoredResumeDeleteView(TailoredResumeMixin, View):
         )
 
     def post(self, request, job_pk):
-        tailored_resume = self.get_tailored_resume(job_pk)
-        tailored_resume.delete()
+        services.remove_tailored_resume(self.get_tailored_resume(job_pk))
         messages.info(request, _("Deleted the tailored resume for this job."))
         return redirect("jobs:detail", pk=job_pk)
 
 
 def tailored_resume_pdf_response(tailored_resume) -> HttpResponse:
-    pdf_bytes = render_markdown_pdf(
-        tailored_resume.markdown,
-        title=tailored_resume.job.title or "Resume",
-        author=tailored_resume.profile.user.get_full_name(),
+    response = HttpResponse(
+        services.tailored_resume_pdf(tailored_resume), content_type="application/pdf"
     )
-    response = HttpResponse(pdf_bytes, content_type="application/pdf")
     response["Content-Disposition"] = f'attachment; filename="{tailored_resume.pdf_filename}"'
     return response
 
@@ -233,4 +203,4 @@ class TailoredResumeListView(LoginRequiredMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        return TailoredResume.objects.filter(profile=self.request.profile).select_related("job")
+        return services.list_tailored_resumes(self.request.profile)

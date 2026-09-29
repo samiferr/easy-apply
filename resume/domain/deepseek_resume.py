@@ -2,6 +2,8 @@
 soft/technical skills, languages, work experience, degrees and
 certificates, via the shared DeepSeek client. The prompts are loaded from
 `prompts/resume/`.
+
+Use case: UC-04.2 (step 5) in docs/use-cases/UC04_RESUME_PARSING_ONBOARDING.md.
 """
 
 from core.ai import call_deepseek_json
@@ -11,6 +13,7 @@ from core.prompts import load_prompt
 SYSTEM_PROMPT = load_prompt("resume/parse_resume")
 
 
+# UC-04.2 — Background Asynchronous Extraction via DeepSeek LLM (steps 5-6)
 def analyze_resume_text(
     raw_text: str,
     soft_categories: list,

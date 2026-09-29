@@ -81,7 +81,7 @@ The `resume` app enables candidates to upload existing resumes in multiple forma
 ## UC-04.3: Intelligent Collision & Duplicate Detection
 
 - **Primary Actor:** Candidate
-- **Supporting System:** `resume.domain.importer.build_review_sections`
+- **Supporting System:** `resume.services.build_review_sections`
 - **Objective:** Compare parsed resume items against existing candidate profile data to highlight duplicates and prevent clutter.
 
 ### Main Success Scenario
@@ -100,7 +100,7 @@ The `resume` app enables candidates to upload existing resumes in multiple forma
 5. UI renders items in a modern review table with status badges (*"New"* vs. *"Already in profile"*).
 
 ### Key Code References
-- Service: [`resume.domain.importer.build_review_sections`](file:///home/sami/PycharmProjects/Github/easy-apply/resume/domain/importer.py)
+- Service: [`resume.services.build_review_sections`](file:///home/sami/PycharmProjects/Github/easy-apply/resume/services.py)
 - Template: `resume/resume_review.html`
 
 ---
@@ -108,7 +108,7 @@ The `resume` app enables candidates to upload existing resumes in multiple forma
 ## UC-04.4: Interactive Review Checklist & Transactional Selective Import
 
 - **Primary Actor:** Candidate
-- **Supporting System:** `resume.domain.importer.apply_selected`
+- **Supporting System:** `resume.services.apply_selected`
 - **Objective:** Selectively check or uncheck parsed items and commit them to the profile database atomically.
 
 ### Main Success Scenario
@@ -128,4 +128,4 @@ The `resume` app enables candidates to upload existing resumes in multiple forma
 
 ### Key Code References
 - View: [`resume.views.ResumeReviewView.post`](file:///home/sami/PycharmProjects/Github/easy-apply/resume/views.py#L65-L92)
-- Service: [`resume.domain.importer.apply_selected`](file:///home/sami/PycharmProjects/Github/easy-apply/resume/domain/importer.py)
+- Service: [`resume.services.apply_selected`](file:///home/sami/PycharmProjects/Github/easy-apply/resume/services.py)

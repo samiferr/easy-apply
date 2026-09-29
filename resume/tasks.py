@@ -1,4 +1,11 @@
-"""Background resume analysis and tailored-resume generation."""
+"""Background resume analysis and tailored-resume generation.
+
+Views do not call this module: `resume/services.py` starts the work through the
+`enqueue_*` functions.
+
+Use cases: UC-04.1, UC-04.2 (docs/use-cases/UC04_RESUME_PARSING_ONBOARDING.md)
+and UC-07.1 (docs/use-cases/UC07_TAILORED_RESUME_GENERATION.md).
+"""
 
 import logging
 
@@ -15,6 +22,7 @@ logger = logging.getLogger(__name__)
 MAX_RETRIES = 3
 
 
+# UC-04.2 — Background Asynchronous Extraction via DeepSeek LLM (steps 1-8)
 @shared_task(bind=True, soft_time_limit=300)
 @guard
 def analyze_resume_import(self, resume_import_id: int, task_id: int) -> dict:
@@ -52,6 +60,7 @@ def analyze_resume_import(self, resume_import_id: int, task_id: int) -> dict:
     return {"ok": True}
 
 
+# UC-04.1 — Multi-Format Resume Upload & Quota Validation (step 6)
 def enqueue_resume_analysis(resume_import: ResumeImport) -> AITask:
     task = AITask.start_for(
         resume_import.profile,
@@ -70,6 +79,7 @@ def enqueue_resume_analysis(resume_import: ResumeImport) -> AITask:
     return task
 
 
+# UC-07.1 — AI Generation of Job-Tailored Resume Draft (the worker behind step 6)
 @shared_task(bind=True, soft_time_limit=300)
 @guard
 def generate_tailored_resume_task(self, job_id: int, task_id: int) -> dict:
@@ -116,6 +126,7 @@ def generate_tailored_resume_task(self, job_id: int, task_id: int) -> dict:
     return {"ok": True}
 
 
+# UC-07.1 — steps 4 and 6: the draft row (found or created) and the queued task
 def enqueue_tailored_resume(job) -> AITask:
     tailored, _created = TailoredResume.objects.get_or_create(
         job=job, defaults={"profile": job.profile}

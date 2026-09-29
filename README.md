@@ -661,7 +661,8 @@ Set `RESUME_PDF_PAGE_SIZE=a4` in `.env` for A4 instead of US Letter.
 
 Under `/resume/upload/` (also linked from the Profile page and dashboard), a
 user uploads a resume and DeepSeek turns it into the same shape used
-throughout the rest of the app. The pipeline (`resume/domain/`):
+throughout the rest of the app. The pipeline (`resume/domain/`, started by
+`resume/services.py`):
 
 1. **`extractor.py`** pulls plain text out of the uploaded PDF (`pypdf`),
    DOCX (`python-docx`), or TXT file — with friendly errors for encrypted
@@ -673,7 +674,9 @@ throughout the rest of the app. The pipeline (`resume/domain/`):
    skill categories where they fit, and to write everything it produces in the
    profile's language. The uploaded resume itself can be in any language: what
    lands in the profile is normalized into the one that profile works in.
-3. **`importer.py`** does the rest in two steps:
+3. **`importer.py`** runs the steps above in the background and stores the
+   result on the `ResumeImport` row. What happens next is the use-case layer,
+   `resume/services.py`, in two steps:
    - `build_review_sections()` compares every suggested item against what
      the user already has (same skill name + kind, same language, same
      company + title, same school + degree, same certificate name + issuer)

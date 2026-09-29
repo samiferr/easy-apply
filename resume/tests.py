@@ -15,6 +15,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import Profile
+from core.exceptions import Blocked, PreconditionFailed
 from core.models import AITask
 from core.testing import fake_deepseek
 from education.models import Certificate, Degree
@@ -25,6 +26,8 @@ from skills.models import SkillCategory, UserSkill
 from staffportal.models import Plan, UsageMetric, UsageRecord
 from staffportal.domain import runtime_settings
 
+from . import services
+from .forms import ResumeUploadForm, TailoredResumeForm
 from .models import ResumeImport, TailoredResume
 from .domain.deepseek_resume import SYSTEM_PROMPT as PARSE_PROMPT
 from .domain.tailored import SYSTEM_PROMPT as TAILORED_PROMPT
@@ -739,7 +742,7 @@ class ResumeReviewTests(TempMediaMixin, TestCase):
         self.url = reverse("resume:review", args=[self.upload.pk])
 
     def sections(self):
-        from .domain.importer import build_review_sections
+        from .services import build_review_sections
 
         return build_review_sections(self.upload, self.profile)
 
@@ -896,7 +899,7 @@ class ApplySelectedTests(TestCase):
         )
 
     def apply(self, *keys):
-        from .domain.importer import apply_selected
+        from .services import apply_selected
 
         return apply_selected(self.upload, self.profile, set(keys))
 
@@ -1001,9 +1004,9 @@ class ApplySelectedTests(TestCase):
         self.assertFalse(WorkExperience.objects.filter(profile=other).exists())
 
     def test_it_is_all_or_nothing(self):
-        from .domain import importer
+        from . import services
 
-        with patch.object(importer, "_parse_date", side_effect=RuntimeError("boom")):
+        with patch.object(services, "parse_date", side_effect=RuntimeError("boom")):
             with self.assertRaises(RuntimeError):
                 self.apply("technical_skill:0", "experience:0")
         self.assertFalse(UserSkill.objects.exists())
@@ -1181,6 +1184,196 @@ class TailoredResumeFlowTests(TailoredResumeTestMixin, TestCase):
         self.assertEqual([r.job for r in response.context["tailored_resumes"]], [self.job])
 
 
+class ImportServiceTests(TempMediaMixin, TestCase):
+    """UC-04's use cases called directly, with no request: what they refuse, in
+    which words, and what they leave behind when they do."""
+
+    def setUp(self):
+        super().setUp()
+        runtime_settings.invalidate()
+        self.addCleanup(runtime_settings.invalidate)
+        self.plan = Plan.objects.create(
+            slug="free", name="Free", price_cents=0, is_default=True, monthly_resume_imports=1
+        )
+        self.user, self.profile = make_user_profile("import-services@example.com")
+
+    def form(self, name="cv.txt"):
+        form = ResumeUploadForm({}, {"file": SimpleUploadedFile(name, RESUME_TEXT.encode())})
+        self.assertTrue(form.is_valid(), form.errors)
+        return form
+
+    def imports_used(self):
+        record = UsageRecord.objects.filter(user=self.user, metric=UsageMetric.RESUME_IMPORT).first()
+        return record.count if record else 0
+
+    def make_import(self, **fields):
+        fields.setdefault("ai_response", json.loads(json.dumps(RESUME_REPLY)))
+        return ResumeImport.objects.create(profile=self.profile, file="resumes/x.txt", **fields)
+
+    def test_starting_an_import_keeps_the_uploaded_name_and_spends_an_allowance(self):
+        with fake_deepseek(lambda request: dict(RESUME_REPLY)):
+            upload = services.start_resume_import(self.user, self.profile, self.form())
+        self.assertEqual(upload.profile, self.profile)
+        # The name the candidate chose, not the path the file was stored under.
+        self.assertEqual(upload.original_filename, "cv.txt")
+        self.assertNotEqual(upload.file.name, "cv.txt")
+        upload.refresh_from_db()
+        self.assertEqual(upload.status, ResumeImport.STATUS_COMPLETED)
+        self.assertEqual(self.imports_used(), 1)
+
+    def test_an_import_the_plan_does_not_allow_is_refused_before_anything_is_saved(self):
+        Plan.objects.filter(pk=self.plan.pk).update(monthly_resume_imports=0)
+        runtime_settings.set_value("enforce_quotas", True)
+        with self.assertRaisesMessage(
+            Blocked, "Your plan doesn't include this feature. Upgrade to use it."
+        ):
+            services.start_resume_import(self.user, self.profile, self.form())
+        self.assertFalse(ResumeImport.objects.exists())
+        self.assertEqual(self.imports_used(), 0)
+
+    def test_the_checklist_exists_only_once_the_resume_has_been_read(self):
+        upload = self.make_import(status=ResumeImport.STATUS_PENDING)
+        self.assertFalse(services.is_reviewable(upload))
+        self.assertIsNone(services.review_checklist(upload, self.profile))
+
+        upload.status = ResumeImport.STATUS_COMPLETED
+        self.assertTrue(services.is_reviewable(upload))
+        checklist = services.review_checklist(upload, self.profile)
+        self.assertEqual(
+            set(checklist),
+            {"profile_fields", "soft_skills", "technical_skills", "languages",
+             "experience", "degrees", "certificates"},
+        )
+        self.assertEqual([skill["name"] for skill in checklist["technical_skills"]],
+                         ["Python", "Zig", "Docker"])
+
+    def test_applying_with_nothing_ticked_is_refused_and_changes_nothing(self):
+        upload = self.make_import(status=ResumeImport.STATUS_COMPLETED)
+        with self.assertRaisesMessage(
+            PreconditionFailed, "Select at least one item to add it to your profile."
+        ):
+            services.apply_review(upload, self.profile, set())
+        upload.refresh_from_db()
+        self.assertEqual(upload.status, ResumeImport.STATUS_COMPLETED)
+        self.assertIsNone(upload.applied_at)
+
+    def test_applying_says_what_was_added(self):
+        upload = self.make_import(status=ResumeImport.STATUS_COMPLETED)
+        summary = services.apply_review(
+            upload, self.profile, {"technical_skill:0", "language:0", "experience:0"}
+        )
+        self.assertEqual(
+            summary,
+            "Updated 1 skill(s), 1 language(s), 1 work experience entry from your resume.",
+        )
+        upload.refresh_from_db()
+        self.assertEqual(upload.status, ResumeImport.STATUS_APPLIED)
+
+    def test_the_summary_wording(self):
+        counts = {"profile": False, "skills": 0, "languages": 0, "experience": 0,
+                  "degrees": 0, "certificates": 0}
+        self.assertEqual(services.import_summary(counts), "Updated nothing new from your resume.")
+        self.assertEqual(
+            services.import_summary({**counts, "experience": 2}),
+            "Updated 2 work experience entries from your resume.",
+        )
+        self.assertEqual(
+            services.import_summary({**counts, "profile": True, "skills": 3, "degrees": 1, "certificates": 2}),
+            "Updated your profile, 3 skill(s), 1 degree(s), 2 certificate(s) from your resume.",
+        )
+
+    def test_selectors_never_reach_another_workspace(self):
+        mine = self.make_import()
+        _user, other = make_user_profile("import-services-other@example.com")
+        theirs = ResumeImport.objects.create(profile=other, file="resumes/y.txt")
+        self.assertEqual(list(services.profile_imports(self.profile)), [mine])
+        self.assertEqual(list(services.profile_imports(other)), [theirs])
+
+
+class TailoredServiceTests(TailoredResumeTestMixin, TestCase):
+    """UC-07's use cases called directly, with no request."""
+
+    def setUp(self):
+        super().setUp()
+        runtime_settings.invalidate()
+        self.addCleanup(runtime_settings.invalidate)
+        self.plan = Plan.objects.create(
+            slug="free", name="Free", price_cents=0, is_default=True, monthly_tailored_resumes=1
+        )
+        self.add_profile_content()
+
+    def resumes_used(self):
+        record = UsageRecord.objects.filter(
+            user=self.user, metric=UsageMetric.TAILORED_RESUME
+        ).first()
+        return record.count if record else 0
+
+    def test_starting_a_draft_writes_it_and_spends_an_allowance(self):
+        with fake_deepseek(lambda request: dict(AI_RESPONSE)):
+            task = services.start_tailored_resume(self.user, self.job)
+        task.refresh_from_db()
+        self.assertEqual((task.kind, task.state), (AITask.TAILORED_RESUME, AITask.DONE))
+        tailored = TailoredResume.objects.get(job=self.job)
+        self.assertEqual(tailored.state, TailoredResume.STATE_COMPLETED)
+        self.assertEqual(services.tailored_resume_task(tailored), task)
+        self.assertEqual(self.resumes_used(), 1)
+
+    def test_a_job_that_has_not_been_analysed_is_refused_before_the_allowance_is_looked_at(self):
+        JobPost.objects.filter(pk=self.job.pk).update(status=JobPost.STATUS_PENDING)
+        self.job.refresh_from_db()
+        runtime_settings.set_value("enforce_quotas", True)
+        Plan.objects.filter(pk=self.plan.pk).update(monthly_tailored_resumes=0)
+        with self.assertRaisesMessage(
+            PreconditionFailed, "Analyze this job post first, then generate a resume for it."
+        ):
+            services.start_tailored_resume(self.user, self.job)
+        self.assertFalse(TailoredResume.objects.exists())
+        self.assertEqual(self.resumes_used(), 0)
+
+    def test_an_exhausted_allowance_is_refused_without_creating_a_draft(self):
+        runtime_settings.set_value("enforce_quotas", True)
+        with fake_deepseek(lambda request: dict(AI_RESPONSE)):
+            services.start_tailored_resume(self.user, self.job)
+        TailoredResume.objects.all().delete()
+        with self.assertRaises(Blocked) as refused:
+            services.start_tailored_resume(self.user, self.job)
+        self.assertIn("all 1 of this month's tailored resumes", str(refused.exception))
+        self.assertFalse(TailoredResume.objects.exists())
+        self.assertEqual(self.resumes_used(), 1)
+
+    def test_a_draft_counts_as_edited_only_when_the_text_changed(self):
+        tailored = TailoredResume.objects.create(
+            job=self.job, profile=self.profile, markdown="Jane Doe",
+            state=TailoredResume.STATE_COMPLETED,
+        )
+        unchanged = TailoredResumeForm({"markdown": "Jane Doe"}, instance=tailored)
+        self.assertTrue(unchanged.is_valid())
+        self.assertFalse(services.save_tailored_edits(unchanged).edited_by_user)
+
+        changed = TailoredResumeForm({"markdown": "Jane Q. Doe"}, instance=tailored)
+        self.assertTrue(changed.is_valid())
+        saved = services.save_tailored_edits(changed)
+        tailored.refresh_from_db()
+        self.assertEqual((saved.markdown, tailored.edited_by_user), ("Jane Q. Doe", True))
+
+    def test_the_pdf_is_built_from_the_saved_markdown(self):
+        tailored = TailoredResume.objects.create(
+            job=self.job, profile=self.profile, markdown="# Jane Doe\n\n- Built APIs",
+            state=TailoredResume.STATE_COMPLETED,
+        )
+        self.assertTrue(services.tailored_resume_pdf(tailored).startswith(b"%PDF"))
+
+    def test_removing_a_draft_keeps_the_job_and_selectors_stay_in_the_workspace(self):
+        tailored = TailoredResume.objects.create(job=self.job, profile=self.profile, markdown="x")
+        _user, other = make_user_profile("tailored-services-other@example.com")
+        self.assertEqual(list(services.list_tailored_resumes(self.profile)), [tailored])
+        self.assertEqual(list(services.profile_tailored_resumes(other)), [])
+
+        services.remove_tailored_resume(tailored)
+        self.assertFalse(TailoredResume.objects.exists())
+        self.assertTrue(JobPost.objects.filter(pk=self.job.pk).exists())
+
+
 class ParseResumePromptContractTests(TestCase):
     """`prompts/resume/parse_resume.txt` and the review/apply code agree on the JSON shape."""
 
@@ -1213,7 +1406,7 @@ class ParseResumePromptContractTests(TestCase):
         )
 
     def test_it_offers_exactly_the_choices_the_importer_maps(self):
-        from .domain.importer import EMPLOYMENT_TYPES, LEVEL_MAP, PROFICIENCY_VALUES
+        from .services import EMPLOYMENT_TYPES, LEVEL_MAP, PROFICIENCY_VALUES
 
         self.assertMentions(PARSE_PROMPT, sorted(LEVEL_MAP))
         self.assertMentions(PARSE_PROMPT, sorted(PROFICIENCY_VALUES))
