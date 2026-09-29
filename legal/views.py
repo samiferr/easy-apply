@@ -1,6 +1,8 @@
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import TemplateView
 
+from . import services
+
 
 class LegalPageView(TemplateView):
     """A static, translated policy page.
@@ -16,7 +18,7 @@ class LegalPageView(TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["page_title"] = self.page_title
+        ctx.update(services.legal_page_context(self.page_title))
         return ctx
 
 

@@ -1,12 +1,13 @@
 from django.conf import settings
 
 from accounts.models import Profile
+from legal.services import legal_entity
 
 
 def site_context(request):
     return {
         "SITE_NAME": settings.SITE_NAME,
-        "LEGAL_ENTITY": settings.LEGAL_ENTITY,
+        "LEGAL_ENTITY": legal_entity(),
     }
 
 

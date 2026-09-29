@@ -1,15 +1,34 @@
-"""Utilities to render a Markdown recap of everything a profile has recorded.
+"""Use cases that belong to the whole product rather than to one screen.
 
-Every string this module emits — headings, "Present", month names — is
-translatable and rendered under the profile's own language, so a recap (and the
-resume snapshot built from the same helpers) never mixes two languages.
+* the Markdown recap of a profile (UC-02.5),
+* the snapshot of a profile handed to the resume writer (UC-07.1),
+* the scoped profile slices a job section is matched against (UC-05.3, UC-05.4),
+* the dashboard and the task-progress polling contract (UC-09.4), and
+* the housekeeping that keeps `AITask` honest (UC-09.4).
+
+Every string this module emits for a document — headings, "Present", month
+names — is translatable and rendered under the profile's own language, so a
+recap (and the resume snapshot built from the same helpers) never mixes two
+languages.
+
+Use cases: docs/use-cases/UC02_PROFILE_WORKSPACES.md,
+UC05_JOB_POSTING_MATCHING.md, UC07_TAILORED_RESUME_GENERATION.md and
+UC09_COMPLIANCE_LOCALIZATION.md.
 """
 
+from calendar import monthrange
+from datetime import timedelta
+
+from django.db.models import Count
+from django.db.models.functions import TruncDate
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.formats import date_format
 from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy
 
 from .language import use_language
+from .models import AITask
 
 
 def _format_date(value, fmt="F Y"):
@@ -21,6 +40,7 @@ def _section(lines, title, level=2):
     lines.append(f"{'#' * level} {title}")
 
 
+# UC-02.5 — Full Profile Recap Export & Markdown Preview (steps 4-5)
 def generate_markdown_recap(profile) -> str:
     """Build a single Markdown document summarizing one profile's info, skills,
     languages, work experience, degrees and certificates.
@@ -156,6 +176,7 @@ def _recap_lines(profile) -> str:
     return "\n".join(lines) + "\n"
 
 
+# UC-02.5 — step 5: the attachment's file name
 def recap_filename(profile) -> str:
     user = profile.user
     bits = [user.get_full_name() or user.email.split("@")[0], profile.name]
@@ -163,6 +184,7 @@ def recap_filename(profile) -> str:
     return f"{slug}-easy-apply-recap.md"
 
 
+# UC-07.1 — AI Generation of Job-Tailored Resume Draft (step 6a: the candidate snapshot)
 def build_profile_snapshot(profile) -> dict:
     """Gather everything recorded in one profile into plain structured data —
     used to hand the AI a candidate's profile (e.g. to match it against a
@@ -209,6 +231,7 @@ def build_profile_snapshot(profile) -> dict:
     return snapshot
 
 
+# UC-07.1 — a profile with nothing in it is not sent to the AI
 def profile_snapshot_is_empty(snapshot: dict) -> bool:
     return not (
         snapshot.get("headline")
@@ -222,6 +245,7 @@ def profile_snapshot_is_empty(snapshot: dict) -> bool:
     )
 
 
+# UC-07.1 — step 6a: the whole snapshot, with the contact details a resume needs
 def build_resume_snapshot(profile) -> dict:
     """Everything `build_profile_snapshot` gathers, plus the contact
     details, locations and dates a resume needs — used when the AI has to
@@ -288,7 +312,8 @@ def _date_range(start, end, is_current=False) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Scoped profile slices
+# Scoped profile slices — UC-05.3 (Scoped Profile Slice Matching) and UC-05.4
+# (Zero-Cost Empty Slice Handling)
 #
 # The AI optimization in the refactor spec §6.1: a section's match call is sent
 # ONLY the part of the profile it maps to. `build_profile_snapshot` above stays
@@ -412,6 +437,7 @@ SLICE_BUILDERS = {
 }
 
 
+# UC-05.3 — step 3: "builds targeted profile slice via build_profile_slice"
 def build_profile_slice(profile, section_key: str) -> dict:
     """Return ONLY the part of `profile` that `section_key` maps to.
 
@@ -438,6 +464,7 @@ def build_profile_slice(profile, section_key: str) -> dict:
     return slice_data
 
 
+# UC-05.4 — step 3: is there anything in the slice worth asking the AI about?
 def profile_slice_is_empty(slice_data: dict) -> bool:
     """True when there is nothing in the slice worth asking the AI about."""
     if not slice_data:
@@ -454,6 +481,7 @@ def profile_slice_is_empty(slice_data: dict) -> bool:
     return True
 
 
+# UC-05.4 — step 4: the evidence written instead of calling the AI
 def empty_slice_hint(section_key: str) -> str:
     """The evidence line written onto every element of a section whose profile
     slice is empty, instead of calling the AI."""
@@ -470,3 +498,175 @@ def empty_slice_hint(section_key: str) -> str:
         "education_certifications": _("No degrees or certificates recorded in your profile yet."),
     }
     return hints.get(section_key, _("Nothing in your profile covers this yet."))
+
+
+# ---------------------------------------------------------------------------
+# Dashboard
+#
+# No use case of its own in docs/use-cases: it is where UC-01.1 lands a new
+# account, and it summarises UC-02.3 (how complete the profile is), UC-05 (jobs
+# analysed) and UC-09.4 (work still running).
+# ---------------------------------------------------------------------------
+def build_dashboard(profile) -> dict:
+    """Everything the dashboard shows about `profile`, keyed as its template reads it."""
+    from jobs.models import JobPost
+
+    soft_count = profile.skills.filter(category__kind="soft").count()
+    technical_count = profile.skills.filter(category__kind="technical").count()
+    language_count = profile.languages.count()
+    experience_count = profile.experiences.count()
+    degree_count = profile.degrees.count()
+    certificate_count = profile.certificates.count()
+
+    checklist = [
+        (gettext_lazy("Complete your profile"), profile.completion_percent >= 60, reverse("accounts:profile")),
+        (gettext_lazy("Set your job preferences"), _has_preferences(profile), reverse("preferences:detail")),
+        (gettext_lazy("Add a technical skill"), technical_count > 0, reverse("skills:list", args=["technical"])),
+        (gettext_lazy("Add a soft skill"), soft_count > 0, reverse("skills:list", args=["soft"])),
+        (gettext_lazy("Add a language"), language_count > 0, reverse("languages:list")),
+        (gettext_lazy("Add your work experience"), experience_count > 0, reverse("experience:list")),
+        (
+            gettext_lazy("Add your education or a certificate"),
+            (degree_count + certificate_count) > 0,
+            reverse("education:list"),
+        ),
+    ]
+    done_count = sum(1 for _label, done, _url in checklist if done)
+
+    return {
+        "checklist": checklist,
+        "completion_percent": round((done_count / len(checklist)) * 100),
+        # Nothing left to nudge about: the completion card and the "% complete"
+        # readouts are hidden once every box is ticked.
+        "profile_is_complete": done_count == len(checklist),
+        "recent_jobs": (
+            JobPost.objects.filter(profile=profile)
+            .prefetch_related("sections__elements")
+            .order_by("-created_at")[:5]
+        ),
+        "chart": jobs_per_day_chart(profile),
+        "running_tasks": (
+            AITask.objects.filter(profile=profile, state__in=[AITask.QUEUED, AITask.RUNNING])
+            .order_by("-queued_at")[:4]
+        ),
+        "job_post_count": JobPost.objects.filter(profile=profile).count(),
+    }
+
+
+def _has_preferences(profile) -> bool:
+    preference = getattr(profile, "job_preference", None)
+    return bool(preference) and not preference.is_empty
+
+
+def jobs_per_day_chart(profile) -> dict:
+    """Jobs analyzed per day this month, aggregated in the database and
+    rendered as a server-side SVG/CSS chart — no JS charting library."""
+    from jobs.models import JobPost
+
+    today = timezone.localdate()
+    first = today.replace(day=1)
+    days_in_month = monthrange(today.year, today.month)[1]
+
+    rows = (
+        JobPost.objects.filter(profile=profile, created_at__date__gte=first)
+        .annotate(day=TruncDate("created_at"))
+        .values("day")
+        .annotate(count=Count("id"))
+    )
+    counts = {row["day"]: row["count"] for row in rows if row["day"]}
+
+    bars = []
+    peak = max(counts.values()) if counts else 0
+    for offset in range(days_in_month):
+        day = first + timedelta(days=offset)
+        count = counts.get(day, 0)
+        bars.append(
+            {
+                "day": day,
+                "number": day.day,
+                "count": count,
+                # Zero-height bars still get a sliver so the axis reads as a row.
+                "percent": round((count / peak) * 100) if peak else 0,
+                "is_today": day == today,
+                "is_future": day > today,
+            }
+        )
+
+    return {
+        "bars": bars,
+        "peak": peak,
+        "total": sum(counts.values()),
+        "month_label": date_format(first, "F Y"),
+        "has_data": bool(counts),
+    }
+
+
+# ---------------------------------------------------------------------------
+# UC-09.4 — Polling Architecture & Real-Time Task Progress Contract (`AITask`)
+# ---------------------------------------------------------------------------
+# UC-09.4 — step 3: the owner-scoped lookup. `None` for someone else's task, so
+# the caller answers 404 exactly as it would for one that does not exist.
+def task_for_user(user, pk: int) -> AITask | None:
+    return AITask.objects.filter(pk=pk, user=user).first()
+
+
+# UC-09.4 — steps 3-4: the JSON the front end polls until `is_terminal`.
+def task_status(task: AITask) -> dict:
+    return {
+        "id": task.pk,
+        "kind": task.kind,
+        "state": task.state,
+        "percent": task.percent,
+        "indeterminate": task.is_indeterminate,
+        "current_step": task.current_step,
+        "steps_done": task.steps_done,
+        "steps_total": task.steps_total,
+        "error_message": task.error_message,
+        "is_terminal": task.is_terminal,
+        "redirect_url": task_redirect_url(task),
+    }
+
+
+# UC-09.4 — step 4: where the browser goes once a task is done (resume import ->
+# its review page, tailored resume -> its editor); nowhere for the other kinds.
+def task_redirect_url(task: AITask) -> str | None:
+    if task.state != AITask.DONE:
+        return None
+    target = task.target
+    if target is None:
+        return None
+    if task.kind == AITask.RESUME_IMPORT:
+        return reverse("resume:review", args=[target.pk])
+    if task.kind == AITask.TAILORED_RESUME:
+        return reverse("resume:tailored", args=[target.job_id])
+    return None
+
+
+# UC-09.4 — housekeeping (spec §7.7): a worker that was killed must not leave a
+# permanent spinner. Run on worker start-up by `manage.py sweep_stuck_ai_tasks`.
+def sweep_stuck_tasks(stale_after_seconds: int) -> int:
+    """Fail every queued or running task that has not moved for `stale_after_seconds`."""
+    cutoff = timezone.now() - timedelta(seconds=stale_after_seconds)
+    stuck = AITask.objects.filter(
+        state__in=[AITask.QUEUED, AITask.RUNNING], updated_at__lt=cutoff
+    )
+    count = stuck.count()
+    stuck.update(
+        state=AITask.FAILED,
+        error_message="This run was interrupted. Please try again.",
+        finished_at=timezone.now(),
+    )
+    return count
+
+
+# UC-09.4 — housekeeping (spec §7.7): finished progress records are not kept
+# forever. Run by `manage.py prune_ai_tasks`.
+def prune_finished_tasks(older_than_days: int, *, dry_run: bool = False):
+    """Delete finished tasks older than `older_than_days`. Returns (count, cutoff);
+    with `dry_run` nothing is deleted and `count` is what would have been."""
+    cutoff = timezone.now() - timedelta(days=older_than_days)
+    finished = AITask.objects.filter(state__in=AITask.TERMINAL_STATES, finished_at__lt=cutoff)
+    count = finished.count()
+    if not dry_run:
+        finished.delete()
+    return count, cutoff
