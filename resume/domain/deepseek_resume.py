@@ -41,7 +41,8 @@ def analyze_resume_text(
 
     One AI call per section runs concurrently (see `PARSE_SECTIONS`), each
     returning only its own keys; the answers are merged into one dict. A failure
-    in any section fails the whole parse.
+    in some sections keeps the others (`_failed_sections` names the ones lost);
+    only when every section fails is the error raised.
 
     The resume itself may be in any language: the prose the model produces from
     it (headline, bio, highlight bullets, category names) is normalized into the
@@ -61,13 +62,19 @@ def analyze_resume_text(
         )
         return lambda: call_deepseek_json(SECTION_PROMPTS[name], user_content)
 
-    answers = run_parallel({name: ask(name) for name in PARSE_SECTIONS})
+    answers, errors = run_parallel(
+        {name: ask(name) for name in PARSE_SECTIONS}, keep_partial=True
+    )
 
     merged = {}
     for name, keys in PARSE_SECTIONS.items():
+        if name not in answers:
+            continue
         for key in keys:
             if key in answers[name]:
                 merged[key] = answers[name][key]
         if "_model" in answers[name]:
             merged.setdefault("_model", answers[name]["_model"])
+    if errors:
+        merged["_failed_sections"] = list(errors)
     return merged

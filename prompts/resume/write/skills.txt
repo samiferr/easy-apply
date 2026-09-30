@@ -5,4 +5,5 @@ Your section: the skills.
 }
 
 Rules:
+- Do not present a skill as stronger than the candidate recorded, and do not lead with seniority-flavoured skills (architecture, team leadership) for a job below that level.
 - "skills" groups the candidate's real skills under short headings (e.g. "Programming", "Cloud & DevOps", "Soft skills"), listing first the ones this job asks for. Never add a skill the candidate hasn't recorded.

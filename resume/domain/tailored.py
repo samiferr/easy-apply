@@ -65,6 +65,14 @@ WRITE_SECTIONS = {
     "education": ("degrees", "certificates"),
     "languages": ("languages",),
 }
+#: The one key each writer returns.
+WRITE_KEYS = {
+    "summary": "professional_summary",
+    "skills": "skills",
+    "experience": "experience",
+    "education": "education",
+    "languages": "languages",
+}
 _SHARED = load_prompt("resume/write/shared").rstrip("\n")
 SECTION_PROMPTS = {
     name: f"{_SHARED}\n\n{load_prompt(f'resume/write/{name}')}" for name in WRITE_SECTIONS
@@ -347,10 +355,18 @@ def generate_tailored_resume(job, profile=None) -> dict:
         user_content = f"{clause}\n\n{payload}"
         return lambda: call_deepseek_json(SECTION_PROMPTS[name], user_content, temperature=0.3)
 
-    answers = run_parallel({name: write(name) for name in WRITE_SECTIONS})
+    # A section that fails is left out and reported; the rest of the draft is
+    # kept. Only when every section fails is the error raised.
+    answers, errors = run_parallel(
+        {name: write(name) for name in WRITE_SECTIONS}, keep_partial=True
+    )
     data = {"_model": next((a["_model"] for a in answers.values() if "_model" in a), "")}
-    for answer in answers.values():
-        data.update({k: v for k, v in answer.items() if k != "_model"})
+    for name, answer in answers.items():
+        # Only what each writer was asked for, so a chatty answer cannot
+        # overwrite another section's.
+        key = WRITE_KEYS[name]
+        if key in answer:
+            data[key] = answer[key]
 
     markdown = render_markdown(profile, data)
     if not markdown.strip():
@@ -364,7 +380,13 @@ def generate_tailored_resume(job, profile=None) -> dict:
             "ai_model": _clean_str(data.get("_model"), 100),
             "edited_by_user": False,
             "state": TailoredResume.STATE_COMPLETED,
-            "error_message": "",
+            "error_message": (
+                "Some sections couldn't be written and are missing from this draft: "
+                + ", ".join(errors)
+                + ". Generate it again to retry, or write them yourself here."
+                if errors
+                else ""
+            ),
             "generated_at": timezone.now(),
         },
     )

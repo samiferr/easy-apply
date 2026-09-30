@@ -19,6 +19,9 @@
 
 {% block content %}
 <div class="max-w-3xl">
+  {% if resume_import.status == "completed" and resume_import.error_message %}
+    <p class="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200" role="status">{{ resume_import.error_message }}</p>
+  {% endif %}
   {% if resume_import.status == "failed" %}
     <div class="card border-rose-200 p-6 dark:border-rose-900/60 sm:p-8">
       <p class="text-sm text-slate-600 dark:text-slate-300">{% trans "Check that the file is a text-based PDF or DOCX — a scan of a printed page has no text to read." %}</p>

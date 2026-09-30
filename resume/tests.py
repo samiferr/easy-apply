@@ -697,11 +697,23 @@ class ResumeUploadTests(TempMediaMixin, TestCase):
         upload = ResumeImport.objects.get()
         self.assertEqual(upload.status, ResumeImport.STATUS_COMPLETED)
 
-    def test_one_failing_section_fails_the_whole_parse(self):
+    def test_a_failing_section_is_reported_and_the_others_are_kept(self):
         def reply(request):
             return 500 if '"degrees"' in request.system else dict(RESUME_REPLY)
 
         with fake_deepseek(reply):
+            self.upload()
+        upload = ResumeImport.objects.get()
+        self.assertEqual(upload.status, ResumeImport.STATUS_COMPLETED)
+        self.assertNotIn("degrees", upload.ai_response)
+        self.assertEqual(upload.ai_response["_failed_sections"], ["degrees"])
+        self.assertEqual(upload.ai_response["technical_skills"][0]["name"], "Python")
+        self.assertIn("degrees", upload.error_message)
+        response = self.client.get(reverse("resume:review", args=[upload.pk]))
+        self.assertContains(response, "couldn&#x27;t be read")
+
+    def test_when_every_section_fails_the_parse_fails(self):
+        with fake_deepseek(lambda request: 500):
             self.upload()
         self.assertEqual(ResumeImport.objects.get().status, ResumeImport.STATUS_FAILED)
 
@@ -1141,12 +1153,28 @@ class TailoredResumeFlowTests(TailoredResumeTestMixin, TestCase):
         response, _calls = self.generate(reply)
         self.assertEqual(TailoredResume.objects.get(job=self.job).state, TailoredResume.STATE_COMPLETED)
 
-    def test_one_failing_section_fails_the_draft(self):
+    def test_a_failing_section_is_left_out_and_the_rest_of_the_draft_is_kept(self):
         def reply(request):
             return 500 if '"education"' in request.system else dict(AI_RESPONSE)
 
         self.generate(reply)
+        tailored = TailoredResume.objects.get(job=self.job)
+        self.assertEqual(tailored.state, TailoredResume.STATE_COMPLETED)
+        self.assertIn("## **WORKING EXPERIENCE**", tailored.markdown)
+        self.assertNotIn("EDUCATION", tailored.markdown)
+        self.assertIn("education", tailored.error_message)
+        response = self.client.get(self.editor_url)
+        self.assertContains(response, "missing from this draft")
+
+    def test_when_every_section_fails_the_draft_fails(self):
+        self.generate(lambda request: 500)
         self.assertEqual(TailoredResume.objects.get(job=self.job).state, TailoredResume.STATE_FAILED)
+
+    def test_every_writer_is_told_to_match_the_experience_level_of_the_job(self):
+        _response, calls = self.generate()
+        for call in calls:
+            self.assertIn("Match the experience level the job asks for", call.system)
+            self.assertIn("seniority_level", json.loads(call.user.split("\n\n", 1)[1])["job"])
 
     def test_a_job_that_is_not_analysed_yet_is_sent_back(self):
         JobPost.objects.filter(pk=self.job.pk).update(status=JobPost.STATUS_PENDING)

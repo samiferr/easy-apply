@@ -95,7 +95,16 @@ def run_analysis(resume_import, progress=None) -> None:
         resume_import.ai_model = clean_str(data.get("_model"), 100)
         resume_import.status = resume_import.STATUS_COMPLETED
         resume_import.analyzed_at = timezone.now()
-        resume_import.error_message = ""
+        # Some sections may have failed while the rest came back: keep those and
+        # say what is missing, rather than throwing the whole resume away.
+        failed = data.get("_failed_sections")
+        resume_import.error_message = (
+            "Some parts of your resume couldn't be read and are missing below: "
+            + ", ".join(failed)
+            + ". Upload the file again to retry them."
+            if failed
+            else ""
+        )
         resume_import.save(
             update_fields=[
                 "raw_text", "ai_response", "ai_model", "status", "analyzed_at", "error_message",

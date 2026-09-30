@@ -20,6 +20,9 @@
 
 {% block content %}
 <div class="max-w-4xl">
+  {% if tailored_resume.state == "completed" and tailored_resume.error_message %}
+    <p class="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200" role="status">{{ tailored_resume.error_message }}</p>
+  {% endif %}
   <p class="text-xs text-slate-600 dark:text-slate-400">
     {% if tailored_resume.generated_at %}Drafted {{ tailored_resume.generated_at|date:"M j, Y, g:i a" }}{% endif %}
     {% if tailored_resume.edited_by_user %} · edited by you {{ tailored_resume.updated_at|date:"M j, Y, g:i a" }}{% endif %}

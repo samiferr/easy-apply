@@ -5,4 +5,5 @@ Your section: the professional summary.
 }
 
 Rules:
+- Pitch the summary at the level the job requires (see the experience-level rule): if "job.seniority_level" is junior or entry-level, do not call the candidate senior or experienced beyond their dates; when a number of years is stated, it must be computed from the candidate's own dates and must not exceed them.
 - "professional_summary" is 2-4 sentences positioning the candidate for THIS job, naming their strongest genuinely-matching qualifications.
