@@ -309,6 +309,9 @@ CELERY_REDIS_SOCKET_TIMEOUT = 10
 
 # How long a running AITask may go without an update before the worker's
 # startup sweep marks it failed (seconds).
+# How many AI calls one task may have in flight at once (resume parsing and
+# resume writing send one call per section).
+AI_MAX_PARALLEL = config("AI_MAX_PARALLEL", default=6, cast=int)
 AI_TASK_STALE_AFTER = config("AI_TASK_STALE_AFTER", default=3600, cast=int)
 # Terminal AITask rows older than this many days are pruned by
 # `manage.py prune_ai_tasks`.

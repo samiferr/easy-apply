@@ -1,0 +1,14 @@
+Your section: the work experience.
+
+{
+  "experience": [
+    {
+      "job_title": string, "company": string, "location": string,
+      "dates": string, "highlights": [string]
+    }
+  ]
+}
+
+Rules:
+- Copy "job_title", "company", "location" and "dates" verbatim from the matching profile entry — they are facts, not prose.
+- Include every role in "experience", most recent first, but spend the most bullets (4-6) on the roles closest to this job and fewer (1-3) on distant ones. Rewrite each highlight in the job's own vocabulary, keeping it truthful, starting with a strong action verb, and one or two lines long.

@@ -1,0 +1,19 @@
+Your part: the candidate's work experience.
+
+{
+  "experience": [
+    {
+      "job_title": string,
+      "company": string,
+      "location": string,
+      "employment_type": "full_time" | "part_time" | "contract" | "freelance" | "internship" | "",
+      "start_date": "YYYY-MM-DD" | null,
+      "end_date": "YYYY-MM-DD" | null,
+      "is_current": true | false,
+      "highlights": [string]
+    }
+  ]
+}
+
+Rules:
+- Split each experience bullet into individual, atomic highlight statements.

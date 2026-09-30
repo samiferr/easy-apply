@@ -8,9 +8,26 @@ Use case: UC-04.2 (step 5) in docs/use-cases/UC04_RESUME_PARSING_ONBOARDING.md.
 
 from core.ai import call_deepseek_json
 from core.language import language_clause
+from core.parallel import run_parallel
 from core.prompts import load_prompt
 
-SYSTEM_PROMPT = load_prompt("resume/parse_resume")
+#: One extraction per section, each with its own prompt file and the keys it
+#: returns. Sections are independent, so they are asked for at the same time.
+PARSE_SECTIONS = {
+    "profile": ("profile",),
+    "skills": ("soft_skills", "technical_skills"),
+    "languages": ("languages",),
+    "experience": ("experience",),
+    "degrees": ("degrees",),
+    "certificates": ("certificates",),
+}
+
+_SHARED = load_prompt("resume/parse/shared").rstrip("\n")
+SECTION_PROMPTS = {
+    name: f"{_SHARED}\n\n{load_prompt(f'resume/parse/{name}')}" for name in PARSE_SECTIONS
+}
+#: Every section prompt, for code that checks them as a whole.
+SYSTEM_PROMPT = "\n\n".join(SECTION_PROMPTS.values())
 
 
 # UC-04.2 — Background Asynchronous Extraction via DeepSeek LLM (steps 5-6)
@@ -22,6 +39,10 @@ def analyze_resume_text(
 ) -> dict:
     """Parse a resume into structured data, written in `language`.
 
+    One AI call per section runs concurrently (see `PARSE_SECTIONS`), each
+    returning only its own keys; the answers are merged into one dict. A failure
+    in any section fails the whole parse.
+
     The resume itself may be in any language: the prose the model produces from
     it (headline, bio, highlight bullets, category names) is normalized into the
     profile's language, so a French profile never ends up half English.
@@ -32,8 +53,21 @@ def analyze_resume_text(
         soft_categories=", ".join(soft_categories) or "(none yet)",
         technical_categories=", ".join(technical_categories) or "(none yet)",
     ).strip()
-    user_content = (
-        f"{language_clause(language)}\n\n{categories_note}\n\n"
-        f"--- Resume text ---\n{truncated}"
-    )
-    return call_deepseek_json(SYSTEM_PROMPT, user_content)
+
+    def ask(name):
+        note = f"{categories_note}\n\n" if name == "skills" else ""
+        user_content = (
+            f"{language_clause(language)}\n\n{note}--- Resume text ---\n{truncated}"
+        )
+        return lambda: call_deepseek_json(SECTION_PROMPTS[name], user_content)
+
+    answers = run_parallel({name: ask(name) for name in PARSE_SECTIONS})
+
+    merged = {}
+    for name, keys in PARSE_SECTIONS.items():
+        for key in keys:
+            if key in answers[name]:
+                merged[key] = answers[name][key]
+        if "_model" in answers[name]:
+            merged.setdefault("_model", answers[name]["_model"])
+    return merged

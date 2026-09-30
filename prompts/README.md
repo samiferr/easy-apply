@@ -10,9 +10,11 @@ prompts/
   core/    language_clause.txt          instruction prepended to every AI call
   jobs/    extract_sections.txt         job posting  -> the 13 fixed sections
            match_section.txt            one section  -> a verdict per row
-  resume/  parse_resume.txt             resume text  -> structured profile
+  resume/  parse/<section>.txt          resume text  -> one section of the profile
+           parse/shared.txt             role and rules common to every parse section
            skill_categories_note.txt    hint appended to the resume-parse call
-           write_tailored_resume.txt    job + profile -> the resume's content
+           write/<section>.txt          job + profile -> one section of the resume
+           write/shared.txt             role and rules common to every resume section
 ```
 
 ## The prompts
@@ -22,9 +24,20 @@ prompts/
 | `core/language_clause.txt` | start of the **user** message, every call | `core.language.language_clause` | `language` |
 | `jobs/extract_sections.txt` | **system** | `jobs.domain.deepseek_client.analyze_job_text` (UC-05.2) | `section_spec` |
 | `jobs/match_section.txt` | **system** | `match_section` and `match_single_element` (UC-05.3, UC-06.3) | — |
-| `resume/parse_resume.txt` | **system** | `resume.domain.deepseek_resume.analyze_resume_text` (UC-04.2) | — |
+| `resume/parse/shared.txt` | **system** (shared + section, one call per section, in parallel) | `analyze_resume_text` (UC-04.2) — role and rules common to every section | — |
+| `resume/parse/profile.txt` | **system** (shared + section, one call per section, in parallel) | `analyze_resume_text` (UC-04.2) — contact details, headline, bio | — |
+| `resume/parse/skills.txt` | **system** (shared + section, one call per section, in parallel) | `analyze_resume_text` (UC-04.2) — soft and technical skills | — |
+| `resume/parse/languages.txt` | **system** (shared + section, one call per section, in parallel) | `analyze_resume_text` (UC-04.2) — spoken languages | — |
+| `resume/parse/experience.txt` | **system** (shared + section, one call per section, in parallel) | `analyze_resume_text` (UC-04.2) — work experience | — |
+| `resume/parse/degrees.txt` | **system** (shared + section, one call per section, in parallel) | `analyze_resume_text` (UC-04.2) — degrees | — |
+| `resume/parse/certificates.txt` | **system** (shared + section, one call per section, in parallel) | `analyze_resume_text` (UC-04.2) — certificates | — |
 | `resume/skill_categories_note.txt` | **user** message, after the language clause | `analyze_resume_text` (UC-04.2) | `soft_categories`, `technical_categories` |
-| `resume/write_tailored_resume.txt` | **system** | `resume.domain.tailored.generate_tailored_resume` (UC-07.1) | — |
+| `resume/write/shared.txt` | **system** (shared + section, one call per section, in parallel) | `generate_tailored_resume` (UC-07.1) — role and rules common to every section | — |
+| `resume/write/summary.txt` | **system** (shared + section, one call per section, in parallel) | `generate_tailored_resume` (UC-07.1) — professional summary | — |
+| `resume/write/skills.txt` | **system** (shared + section, one call per section, in parallel) | `generate_tailored_resume` (UC-07.1) — skills | — |
+| `resume/write/experience.txt` | **system** (shared + section, one call per section, in parallel) | `generate_tailored_resume` (UC-07.1) — work experience | — |
+| `resume/write/education.txt` | **system** (shared + section, one call per section, in parallel) | `generate_tailored_resume` (UC-07.1) — education and certificates | — |
+| `resume/write/languages.txt` | **system** (shared + section, one call per section, in parallel) | `generate_tailored_resume` (UC-07.1) — languages | — |
 
 ## Why plain `.txt` and not `.md`
 

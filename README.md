@@ -676,6 +676,12 @@ language clause, the snapshot's display strings are built inside
 the template's own section keys — so a French profile gets *RÉSUMÉ
 PROFESSIONNEL* over French prose, not French prose under English headings.
 
+The resume is written one section at a time, all sections at once (one call
+each, prompts in `prompts/resume/write/`, each given only the slice of the
+profile it needs); `AI_MAX_PARALLEL` (default 6) caps the calls in flight. Job
+matching is parallel too: each section is its own Celery task, so the worker
+pool runs them side by side.
+
 The draft is stored on a `TailoredResume` row (one per job) and opened in a
 Markdown editor. Nothing is auto-sent anywhere: the user edits the text,
 saves, and exports when happy.
@@ -697,7 +703,9 @@ throughout the rest of the app. The pipeline (`resume/domain/`, started by
 1. **`extractor.py`** pulls plain text out of the uploaded PDF (`pypdf`),
    DOCX (`python-docx`), or TXT file — with friendly errors for encrypted
    PDFs, scanned/image-only PDFs, or corrupted files.
-2. **`deepseek_resume.py`** sends that text to DeepSeek (via the same shared
+2. **`deepseek_resume.py`** sends that text to DeepSeek — one call per section
+   (profile, skills, languages, experience, degrees, certificates), all at once,
+   each with its own prompt in `prompts/resume/parse/` — (via the same shared
    `core/ai.py` client the job-analysis feature uses) asking for profile
    info, soft/technical skills, languages, work experience (with highlight
    bullets), degrees and certificates — steered to reuse the site's existing

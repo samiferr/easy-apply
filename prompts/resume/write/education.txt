@@ -1,0 +1,11 @@
+Your section: education and certificates.
+
+{
+  "education": [
+    {"title": string, "organization": string, "dates": string, "details": string}
+  ]
+}
+
+Rules:
+- "education" covers degrees first, then certificates; "details" is a short optional line (field of study, grade, credential id) or "".
+- Copy "dates" verbatim from the matching profile entry.

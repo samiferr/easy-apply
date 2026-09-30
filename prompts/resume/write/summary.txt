@@ -1,0 +1,8 @@
+Your section: the professional summary.
+
+{
+  "professional_summary": string
+}
+
+Rules:
+- "professional_summary" is 2-4 sentences positioning the candidate for THIS job, naming their strongest genuinely-matching qualifications.

@@ -18,6 +18,7 @@ from django.utils.translation import gettext_lazy as _
 
 from core.ai import AIServiceError, call_deepseek_json
 from core.language import language_clause, use_language
+from core.parallel import run_parallel
 from core.prompts import load_prompt
 from core.services import build_resume_snapshot, profile_snapshot_is_empty
 
@@ -54,7 +55,22 @@ SECTION_HEADINGS = {
     LANGUAGES: _("LANGUAGES"),
 }
 
-SYSTEM_PROMPT = load_prompt("resume/write_tailored_resume")
+#: One writer call per resume section: its prompt file and the slices of the
+#: candidate's snapshot it needs. Sections are independent, so they are written
+#: at the same time.
+WRITE_SECTIONS = {
+    "summary": ("contact", "headline", "bio", "experience", "technical_skills", "soft_skills"),
+    "skills": ("technical_skills", "soft_skills"),
+    "experience": ("experience",),
+    "education": ("degrees", "certificates"),
+    "languages": ("languages",),
+}
+_SHARED = load_prompt("resume/write/shared").rstrip("\n")
+SECTION_PROMPTS = {
+    name: f"{_SHARED}\n\n{load_prompt(f'resume/write/{name}')}" for name in WRITE_SECTIONS
+}
+#: Every section prompt, for code that checks them as a whole.
+SYSTEM_PROMPT = "\n\n".join(SECTION_PROMPTS.values())
 
 
 def _clean_str(value, max_length=None) -> str:
@@ -310,18 +326,31 @@ def generate_tailored_resume(job, profile=None) -> dict:
 
     with use_language(profile.language):
         job_payload = build_job_payload(job)
-    payload = json.dumps(
-        {
-            "job": job_payload,
-            "candidate_profile": profile_snapshot,
-            "resume_template": load_template_text(),
-        },
-        # Accented profile content reaches the model as text, not as \uXXXX
-        # escapes — same as the matcher's payload.
-        ensure_ascii=False,
-    )
-    user_content = f"{language_clause(profile.language)}\n\n{payload}"
-    data = call_deepseek_json(SYSTEM_PROMPT, user_content, temperature=0.3)
+    template = load_template_text()
+    clause = language_clause(profile.language)
+
+    def write(name):
+        payload = json.dumps(
+            {
+                "job": job_payload,
+                "candidate_profile": {
+                    key: profile_snapshot[key]
+                    for key in WRITE_SECTIONS[name]
+                    if key in profile_snapshot
+                },
+                "resume_template": template,
+            },
+            # Accented profile content reaches the model as text, not as \uXXXX
+            # escapes — same as the matcher's payload.
+            ensure_ascii=False,
+        )
+        user_content = f"{clause}\n\n{payload}"
+        return lambda: call_deepseek_json(SECTION_PROMPTS[name], user_content, temperature=0.3)
+
+    answers = run_parallel({name: write(name) for name in WRITE_SECTIONS})
+    data = {"_model": next((a["_model"] for a in answers.values() if "_model" in a), "")}
+    for answer in answers.values():
+        data.update({k: v for k, v in answer.items() if k != "_model"})
 
     markdown = render_markdown(profile, data)
     if not markdown.strip():

@@ -1,0 +1,8 @@
+Your section: the skills.
+
+{
+  "skills": [{"group": string, "items": [string]}]
+}
+
+Rules:
+- "skills" groups the candidate's real skills under short headings (e.g. "Programming", "Cloud & DevOps", "Soft skills"), listing first the ones this job asks for. Never add a skill the candidate hasn't recorded.

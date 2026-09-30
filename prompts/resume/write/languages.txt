@@ -1,0 +1,8 @@
+Your section: the spoken languages.
+
+{
+  "languages": [string]
+}
+
+Rules:
+- "languages" is a list of short strings like "French — Native".

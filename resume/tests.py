@@ -221,7 +221,7 @@ class GenerateTailoredResumeTests(TailoredResumeTestMixin, TestCase):
         ) as call:
             result = generate_tailored_resume(self.job)
 
-        call.assert_called_once()
+        self.assertEqual(call.call_count, 5, "one call per resume section")
         tailored_resume = result["tailored_resume"]
         self.assertEqual(tailored_resume.job, self.job)
         self.assertEqual(tailored_resume.ai_model, "deepseek-test")
@@ -409,7 +409,7 @@ class FrenchProfileResumeTests(TailoredResumeTestMixin, TestCase):
         captured = {}
 
         def fake_call(system_prompt, user_content, **kwargs):
-            captured["payload"] = user_content
+            captured["payload"] = captured.get("payload", "") + user_content
             return dict(AI_RESPONSE)
 
         with translation.override("en"), patch(
@@ -427,7 +427,7 @@ class FrenchProfileResumeTests(TailoredResumeTestMixin, TestCase):
         captured = {}
 
         def fake_call(system_prompt, user_content, **kwargs):
-            captured["payload"] = user_content
+            captured["payload"] = captured.get("payload", "") + user_content
             return dict(AI_RESPONSE)
 
         with patch("resume.domain.tailored.call_deepseek_json", side_effect=fake_call):
@@ -648,20 +648,71 @@ class ResumeUploadTests(TempMediaMixin, TestCase):
         task = AITask.latest_for(upload, AITask.RESUME_IMPORT)
         self.assertEqual((task.state, task.steps_total, task.current_step), (AITask.DONE, 2, "Resume ready to review"))
         self.assertEqual(self.imports_used(), 1)
-        self.assertEqual(len(calls), 1)
+        self.assertEqual(len(calls), 6, "one call per resume section")
 
     def test_the_model_is_asked_in_the_profile_language_about_the_existing_categories(self):
         _user, french = make_user_profile("cv-fr@example.com", language="fr")
         self.client.force_login(french.user)
         with fake_deepseek(lambda request: dict(RESUME_REPLY)) as calls:
             self.upload()
-        (call,) = calls
-        self.assertIn("expert resume parser", call.system)
-        self.assertIn("in French", call.user)
-        self.assertIn("--- Resume text ---\n" + RESUME_TEXT, call.user)
+        self.assertEqual(len(calls), 6)
+        for call in calls:
+            self.assertIn("expert resume parser", call.system)
+            self.assertIn("in French", call.user)
+            self.assertIn("--- Resume text ---\n" + RESUME_TEXT, call.user)
+            self.assertEqual(call.temperature, 0.2)
+        # Only the skills worker is told about the existing categories.
+        with_categories = [c for c in calls if "existing" in c.user]
+        self.assertEqual(len(with_categories), 1)
+        self.assertIn('"soft_skills"', with_categories[0].system)
         for category in SkillCategory.objects.all():
-            self.assertIn(category.name, call.user)
-        self.assertEqual(call.temperature, 0.2)
+            self.assertIn(category.name, with_categories[0].user)
+
+    def test_each_worker_is_asked_for_its_own_section_only(self):
+        with fake_deepseek(lambda request: dict(RESUME_REPLY)) as calls:
+            self.upload()
+        asked = sorted(
+            next(k for k in ("profile", "soft_skills", "languages", "experience", "degrees", "certificates")
+                 if f'"{k}"' in c.system)
+            for c in calls
+        )
+        self.assertEqual(asked, sorted(["profile", "soft_skills", "languages", "experience", "degrees", "certificates"]))
+        for c in calls:
+            keys = [k for k in ("profile", "soft_skills", "technical_skills", "languages",
+                                "experience", "degrees", "certificates")
+                    if f'  "{k}":' in c.system]
+            self.assertLessEqual(len(keys), 2, keys)
+
+    def test_the_sections_are_parsed_at_the_same_time(self):
+        import threading
+
+        barrier = threading.Barrier(6, timeout=10)
+
+        def reply(request):
+            barrier.wait()  # breaks unless all six calls are in flight at once
+            return dict(RESUME_REPLY)
+
+        with fake_deepseek(reply):
+            self.upload()
+        upload = ResumeImport.objects.get()
+        self.assertEqual(upload.status, ResumeImport.STATUS_COMPLETED)
+
+    def test_one_failing_section_fails_the_whole_parse(self):
+        def reply(request):
+            return 500 if '"degrees"' in request.system else dict(RESUME_REPLY)
+
+        with fake_deepseek(reply):
+            self.upload()
+        self.assertEqual(ResumeImport.objects.get().status, ResumeImport.STATUS_FAILED)
+
+    def test_the_sections_merge_into_one_answer(self):
+        with fake_deepseek(lambda request: dict(RESUME_REPLY)):
+            self.upload()
+        data = ResumeImport.objects.get().ai_response
+        self.assertEqual(
+            sorted(k for k in data if k != "_model"),
+            sorted(k for k in RESUME_REPLY if k != "_model"),
+        )
 
     def test_the_resume_text_is_truncated_before_it_is_sent(self):
         with fake_deepseek(lambda request: dict(RESUME_REPLY)) as calls:
@@ -1054,19 +1105,48 @@ class TailoredResumeFlowTests(TailoredResumeTestMixin, TestCase):
         task = AITask.latest_for(tailored, AITask.TAILORED_RESUME)
         self.assertEqual((task.state, task.steps_total), (AITask.DONE, 1))
         self.assertEqual(self.resumes_used(), 1)
-        self.assertEqual(len(calls), 1)
+        self.assertEqual(len(calls), 5, "one call per resume section")
 
-    def test_the_writer_gets_the_job_the_whole_profile_and_the_template(self):
-        _response, (call,) = self.generate()
-        self.assertIn("expert resume writer", call.system)
-        self.assertEqual(call.temperature, 0.3)
-        clause, payload = call.user.split("\n\n", 1)
-        self.assertIn("in English", clause)
-        body = json.loads(payload)
-        self.assertEqual(set(body), {"job", "candidate_profile", "resume_template"})
-        self.assertEqual(body["job"]["company"], "Globex")
-        self.assertEqual(body["candidate_profile"]["contact"]["email"], "jane@example.com")
-        self.assertIn("## ", body["resume_template"])
+    def test_each_writer_gets_the_job_and_only_its_slice_of_the_profile(self):
+        _response, calls = self.generate()
+        self.assertEqual(len(calls), 5)
+        slices = {}
+        for call in calls:
+            self.assertIn("expert resume writer", call.system)
+            self.assertEqual(call.temperature, 0.3)
+            clause, payload = call.user.split("\n\n", 1)
+            self.assertIn("in English", clause)
+            body = json.loads(payload)
+            self.assertEqual(set(body), {"job", "candidate_profile", "resume_template"})
+            self.assertEqual(body["job"]["company"], "Globex")
+            self.assertIn("## ", body["resume_template"])
+            key = next(k for k in ("professional_summary", "skills", "experience", "education", "languages")
+                       if f'"{k}":' in call.system)
+            slices[key] = set(body["candidate_profile"])
+        self.assertEqual(slices["experience"], {"experience"})
+        self.assertEqual(slices["languages"], {"languages"})
+        self.assertEqual(slices["education"], {"degrees", "certificates"})
+        self.assertEqual(slices["skills"], {"technical_skills", "soft_skills"})
+        self.assertIn("contact", slices["professional_summary"])
+
+    def test_the_sections_are_written_at_the_same_time(self):
+        import threading
+
+        barrier = threading.Barrier(5, timeout=10)
+
+        def reply(request):
+            barrier.wait()  # breaks unless all five calls are in flight at once
+            return dict(AI_RESPONSE)
+
+        response, _calls = self.generate(reply)
+        self.assertEqual(TailoredResume.objects.get(job=self.job).state, TailoredResume.STATE_COMPLETED)
+
+    def test_one_failing_section_fails_the_draft(self):
+        def reply(request):
+            return 500 if '"education"' in request.system else dict(AI_RESPONSE)
+
+        self.generate(reply)
+        self.assertEqual(TailoredResume.objects.get(job=self.job).state, TailoredResume.STATE_FAILED)
 
     def test_a_job_that_is_not_analysed_yet_is_sent_back(self):
         JobPost.objects.filter(pk=self.job.pk).update(status=JobPost.STATUS_PENDING)
