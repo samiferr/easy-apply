@@ -1,8 +1,8 @@
 {% extends "staffportal/base.html" %}
 {% load staffportal %}
 {% block page_actions %}
-  <a href="?range=7" class="btn-secondary {% if days == 7 %}ring-brand-500{% endif %}">7 days</a>
-  <a href="?range=30" class="btn-secondary {% if days == 30 %}ring-brand-500{% endif %}">30 days</a>
+  <a href="?range=7" class="btn-secondary {% if days == 7 %}ring-primary{% endif %}">7 days</a>
+  <a href="?range=30" class="btn-secondary {% if days == 30 %}ring-primary{% endif %}">30 days</a>
 {% endblock %}
 
 {% block content %}
@@ -13,24 +13,24 @@
   totals and buries the failures is a dashboard nobody reads twice.
   {% endcomment %}
   {% if health_problems or attention.failed_tasks_24h or attention.past_due %}
-  <section class="card border-l-4 border-amber-500 p-5">
+  <section class="card border-l-4 border-tertiary p-5">
     <h2 class="section-title">Needs attention</h2>
     <ul class="mt-3 space-y-2 text-sm">
       {% for check in health_problems %}
         <li class="flex flex-wrap items-baseline gap-2">
           <span class="badge {{ check.status|status_tone }}">{{ check.status }}</span>
-          <span class="font-medium text-slate-900 dark:text-white">{{ check.name }}</span>
+          <span class="font-medium text-on-surface">{{ check.name }}</span>
           <span class="text-muted">{{ check.detail }}</span>
         </li>
       {% endfor %}
       {% if attention.failed_tasks_24h %}
-        <li><a href="{% url 'staffportal:task_list' %}?state=failed" class="font-medium text-brand-700 underline underline-offset-2 dark:text-brand-400">{{ attention.failed_tasks_24h }} AI job(s) failed in the last 24 hours</a></li>
+        <li><a href="{% url 'staffportal:task_list' %}?state=failed" class="font-medium text-primary underline underline-offset-2">{{ attention.failed_tasks_24h }} AI job(s) failed in the last 24 hours</a></li>
       {% endif %}
       {% if attention.past_due %}
-        <li><a href="{% url 'staffportal:subscription_list' %}?status=past_due" class="font-medium text-brand-700 underline underline-offset-2 dark:text-brand-400">{{ attention.past_due }} subscription(s) past due</a></li>
+        <li><a href="{% url 'staffportal:subscription_list' %}?status=past_due" class="font-medium text-primary underline underline-offset-2">{{ attention.past_due }} subscription(s) past due</a></li>
       {% endif %}
     </ul>
-    <a href="{% url 'staffportal:health' %}" class="mt-4 inline-block text-sm font-semibold text-brand-700 dark:text-brand-400">Run every health check →</a>
+    <a href="{% url 'staffportal:health' %}" class="mt-4 inline-block text-sm font-semibold text-primary">Run every health check →</a>
   </section>
   {% endif %}
 
@@ -68,24 +68,24 @@
       <dl class="mt-5 space-y-4">
         <div>
           <div class="flex items-baseline justify-between text-sm">
-            <dt class="font-medium text-slate-900 dark:text-white">Signed up</dt>
+            <dt class="font-medium text-on-surface">Signed up</dt>
             <dd class="tabular-nums text-muted">{{ activation.signed_up }}</dd>
           </div>
-          <div class="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-surface-sunken"><div class="h-full rounded-full bg-brand-600" style="width: 100%"></div></div>
+          <div class="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-surface-container-high"><div class="h-full rounded-full bg-primary" style="width: 100%"></div></div>
         </div>
         <div>
           <div class="flex items-baseline justify-between text-sm">
-            <dt class="font-medium text-slate-900 dark:text-white">Analyzed a job post</dt>
+            <dt class="font-medium text-on-surface">Analyzed a job post</dt>
             <dd class="tabular-nums text-muted">{{ activation.analyzed }} · {{ activation.analyzed_percent }}%</dd>
           </div>
-          <div class="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-surface-sunken"><div class="h-full rounded-full bg-brand-500" style="width: {{ activation.analyzed_percent }}%"></div></div>
+          <div class="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-surface-container-high"><div class="h-full rounded-full bg-primary" style="width: {{ activation.analyzed_percent }}%"></div></div>
         </div>
         <div>
           <div class="flex items-baseline justify-between text-sm">
-            <dt class="font-medium text-slate-900 dark:text-white">Generated a tailored resume</dt>
+            <dt class="font-medium text-on-surface">Generated a tailored resume</dt>
             <dd class="tabular-nums text-muted">{{ activation.generated }} · {{ activation.generated_percent }}%</dd>
           </div>
-          <div class="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-surface-sunken"><div class="h-full rounded-full bg-brand-400" style="width: {{ activation.generated_percent }}%"></div></div>
+          <div class="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-surface-container-high"><div class="h-full rounded-full bg-primary" style="width: {{ activation.generated_percent }}%"></div></div>
         </div>
       </dl>
     </div>
@@ -97,15 +97,15 @@
           {% for row in plans %}
             <li>
               <div class="flex items-baseline justify-between text-sm">
-                <span class="font-medium text-slate-900 dark:text-white">{{ row.name }}</span>
+                <span class="font-medium text-on-surface">{{ row.name }}</span>
                 <span class="tabular-nums text-muted">{{ row.count }} · {{ row.mrr_display }}</span>
               </div>
-              <div class="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-surface-sunken"><div class="h-full rounded-full bg-brand-500" style="width: {{ row.percent }}%"></div></div>
+              <div class="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-surface-container-high"><div class="h-full rounded-full bg-primary" style="width: {{ row.percent }}%"></div></div>
             </li>
           {% endfor %}
         </ul>
       {% else %}
-        <p class="mt-4 text-sm text-muted">No subscriptions yet. Run <code class="rounded bg-surface-sunken px-1.5 py-0.5">manage.py seed_saas</code> to create the starter plans.</p>
+        <p class="mt-4 text-sm text-muted">No subscriptions yet. Run <code class="rounded bg-surface-container-high px-1.5 py-0.5">manage.py seed_saas</code> to create the starter plans.</p>
       {% endif %}
     </div>
   </section>
@@ -142,10 +142,10 @@
   <section class="grid gap-4 lg:grid-cols-2">
     <div class="card p-5">
       <h2 class="section-title">Newest accounts</h2>
-      <ul class="mt-4 divide-y divide-line">
+      <ul class="mt-4 divide-y divide-outline-variant">
         {% for account in recent_signups %}
           <li class="flex items-center justify-between gap-3 py-2.5 text-sm">
-            <a href="{% url 'staffportal:user_detail' account.pk %}" class="min-w-0 truncate font-medium text-brand-700 hover:underline dark:text-brand-400">{{ account.email }}</a>
+            <a href="{% url 'staffportal:user_detail' account.pk %}" class="min-w-0 truncate font-medium text-primary hover:underline">{{ account.email }}</a>
             <span class="shrink-0 text-muted">{{ account.date_joined|timesince }} ago</span>
           </li>
         {% empty %}
@@ -156,11 +156,11 @@
 
     <div class="card p-5">
       <h2 class="section-title">Latest failures</h2>
-      <ul class="mt-4 divide-y divide-line">
+      <ul class="mt-4 divide-y divide-outline-variant">
         {% for task in recent_failures %}
           <li class="py-2.5 text-sm">
             <div class="flex items-center justify-between gap-3">
-              <span class="font-medium text-slate-900 dark:text-white">{{ task.get_kind_display }}</span>
+              <span class="font-medium text-on-surface">{{ task.get_kind_display }}</span>
               <span class="shrink-0 text-muted">{{ task.finished_at|timesince }} ago</span>
             </div>
             <p class="mt-0.5 truncate text-muted">{{ task.user.email }} — {{ task.error_message|default:"no message" }}</p>
@@ -169,12 +169,12 @@
           <li class="py-3 text-sm text-muted">Nothing has failed. Good.</li>
         {% endfor %}
       </ul>
-      <a href="{% url 'staffportal:task_list' %}?state=failed" class="mt-4 inline-block text-sm font-semibold text-brand-700 dark:text-brand-400">Open the queue →</a>
+      <a href="{% url 'staffportal:task_list' %}?state=failed" class="mt-4 inline-block text-sm font-semibold text-primary">Open the queue →</a>
     </div>
   </section>
 
   {% if open_impersonations %}
-  <section class="card border-l-4 border-rose-500 p-5">
+  <section class="card border-l-4 border-error p-5">
     <h2 class="section-title">Impersonation sessions open right now</h2>
     <ul class="mt-3 space-y-1.5 text-sm">
       {% for session in open_impersonations %}

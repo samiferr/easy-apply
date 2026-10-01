@@ -6,7 +6,7 @@ The one form layout every portal add/edit screen uses. Pass `form`,
 <form method="post" class="card max-w-3xl space-y-5 p-6">
   {% csrf_token %}
   {% if form.non_field_errors %}
-    <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950/50 dark:text-rose-300">
+    <div class="rounded-xl border border-error/30 bg-error-container px-4 py-3 text-sm text-on-error-container">
       {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
     </div>
   {% endif %}

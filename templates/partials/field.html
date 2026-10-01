@@ -2,7 +2,7 @@
   {{ field }}
 {% elif field.field.widget.input_type == "checkbox" %}
   <div>
-    <label class="flex items-start gap-2.5 text-sm text-slate-700 dark:text-slate-300">
+    <label class="flex items-start gap-2.5 text-sm text-on-surface-variant">
       {{ field }}
       <span>{{ field.label }}</span>
     </label>
@@ -16,7 +16,7 @@
 {% else %}
   <div>
     <label for="{{ field.id_for_label }}" class="field-label">
-      {{ field.label }}{% if field.field.required %} <span class="text-rose-500">*</span>{% endif %}
+      {{ field.label }}{% if field.field.required %} <span class="text-error">*</span>{% endif %}
     </label>
     {{ field }}
     {% if field.help_text %}

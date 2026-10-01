@@ -12,10 +12,10 @@
       {% for resume in tailored_resumes %}
         <article class="card flex flex-col justify-between gap-4 p-5 sm:flex-row sm:items-center sm:p-6">
           <div class="min-w-0">
-            <h2 class="truncate text-heading-xl font-bold text-slate-900 dark:text-white">
+            <h2 class="truncate text-heading-xl font-bold text-on-surface">
               {{ resume.job.title|default:_("Untitled role") }}
             </h2>
-            <p class="mt-1 truncate text-sm text-slate-600 dark:text-slate-400">
+            <p class="mt-1 truncate text-sm text-on-surface-variant">
               {{ resume.job.company_name|default:"—" }} ·
               {% if resume.generated_at %}
                 {% blocktrans with when=resume.generated_at|timesince %}Generated {{ when }} ago{% endblocktrans %}
@@ -23,7 +23,7 @@
               {% if resume.edited_by_user %} · {% trans "Edited by you" %}{% endif %}
             </p>
             {% if resume.state == "failed" %}
-              <p class="mt-2 text-sm text-rose-600 dark:text-rose-400">{{ resume.error_message }}</p>
+              <p class="mt-2 text-sm text-error">{{ resume.error_message }}</p>
             {% endif %}
           </div>
           <div class="flex shrink-0 flex-wrap gap-2">
@@ -39,7 +39,7 @@
   {% else %}
     <div class="card mt-6 border-dashed py-16 text-center">
       <h2 class="section-title">{% trans "No tailored resumes yet" %}</h2>
-      <p class="mx-auto mt-2 max-w-md text-slate-600 dark:text-slate-400">
+      <p class="mx-auto mt-2 max-w-md text-on-surface-variant">
         {% trans "Analyze a job post, then generate a resume written for it." %}
       </p>
       <a href="{% url 'jobs:list' %}" class="btn-primary mt-6">{% trans "Go to my job posts" %}</a>

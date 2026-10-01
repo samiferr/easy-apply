@@ -17,18 +17,18 @@
     <div class="min-w-[14rem] flex-1">
       <label for="q" class="field-label">Search</label>
       <input type="search" id="q" name="q" value="{{ filters.q }}" placeholder="Email or error text"
-             class="block w-full rounded-lg border border-line-strong bg-surface px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-500 shadow-sm dark:text-slate-100" />
+             class="block w-full rounded-lg border border-outline bg-surface-container-low px-3.5 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant shadow-sm" />
     </div>
     <div>
       <label for="state" class="field-label">State</label>
-      <select id="state" name="state" class="block rounded-lg border border-line-strong bg-surface px-3.5 py-2.5 pr-8 text-sm text-slate-900 shadow-sm dark:text-slate-100">
+      <select id="state" name="state" class="block rounded-lg border border-outline bg-surface-container-low px-3.5 py-2.5 pr-8 text-sm text-on-surface shadow-sm">
         <option value="">Any</option>
         {% for value, label in state_choices %}<option value="{{ value }}" {% if filters.state == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
       </select>
     </div>
     <div>
       <label for="kind" class="field-label">Kind</label>
-      <select id="kind" name="kind" class="block rounded-lg border border-line-strong bg-surface px-3.5 py-2.5 pr-8 text-sm text-slate-900 shadow-sm dark:text-slate-100">
+      <select id="kind" name="kind" class="block rounded-lg border border-outline bg-surface-container-low px-3.5 py-2.5 pr-8 text-sm text-on-surface shadow-sm">
         <option value="">Any</option>
         {% for value, label in kind_choices %}<option value="{{ value }}" {% if filters.kind == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
       </select>
@@ -43,16 +43,16 @@
         {% for task in tasks %}
           <tr>
             <td>
-              <a href="{% url 'staffportal:task_detail' task.pk %}" class="font-medium text-slate-900 hover:underline dark:text-white">{{ task.get_kind_display }}</a>
+              <a href="{% url 'staffportal:task_detail' task.pk %}" class="font-medium text-on-surface hover:underline">{{ task.get_kind_display }}</a>
               <p class="text-muted">#{{ task.pk }} · attempt {{ task.attempts }}</p>
             </td>
-            <td>{% if task.user_id %}<a href="{% url 'staffportal:user_detail' task.user_id %}" class="text-brand-700 hover:underline dark:text-brand-400">{{ task.user.email }}</a>{% else %}—{% endif %}</td>
+            <td>{% if task.user_id %}<a href="{% url 'staffportal:user_detail' task.user_id %}" class="text-primary hover:underline">{{ task.user.email }}</a>{% else %}—{% endif %}</td>
             <td class="min-w-[14rem]">
               <span class="badge {{ task.state|status_tone }}">{{ task.get_state_display }}</span>
               {% if task.looks_stalled %}<span class="badge badge-danger" title="No progress for {{ task.idle_seconds|duration }}">Possibly stuck</span>{% endif %}
               {% if not task.is_terminal or task.state == "done" %}
-                <div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800" role="progressbar" aria-valuemin="0" aria-valuemax="100" {% if not task.is_indeterminate %}aria-valuenow="{{ task.percent }}"{% endif %}>
-                  <div class="h-full rounded-full {% if task.state == 'done' %}bg-emerald-500{% else %}bg-brand-600{% endif %} {% if task.is_indeterminate and not task.is_terminal %}w-1/3 animate-pulse{% endif %}"{% if not task.is_indeterminate or task.is_terminal %} style="width: {{ task.percent }}%"{% endif %}></div>
+                <div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-surface-container-high" role="progressbar" aria-valuemin="0" aria-valuemax="100" {% if not task.is_indeterminate %}aria-valuenow="{{ task.percent }}"{% endif %}>
+                  <div class="h-full rounded-full {% if task.state == 'done' %}bg-secondary{% else %}bg-primary{% endif %} {% if task.is_indeterminate and not task.is_terminal %}w-1/3 animate-pulse{% endif %}"{% if not task.is_indeterminate or task.is_terminal %} style="width: {{ task.percent }}%"{% endif %}></div>
                 </div>
               {% endif %}
               <p class="mt-1 text-muted">
@@ -72,12 +72,12 @@
                     <form method="post" action="{% url 'staffportal:task_retry' task.pk %}">
                       {% csrf_token %}
                       <input type="hidden" name="next" value="{{ request.get_full_path }}" />
-                      <button type="submit" class="text-sm font-semibold text-brand-700 dark:text-brand-400">Retry</button>
+                      <button type="submit" class="text-sm font-semibold text-primary">Retry</button>
                     </form>
                   {% elif not task.is_terminal %}
                     <form method="post" action="{% url 'staffportal:task_cancel' task.pk %}">
                       {% csrf_token %}
-                      <button type="submit" class="text-sm font-semibold text-rose-700 dark:text-rose-400">Cancel</button>
+                      <button type="submit" class="text-sm font-semibold text-on-error-container">Cancel</button>
                     </form>
                   {% endif %}
                 </div>

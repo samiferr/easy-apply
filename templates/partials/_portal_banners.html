@@ -13,7 +13,7 @@ an incident notice.
 {% endcomment %}
 
 {% if is_impersonating %}
-  <div class="sticky top-0 z-[70] bg-rose-600 text-white shadow-lg print:hidden">
+  <div class="sticky top-0 z-[70] bg-error text-on-primary shadow-lg print:hidden">
     <div class="mx-auto flex w-full max-w-shell flex-wrap items-center justify-between gap-3 px-4 py-2.5 text-sm sm:px-6">
       <p class="flex min-w-0 items-center gap-2 font-semibold">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -23,7 +23,7 @@ an incident notice.
       </p>
       <form method="post" action="{% url 'staffportal:impersonate_stop' %}" class="shrink-0">
         {% csrf_token %}
-        <button type="submit" class="rounded-lg bg-white/15 px-3 py-1.5 font-semibold transition hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+        <button type="submit" class="rounded-lg bg-on-primary/15 px-3 py-1.5 font-semibold transition hover:bg-on-primary/25">
           Stop and return to my account
         </button>
       </form>
@@ -35,10 +35,10 @@ an incident notice.
   <div x-data="{ open: {% if announcement.dismissible %}localStorage.getItem('announcement-{{ announcement.pk }}') !== 'dismissed'{% else %}true{% endif %} }"
        x-show="open" x-cloak
        class="print:hidden
-         {% if announcement.level == 'critical' %}bg-rose-600 text-white
-         {% elif announcement.level == 'warning' %}bg-amber-500 text-amber-950
-         {% elif announcement.level == 'success' %}bg-emerald-600 text-white
-         {% else %}bg-slate-900 text-white dark:bg-slate-800{% endif %}"
+         {% if announcement.level == 'critical' %}bg-error text-on-primary
+         {% elif announcement.level == 'warning' %}bg-tertiary text-on-tertiary-container
+         {% elif announcement.level == 'success' %}bg-secondary text-on-primary
+         {% else %}bg-inverse-surface text-on-primary{% endif %}"
        role="status">
     <div class="mx-auto flex w-full max-w-shell flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-sm sm:px-6">
       <span class="font-semibold">{{ announcement.title }}</span>

@@ -9,7 +9,7 @@
 {% block page_title %}{% trans "Your tailored resume" %}{% endblock %}
 {% block page_subtitle %}
   Written for {{ job.title|default:"this role" }}{% if job.company_name %} at {{ job.company_name }}{% endif %} from what you've recorded, and laid out like
-  <code class="rounded bg-slate-100 px-1 py-0.5 font-mono text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300">resume_template.md</code>.
+  <code class="rounded bg-surface-container-high px-1 py-0.5 font-mono text-xs text-on-surface-variant">resume_template.md</code>.
   Edit anything below, then export it as a PDF.
 {% endblock %}
 {% block page_actions %}
@@ -21,9 +21,9 @@
 {% block content %}
 <div class="max-w-4xl">
   {% if tailored_resume.state == "completed" and tailored_resume.error_message %}
-    <p class="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200" role="status">{{ tailored_resume.error_message }}</p>
+    <p class="mb-4 rounded-lg border border-tertiary/30 bg-tertiary-container p-3 text-sm text-on-tertiary-container" role="status">{{ tailored_resume.error_message }}</p>
   {% endif %}
-  <p class="text-xs text-slate-600 dark:text-slate-400">
+  <p class="text-xs text-on-surface-variant">
     {% if tailored_resume.generated_at %}Drafted {{ tailored_resume.generated_at|date:"M j, Y, g:i a" }}{% endif %}
     {% if tailored_resume.edited_by_user %} · edited by you {{ tailored_resume.updated_at|date:"M j, Y, g:i a" }}{% endif %}
   </p>

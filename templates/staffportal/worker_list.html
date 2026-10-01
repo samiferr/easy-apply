@@ -28,10 +28,10 @@
         <tbody>
           {% for run in worker.running %}
             <tr>
-              <td><span class="font-medium text-slate-900 dark:text-white">{{ run.task }}</span><p class="break-all font-mono text-xs text-muted">{{ run.id }}</p></td>
+              <td><span class="font-medium text-on-surface">{{ run.task }}</span><p class="break-all font-mono text-xs text-muted">{{ run.id }}</p></td>
               <td class="tabular-nums">{{ run.seconds|duration }}</td>
               <td class="max-w-xs truncate font-mono text-xs text-muted" title="{{ run.args }}">{{ run.args }}</td>
-              <td>{% if run.ai_task %}<a href="{% url 'staffportal:task_detail' run.ai_task.pk %}" class="text-brand-700 hover:underline dark:text-brand-400">{{ run.ai_task.get_kind_display }} #{{ run.ai_task.pk }}</a><p class="text-muted">{{ run.ai_task.user.email }}</p>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+              <td>{% if run.ai_task %}<a href="{% url 'staffportal:task_detail' run.ai_task.pk %}" class="text-primary hover:underline">{{ run.ai_task.get_kind_display }} #{{ run.ai_task.pk }}</a><p class="text-muted">{{ run.ai_task.user.email }}</p>{% else %}<span class="text-muted">—</span>{% endif %}</td>
             </tr>
           {% empty %}<tr><td colspan="4" class="py-4 text-muted">Idle.</td></tr>{% endfor %}
         </tbody>

@@ -10,16 +10,16 @@
         <tbody>
           {% for member in members %}
             <tr>
-              <td><a href="{% url 'staffportal:user_detail' member.user_id %}" class="font-medium text-brand-700 hover:underline dark:text-brand-400">{{ member.user.email }}</a>{% if member.user.is_superuser %} <span class="badge badge-pending">Superuser</span>{% endif %}</td>
+              <td><a href="{% url 'staffportal:user_detail' member.user_id %}" class="font-medium text-primary hover:underline">{{ member.user.email }}</a>{% if member.user.is_superuser %} <span class="badge badge-pending">Superuser</span>{% endif %}</td>
               <td>{{ member.get_role_display }}</td>
               <td class="text-muted">{{ member.note|default:"—" }}</td>
               <td class="text-muted">{{ member.created_at|date:"Y-m-d" }}{% if member.created_by %} by {{ member.created_by.email }}{% endif %}</td>
               <td class="text-right">
                 <div class="flex justify-end gap-3">
-                  <a href="{% url 'staffportal:team_update' member.pk %}" class="text-sm font-semibold text-brand-700 dark:text-brand-400">Change role</a>
+                  <a href="{% url 'staffportal:team_update' member.pk %}" class="text-sm font-semibold text-primary">Change role</a>
                   <form method="post" action="{% url 'staffportal:team_revoke' member.pk %}">
                     {% csrf_token %}
-                    <button type="submit" class="text-sm font-semibold text-rose-700 dark:text-rose-400">Revoke</button>
+                    <button type="submit" class="text-sm font-semibold text-on-error-container">Revoke</button>
                   </form>
                 </div>
               </td>
@@ -32,15 +32,15 @@
     </div>
 
     {% if unmanaged %}
-      <div class="card border-l-4 border-amber-500 p-5">
+      <div class="card border-l-4 border-tertiary p-5">
         <h2 class="section-title">Staff accounts with no role</h2>
         <p class="mt-1 text-sm text-muted">
-          These have <code class="rounded bg-surface-sunken px-1.5 py-0.5">is_staff</code> set but no row above, so they read as
+          These have <code class="rounded bg-surface-container-high px-1.5 py-0.5">is_staff</code> set but no row above, so they read as
           <strong>viewers</strong> — they can open the portal and read, nothing more. Grant a role, or clear their staff flag.
         </p>
         <ul class="mt-3 space-y-1.5 text-sm">
           {% for account in unmanaged %}
-            <li><a href="{% url 'staffportal:user_detail' account.pk %}" class="text-brand-700 hover:underline dark:text-brand-400">{{ account.email }}</a>{% if account.is_superuser %} — superuser, full access{% endif %}</li>
+            <li><a href="{% url 'staffportal:user_detail' account.pk %}" class="text-primary hover:underline">{{ account.email }}</a>{% if account.is_superuser %} — superuser, full access{% endif %}</li>
           {% endfor %}
         </ul>
       </div>
@@ -51,7 +51,7 @@
       <div class="mt-4 space-y-4">
         {% for role_label, capabilities in role_capabilities %}
           <div>
-            <p class="font-medium text-slate-900 dark:text-white">{{ role_label }}</p>
+            <p class="font-medium text-on-surface">{{ role_label }}</p>
             <ul class="mt-1.5 flex flex-wrap gap-1.5">
               {% for capability in capabilities %}<li><span class="badge badge-none">{{ capability }}</span></li>{% endfor %}
             </ul>

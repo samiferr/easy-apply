@@ -43,10 +43,10 @@ keeps the UI from offering buttons that would 403.
     <!-- Workspaces -->
     <section class="card p-5">
       <h2 class="section-title">Profiles</h2>
-      <ul class="mt-3 divide-y divide-line text-sm">
+      <ul class="mt-3 divide-y divide-outline-variant text-sm">
         {% for profile in profiles %}
           <li class="flex items-center justify-between gap-3 py-2.5">
-            <span class="font-medium text-slate-900 dark:text-white">{{ profile.name }}</span>
+            <span class="font-medium text-on-surface">{{ profile.name }}</span>
             <span class="text-muted">{{ profile.language_label }} · {{ profile.completion_percent }}% complete</span>
           </li>
         {% empty %}<li class="py-3 text-muted">No profiles.</li>{% endfor %}
@@ -100,11 +100,11 @@ keeps the UI from offering buttons that would 403.
           <button type="submit" class="btn-primary">Add note</button>
         </form>
       {% endif %}
-      <ul class="mt-4 divide-y divide-line text-sm">
+      <ul class="mt-4 divide-y divide-outline-variant text-sm">
         {% for note in notes %}
           <li class="py-3">
             <div class="flex items-center justify-between gap-3">
-              <span class="font-medium text-slate-900 dark:text-white">{{ note.author_email|default:"(deleted staff account)" }}</span>
+              <span class="font-medium text-on-surface">{{ note.author_email|default:"(deleted staff account)" }}</span>
               <span class="text-muted">{{ note.created_at|date:"Y-m-d H:i" }}{% if note.pinned %} · pinned{% endif %}</span>
             </div>
             <p class="mt-1 whitespace-pre-line">{{ note.body }}</p>
@@ -116,11 +116,11 @@ keeps the UI from offering buttons that would 403.
     <!-- Audit -->
     <section class="card p-5">
       <h2 class="section-title">What staff did to this account</h2>
-      <ul class="mt-3 divide-y divide-line text-sm">
+      <ul class="mt-3 divide-y divide-outline-variant text-sm">
         {% for entry in audit_entries %}
           <li class="py-2.5">
             <div class="flex flex-wrap items-baseline justify-between gap-2">
-              <span class="font-medium text-slate-900 dark:text-white">{{ entry.action }}</span>
+              <span class="font-medium text-on-surface">{{ entry.action }}</span>
               <span class="text-muted">{{ entry.actor_email|default:"system" }} · {{ entry.created_at|date:"Y-m-d H:i" }}</span>
             </div>
             {% if entry.summary %}<p class="mt-0.5 text-muted">{{ entry.summary }}</p>{% endif %}
@@ -135,7 +135,7 @@ keeps the UI from offering buttons that would 403.
     <section class="card p-5">
       <h2 class="section-title">Subscription</h2>
       {% if subscription %}
-        <p class="mt-3 text-heading-lg font-semibold text-slate-900 dark:text-white">{{ subscription.plan.name }}</p>
+        <p class="mt-3 text-heading-lg font-semibold text-on-surface">{{ subscription.plan.name }}</p>
         <p class="mt-1"><span class="badge {{ subscription.status|status_tone }}">{{ subscription.get_status_display }}</span> <span class="text-sm text-muted">{{ subscription.plan.price_display }}</span></p>
         <dl class="mt-4 space-y-1.5 text-sm">
           <div class="flex justify-between gap-3"><dt class="text-muted">Period</dt><dd class="text-right">{{ subscription.current_period_start|date:"Y-m-d" }} → {{ subscription.current_period_end|date:"Y-m-d" }}</dd></div>
@@ -152,23 +152,23 @@ keeps the UI from offering buttons that would 403.
 
     <section class="card p-5">
       <h2 class="section-title">This period's usage</h2>
-      <p class="mt-1 text-sm text-muted">{% if quotas_enforced %}Limits are enforced.{% else %}Limits are recorded but <strong>not enforced</strong> — turn on <code class="rounded bg-surface-sunken px-1 py-0.5">enforce_quotas</code> in runtime settings.{% endif %}</p>
+      <p class="mt-1 text-sm text-muted">{% if quotas_enforced %}Limits are enforced.{% else %}Limits are recorded but <strong>not enforced</strong> — turn on <code class="rounded bg-surface-container-high px-1 py-0.5">enforce_quotas</code> in runtime settings.{% endif %}</p>
       <ul class="mt-4 space-y-3 text-sm">
         {% for allowance in allowances %}
           <li>
             <div class="flex items-baseline justify-between gap-2">
-              <span class="font-medium text-slate-900 dark:text-white">{{ allowance.label }}</span>
+              <span class="font-medium text-on-surface">{{ allowance.label }}</span>
               <span class="tabular-nums text-muted">{{ allowance.used }}{% if not allowance.unlimited %} / {{ allowance.limit }}{% else %} / ∞{% endif %}</span>
             </div>
             {% if not allowance.unlimited %}
-              <div class="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-surface-sunken">
-                <div class="h-full rounded-full {% if allowance.exhausted %}bg-rose-500{% elif allowance.percent > 80 %}bg-amber-500{% else %}bg-brand-500{% endif %}" style="width: {{ allowance.percent }}%"></div>
+              <div class="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-surface-container-high">
+                <div class="h-full rounded-full {% if allowance.exhausted %}bg-error{% elif allowance.percent > 80 %}bg-tertiary{% else %}bg-primary{% endif %}" style="width: {{ allowance.percent }}%"></div>
               </div>
             {% endif %}
           </li>
         {% endfor %}
-        <li class="flex items-baseline justify-between gap-2 border-t border-line pt-3">
-          <span class="font-medium text-slate-900 dark:text-white">Profiles</span>
+        <li class="flex items-baseline justify-between gap-2 border-t border-outline-variant pt-3">
+          <span class="font-medium text-on-surface">Profiles</span>
           <span class="tabular-nums text-muted">{{ profile_used }}{% if profile_limit %} / {{ profile_limit }}{% else %} / ∞{% endif %}</span>
         </li>
       </ul>
@@ -192,7 +192,7 @@ keeps the UI from offering buttons that would 403.
     {% endif %}
 
     {% if "users.impersonate" in portal_capabilities %}
-    <section class="card border-l-4 border-amber-500 p-5">
+    <section class="card border-l-4 border-tertiary p-5">
       <h2 class="section-title">Sign in as this account</h2>
       {% if can_impersonate %}
         <p class="mt-1 text-sm text-muted">Audited, time-limited, and visible to you as a banner the whole time.</p>
@@ -205,7 +205,7 @@ keeps the UI from offering buttons that would 403.
         <p class="mt-2 text-sm text-muted">{{ impersonate_blocked_reason }}</p>
       {% endif %}
       {% if impersonations %}
-        <ul class="mt-4 space-y-1.5 border-t border-line pt-3 text-xs text-muted">
+        <ul class="mt-4 space-y-1.5 border-t border-outline-variant pt-3 text-xs text-muted">
           {% for session in impersonations %}
             <li>{{ session.actor_email }} · {{ session.started_at|date:"Y-m-d H:i" }} · {{ session.reason }}</li>
           {% endfor %}
@@ -225,7 +225,7 @@ keeps the UI from offering buttons that would 403.
         {% if account.is_active %}
           <form method="post" action="{% url 'staffportal:user_suspend' account.pk %}" class="space-y-2">
             {% csrf_token %}
-            <input type="text" name="reason" placeholder="Reason (audited)" class="block w-full rounded-lg border border-line-strong bg-surface px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-500 dark:text-slate-100" />
+            <input type="text" name="reason" placeholder="Reason (audited)" class="block w-full rounded-lg border border-outline bg-surface-container-low px-3.5 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant" />
             <button type="submit" class="btn-danger w-full">Suspend and end their sessions</button>
           </form>
         {% else %}

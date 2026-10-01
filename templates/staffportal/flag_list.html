@@ -7,8 +7,8 @@
 {% block content %}
 <div class="space-y-4">
   <div class="card p-4 text-sm text-muted">
-    Code checks a flag with <code class="rounded bg-surface-sunken px-1.5 py-0.5">{% templatetag openblock %} feature "key" as on {% templatetag closeblock %}</code>
-    in a template or <code class="rounded bg-surface-sunken px-1.5 py-0.5">flags.is_enabled("key", user)</code> in Python.
+    Code checks a flag with <code class="rounded bg-surface-container-high px-1.5 py-0.5">{% templatetag openblock %} feature "key" as on {% templatetag closeblock %}</code>
+    in a template or <code class="rounded bg-surface-container-high px-1.5 py-0.5">flags.is_enabled("key", user)</code> in Python.
     A key with no row here evaluates to <strong>off</strong>, so deleting a flag retires its feature.
   </div>
 
@@ -19,7 +19,7 @@
         {% for flag in flags %}
           <tr>
             <td>
-              <span class="font-medium text-slate-900 dark:text-white">{{ flag.key }}</span>
+              <span class="font-medium text-on-surface">{{ flag.key }}</span>
               <p class="text-muted">{{ flag.name }}</p>
             </td>
             <td><span class="badge {{ flag.state|status_tone }}">{{ flag.state_summary }}</span></td>
@@ -30,7 +30,7 @@
             <td class="text-muted">{{ flag.updated_at|date:"Y-m-d" }}</td>
             <td class="text-right">
               {% if "flags.manage" in portal_capabilities %}
-                <a href="{% url 'staffportal:flag_update' flag.pk %}" class="text-sm font-semibold text-brand-700 dark:text-brand-400">Edit</a>
+                <a href="{% url 'staffportal:flag_update' flag.pk %}" class="text-sm font-semibold text-primary">Edit</a>
               {% endif %}
             </td>
           </tr>

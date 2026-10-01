@@ -8,25 +8,25 @@
 
 {% block settings_content %}
   <div class="card p-6 sm:p-8">
-    <p class="text-sm text-slate-600 dark:text-slate-400">
+    <p class="text-sm text-on-surface-variant">
       {% blocktrans trimmed %}
         A profile's language is fixed when you create it, and every AI analysis and
         document in it is written in that language.
       {% endblocktrans %}
     </p>
 
-    <ul class="mt-6 divide-y divide-line">
+    <ul class="mt-6 divide-y divide-outline-variant">
       {% for profile in profiles %}
         <li class="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div class="min-w-0">
             <div class="flex flex-wrap items-center gap-2">
-              <p class="truncate font-semibold text-slate-900 dark:text-white">{{ profile.name }}</p>
-              <span class="rounded bg-slate-200 px-1.5 py-0.5 text-[0.7rem] font-semibold uppercase text-slate-700 dark:bg-slate-800 dark:text-slate-300">{{ profile.get_language_display }}</span>
+              <p class="truncate font-semibold text-on-surface">{{ profile.name }}</p>
+              <span class="rounded bg-surface-container-highest px-1.5 py-0.5 text-[0.7rem] font-semibold uppercase text-on-surface-variant">{{ profile.get_language_display }}</span>
               {% if profile.pk == active_profile.pk %}
-                <span class="rounded bg-brand-100 px-1.5 py-0.5 text-[0.7rem] font-semibold uppercase text-brand-800 dark:bg-brand-900 dark:text-brand-300">{% trans "Active" %}</span>
+                <span class="rounded bg-primary-container px-1.5 py-0.5 text-[0.7rem] font-semibold uppercase text-primary">{% trans "Active" %}</span>
               {% endif %}
             </div>
-            <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+            <p class="mt-1 text-sm text-on-surface-variant">
               {% if profile.headline %}{{ profile.headline }} · {% endif %}
               {% blocktrans trimmed with jobs=profile.job_posts.count skills=profile.skills.count %}
                 {{ jobs }} job posts · {{ skills }} skills

@@ -316,167 +316,54 @@ language to match, so a French workspace is never read through an English UI.
 
 ## Design system
 
-Tokens live in `static/src/input.css` as CSS variables and are exposed to
-Tailwind through `tailwind.config.js`, so a component is declared once and both
-themes follow it — no `bg-white dark:bg-slate-900` pair on every element.
+The interface is built on **Tonal**, a Material Design 3–style system: tonal
+colour roles that pair a fill with the text that sits on it, the Roboto type
+scale, soft corners, and state layers instead of hard hover colours. Its brand
+book and tokens live in [`design/tonal/`](design/tonal/README.md) — read that
+before changing how anything looks.
 
-| Token | Light | Dark | Used for |
-| --- | --- | --- | --- |
-| `canvas` | slate-100 | slate-950 | the app background — the sidebar and the content both sit on it |
-| `surface` | white | slate-900 | cards, menus, inputs |
-| `surface-sunken` | slate-100 | slate-800 | wells, progress tracks, code |
-| `line` | slate-200 | slate-800 | decorative rules and dividers |
-| `line-strong` | `#7f8fa5` | `#59687c` | the boundary that *identifies* a form control |
-
-### The shell has no top bar and no dividing rules
-
-The sidebar and the content are one continuous surface. Structure comes from
-spacing, from the cards the content sits in, and from the active nav row's
-tinted pill.
-
-There is **no top bar**: the sidebar is the app's only chrome. Navigation runs
-down the top of the column, and the account block pinned to its foot carries
-what a bar would have — the workspace switcher
-(`partials/profile_switcher.html`) and the user menu
-(`partials/user_menu.html`: personal info, profiles, theme, the FR/EN language
-switcher, the recap export, admin and log out). Both panels open *upwards*, so
-they stay on screen and keep working when the sidebar is collapsed to icons.
-Nothing spans the width of the screen, so a page begins with its own
-breadcrumb.
-
-Layout is a flex row inside a centred `max-w-shell` container, so the sidebar
-is `sticky` rather than `fixed` and the content column needs no matching
-padding. Under `md` the sidebar leaves the flow, becomes a `surface` drawer
-over a scrim, and rejoins the canvas at `md` and up. The drawer's opener is a
-single floating button in the corner — the only chrome that overlays content —
-and `main` carries matching top padding below `md` so nothing starts beneath
-it.
-
-### Every page wears the same header
-
-Breadcrumb, title, subtitle — in that order, in the same place, on every
-screen. It is rendered **once**, in `templates/base_app.html`, and a page only
-fills blocks:
-
-```django
-{% block breadcrumb %}
-  {% url 'jobs:list' as jobs_list_url %}
-  {% include "partials/_crumb.html" with crumb_label=_("Job posts") crumb_url=jobs_list_url only %}
-  {% include "partials/_crumb.html" with crumb_label=_("Analyze a job post") only %}
-{% endblock %}
-{% block page_title %}{% trans "Analyze a job post" %}{% endblock %}
-{% block page_subtitle %}{% trans "Paste the job description…" %}{% endblock %}
-{% block page_actions %}<a href="…" class="btn-primary">…</a>{% endblock %}
+```
+design/tonal/tokens.json     colour roles (light + dark), type, spacing, shape,
+                             elevation, state opacities — the source of truth
+design/tonal/README.md       content fundamentals and visual foundations
+design/tonal/components/     per-component guidelines (button, card, field, ...)
+design/build_tokens.py       tokens.json -> static/src/tokens.css
+static/src/tokens.css        generated CSS variables (:root = light, .dark = dark)
+tailwind.config.js           exposes every colour role as a utility
+static/src/input.css         the component classes (.btn-*, .card, .badge-*, ...)
 ```
 
-| Block | What goes in it |
+Edit a token, then `python design/build_tokens.py && npm run build:css` (the
+compiled `static/dist/output.css` is committed so production needs no Node).
+
+**Colour.** Use roles, never raw palette colours: `bg-primary text-on-primary`,
+`bg-secondary-container text-on-secondary-container`, `text-on-surface`,
+`text-on-surface-variant`, `border-outline`. Every fill has an `on-*` partner for
+the text on it. Both themes live in the variables, so a component is written once
+and follows `.dark` on `<html>` — there are no `dark:` colour pairs. The five
+source colours (`ocean-blue`, `emerald`, `golden-pollen`, `bubblegum-pink`,
+`dark-teal`) are for illustration only; none reaches 4.5:1 for text.
+
+| Role | Used for |
 | --- | --- |
-| `breadcrumb` | the crumbs after "Dashboard", one `partials/_crumb.html` each |
-| `breadcrumb_root` | override only to make the root crumb the current page (the dashboard does) |
-| `page_title` | the `<h1>`, the one on the page |
-| `page_subtitle` | one line saying what the screen is for |
-| `page_actions` | the screen's primary buttons, right-aligned on the title row |
-| `page_title_badge` / `page_meta` | optional extras beside and under the title (a status badge, a link out) |
-| `content` | everything below the header |
+| `primary` | the one main action per view, links, progress |
+| `secondary-container` | tonal buttons, the current navigation item, "strong match" |
+| `tertiary-container` | "partial match", warnings |
+| `error` / `error-container` | errors, failures, destructive actions (always with words or an icon) |
+| `surface`, `surface-container-*` | the page, then cards and menus up the surface ladder |
+| `outline` | borders that identify a control (3:1); `outline-variant` for dividers |
 
-`partials/_crumb.html` takes `crumb_label` and, for an ancestor, `crumb_url`;
-the last crumb has no URL and renders as `aria-current="page"` text. Pass
-`only` so a previous crumb's URL can't leak into the next one, and resolve
-URLs with `{% url … as … %}` first — `{% include %}` arguments take variables,
-not tags.
+**Components.** `.btn-primary` (filled, one per view), `.btn-secondary` (tonal),
+`.btn-danger` (outlined, `error`), `.btn-ghost` (text); `.card` (elevated, level 1);
+`.badge-*` (role pairs); `.nav-side` / `.tab-strip-item` (pills and underline tabs,
+the current one filled with `secondary-container`); form controls use the outlined
+text field (`core/forms.py`). Hover, focus and press are a `currentColor` veil at
+8% / 10% / 10%, and keyboard focus draws a 3px `secondary` ring offset 2px.
 
-Two rules keep the header from moving:
-
-- **Nothing renders above it.** With no top bar, the breadcrumb is the first
-  thing on the page; flash messages sit *below* the header, and anything above
-  the breadcrumb would shift it every time one appeared.
-- **One container, one width.** Every screen lives in `.page-shell`
-  (`max-w-7xl`), so the title starts on the same pixel whether the page is a
-  wide list or a narrow form. A form caps itself with `max-w-2xl` and **no**
-  `mx-auto`, so it stays left-aligned under its own title instead of drifting
-  to the middle of the column.
-
-This replaced a set of per-page `← Back to …` links that each sat in their own
-spot, and per-page containers that ranged from `max-w-lg` to `max-w-7xl` — so
-the title jumped horizontally as you moved between a list, its add form and
-its delete confirmation. Add, edit and delete screens are pages like any
-other, and now say so.
-
-`partials/profile_base.html` and `accounts/settings_base.html` are thin shells
-on top of this: they add a content column and a tab nav respectively, and fill
-the shared crumb their screens have in common. Legal pages are public, so they
-can't extend `base_app.html`; `legal/_legal_base.html` builds the same header
-from the same `.page-shell` / `.page-header` / `.breadcrumb` classes, taking
-its title from `LegalPageView.page_title` so the `<h1>` and the breadcrumb
-cannot disagree. The marketing landing page and the auth cards (log in,
-register, password reset) have no breadcrumb trail to show and keep their own
-centred layouts.
-
-### Contrast is measured, not estimated
-
-Every pair the app actually renders was computed against WCAG 2.2: 4.5:1 for
-body text (1.4.3) and 3:1 for the boundaries that identify controls (1.4.11).
-That moved several defaults:
-
-- `text-slate-400`, the old muted colour, is **2.56:1 on white** — it was never
-  readable in light mode. Muted text is now slate-600 (7.58:1 on a card,
-  6.92:1 on the canvas), one value that is safe on every app surface.
-- Input borders were slate-300, **1.48:1**. `line-strong` is the lightest grey
-  that still clears 3:1 on both surfaces (3.30:1 on white, 3.14:1 on slate-900).
-- Body copy is slate-700 rather than slate-900: 10.4:1 is far past the floor
-  without the halation of maximum contrast.
-
-After a palette edit, re-check by rendering each screen and asserting that no
-sub-4.5:1 foreground is emitted — the values above are all reproducible from
-the sRGB relative-luminance formula in WCAG 2.2.
-
-### Other readability choices
-
-- Long-form copy (`.measure`, `.page-lead`, `.legal-prose`) is capped at 65
-  characters a line.
-- `text-wrap: balance` on headings, `text-wrap: pretty` on paragraphs.
-- Hover-only row controls stay reachable: they reveal on focus as well as
-  hover, and are always visible below `md`, where there is no hover.
-- Collapsing the sidebar keeps every link's accessible name — the labels become
-  `sr-only` rather than `display: none`, which would have left ten unnamed
-  icon links.
-
-### One heading class per context, everywhere
-
-Every screen's `<h1>` uses one of two shared classes rather than a hand-typed
-`text-2xl font-bold ...` that quietly drifts from page to page:
-
-- **`.page-title`** — the heading rendered by the page header above, so it is
-  every screen that has one: dashboard, lists, detail views, add/edit forms,
-  delete confirmations, legal pages, account settings. `heading-2xl`, stepping
-  up to `heading-3xl` at `sm:`. No page writes this tag itself.
-- **`.card-title`** — the heading inside a narrow single-purpose card that has
-  no page header of its own: log in, register, password reset. One size down
-  (`heading-xl`, no responsive step) because the card's own width sets the
-  scale, not the viewport — a responsive bump here would make a short heading
-  look oversized in a `max-w-md` column.
-
-Both are declared once in `static/src/input.css`; no page defines its own
-heading size. Because the header owns the `<h1>`, a screen also cannot end up
-with two of them — `resume_review.html` previously carried a second `<h1>` in
-each of its short-message states, which is the kind of drift the shared header
-exists to catch.
-
-#### Headings sit 30% above the body scale
-
-Every heading size comes from the `heading-*` scale in `tailwind.config.js`,
-which is Tailwind's own scale multiplied by 1.3 — size and leading together,
-so a heading's type block keeps its proportions and a title that wraps to two
-lines does not crowd itself. `heading-2xl` is `text-2xl` × 1.3, and so on down
-the scale.
-
-The ratio is stated once, there, rather than as `text-[1.95rem]` at each call
-site, so changing it again is one edit. **Never hard-code a heading size** in
-`input.css` or a template: reach for a `heading-*` step, and every heading in
-the app moves together. `<h1>`–`<h3>` are all on it — the shared classes
-above, the `legal-prose h2` rule, and the handful of headings that still carry
-their size inline (the landing page, the security tab, section headings inside
-cards).
+**Type.** Roboto, via the `heading-*` steps in `tailwind.config.js`, which are the
+Tonal type scale (title-medium up to display-large). Headlines and titles are
+regular weight; size, not boldness, ranks them. Copy is sentence case, addresses
+the reader as "you", and has no exclamation marks or emoji.
 
 ## Skills: one tab per category
 

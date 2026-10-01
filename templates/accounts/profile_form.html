@@ -32,14 +32,14 @@
     <form method="post" novalidate class="space-y-5">
       {% csrf_token %}
       {% if form.non_field_errors %}
-        <div class="rounded-lg bg-rose-50 p-3 text-sm text-rose-700 dark:bg-rose-950/40 dark:text-rose-300">
+        <div class="rounded-lg bg-error-container p-3 text-sm text-on-error-container">
           {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
         </div>
       {% endif %}
       {% for field in form %}
         {% include "partials/field.html" with field=field %}
       {% endfor %}
-      <div class="flex justify-end gap-2 border-t border-line pt-5">
+      <div class="flex justify-end gap-2 border-t border-outline-variant pt-5">
         <a href="{% url 'accounts:profile_list' %}" class="btn-secondary">{% trans "Cancel" %}</a>
         <button type="submit" class="btn-primary">
           {% if object %}{% trans "Save" %}{% else %}{% trans "Create profile" %}{% endif %}

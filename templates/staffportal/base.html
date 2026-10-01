@@ -21,6 +21,9 @@ design system as the product, so there is one set of components to maintain.
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="noindex, nofollow" />
   <title>{% block title %}{{ page_title|default:"Operator console" }} · {{ SITE_NAME }} staff{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="{% static 'dist/output.css' %}" />
   <script>
     if (localStorage.theme === "dark" || (!("theme" in localStorage) && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
@@ -29,19 +32,19 @@ design system as the product, so there is one set of components to maintain.
   </script>
   {% block extra_head %}{% endblock %}
 </head>
-<body class="min-h-full bg-canvas font-sans" x-data="portalShell()">
-  <a href="#portal-main" class="sr-only focus:not-sr-only focus:absolute focus:z-[60] focus:m-3 focus:rounded-lg focus:bg-brand-600 focus:px-4 focus:py-2 focus:font-semibold focus:text-white">Skip to content</a>
+<body class="min-h-full bg-surface font-sans" x-data="portalShell()">
+  <a href="#portal-main" class="sr-only focus:not-sr-only focus:absolute focus:z-[60] focus:m-3 focus:rounded-lg focus:bg-primary/90 focus:px-4 focus:py-2 focus:font-semibold focus:text-on-primary">Skip to content</a>
 
   <div class="mx-auto flex w-full max-w-shell">
     {% include "staffportal/partials/_sidebar.html" %}
 
     <button type="button" @click="mobileOpen = true" x-show="!mobileOpen"
-      class="fixed left-3 top-3 z-40 flex h-11 w-11 items-center justify-center rounded-xl bg-surface text-slate-700 shadow-card-hover ring-1 ring-slate-900/5 md:hidden dark:text-slate-200 dark:ring-white/10"
+      class="fixed left-3 top-3 z-40 flex h-11 w-11 items-center justify-center rounded-xl bg-surface-container-low text-on-surface-variant shadow-card-hover ring-1 ring-outline-variant/5 md:hidden"
       aria-label="Open navigation" :aria-expanded="mobileOpen" aria-controls="portal-sidebar">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" /></svg>
     </button>
     <div x-show="mobileOpen" x-cloak x-transition.opacity @click="mobileOpen = false"
-         class="fixed inset-0 z-40 bg-slate-950/60 md:hidden" aria-hidden="true"></div>
+         class="fixed inset-0 z-40 bg-scrim/60 md:hidden" aria-hidden="true"></div>
 
     <div class="flex min-h-svh min-w-0 flex-1 flex-col">
       <main id="portal-main" class="flex-1 pt-12 md:pt-0">

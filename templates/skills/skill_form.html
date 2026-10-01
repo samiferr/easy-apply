@@ -26,14 +26,14 @@
     <form method="post" novalidate class="space-y-5">
       {% csrf_token %}
       {% if form.non_field_errors %}
-        <div class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">
+        <div class="rounded-lg border border-error/30 bg-error-container px-4 py-3 text-sm text-on-error-container">
           {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
         </div>
       {% endif %}
       {% include "partials/field.html" with field=form.category %}
       {% include "partials/field.html" with field=form.name %}
       {% include "partials/field.html" with field=form.level %}
-      <div class="flex justify-end gap-3 border-t border-line pt-5">
+      <div class="flex justify-end gap-3 border-t border-outline-variant pt-5">
         <a href="{% url 'skills:list' kind=kind %}" class="btn-secondary">{% trans "Cancel" %}</a>
         <button type="submit" class="btn-primary">{% if object %}Save changes{% else %}Add skill{% endif %}</button>
       </div>

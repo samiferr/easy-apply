@@ -25,7 +25,7 @@
         {% for plan in plans %}
           <tr>
             <td>
-              <span class="font-medium text-slate-900 dark:text-white">{{ plan.name }}</span>
+              <span class="font-medium text-on-surface">{{ plan.name }}</span>
               {% if plan.tagline %}<p class="text-muted">{{ plan.tagline }}</p>{% endif %}
             </td>
             <td class="tabular-nums">{{ plan.price_display }}{% if plan.trial_days %}<p class="text-muted">{{ plan.trial_days }}-day trial</p>{% endif %}</td>
@@ -42,12 +42,12 @@
             </td>
             <td class="text-right">
               {% if "billing.manage" in portal_capabilities %}
-                <a href="{% url 'staffportal:plan_update' plan.pk %}" class="text-sm font-semibold text-brand-700 dark:text-brand-400">Edit</a>
+                <a href="{% url 'staffportal:plan_update' plan.pk %}" class="text-sm font-semibold text-primary">Edit</a>
               {% endif %}
             </td>
           </tr>
         {% empty %}
-          <tr><td colspan="6" class="py-8 text-center text-muted">No plans yet. Run <code class="rounded bg-surface-sunken px-1.5 py-0.5">manage.py seed_saas</code> or add one.</td></tr>
+          <tr><td colspan="6" class="py-8 text-center text-muted">No plans yet. Run <code class="rounded bg-surface-container-high px-1.5 py-0.5">manage.py seed_saas</code> or add one.</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -60,10 +60,10 @@
       {% for row in breakdown %}
         <li>
           <div class="flex items-baseline justify-between text-sm">
-            <span class="font-medium text-slate-900 dark:text-white">{{ row.name }}</span>
+            <span class="font-medium text-on-surface">{{ row.name }}</span>
             <span class="tabular-nums text-muted">{{ row.count }} subscriber{{ row.count|pluralize }} · {{ row.mrr_display }}/mo</span>
           </div>
-          <div class="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-surface-sunken"><div class="h-full rounded-full bg-brand-500" style="width: {{ row.percent }}%"></div></div>
+          <div class="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-surface-container-high"><div class="h-full rounded-full bg-primary" style="width: {{ row.percent }}%"></div></div>
         </li>
       {% endfor %}
     </ul>

@@ -7,8 +7,8 @@
     <tbody>
       {% for session in sessions %}
         <tr>
-          <td class="font-medium text-slate-900 dark:text-white">{{ session.actor_email }}</td>
-          <td>{% if session.target_id %}<a href="{% url 'staffportal:user_detail' session.target_id %}" class="text-brand-700 hover:underline dark:text-brand-400">{{ session.target_email }}</a>{% else %}{{ session.target_email }}{% endif %}</td>
+          <td class="font-medium text-on-surface">{{ session.actor_email }}</td>
+          <td>{% if session.target_id %}<a href="{% url 'staffportal:user_detail' session.target_id %}" class="text-primary hover:underline">{{ session.target_email }}</a>{% else %}{{ session.target_email }}{% endif %}</td>
           <td class="max-w-xs">{{ session.reason }}</td>
           <td>{{ session.started_at|date:"Y-m-d H:i" }}</td>
           <td>
