@@ -227,12 +227,15 @@ The `staffportal` app provides operators, support agents, billing managers, and 
 
 - **Primary Actor:** Support Operator / Admin
 - **Supporting System:** `staffportal.views.operations`, `core.models.AITask`
-- **Implemented by:** `staffportal.services.search_tasks`, `staffportal.services.queue_counts`, `staffportal.services.export_tasks`, `staffportal.services.ai_tasks`, `staffportal.services.retry_task`, `staffportal.services.cancel_task`
+- **Implemented by:** `staffportal.services.search_tasks`, `staffportal.services.queue_counts`, `staffportal.services.task_detail`, `staffportal.services.worker_report`, `staffportal.services.export_tasks`, `staffportal.services.ai_tasks`, `staffportal.services.retry_task`, `staffportal.services.cancel_task`
 - **Objective:** Monitor background AI jobs, detect failing tasks, view error traces, and manually re-dispatch failed tasks.
 
 ### Main Success Scenario
 1. Operator navigates to `/staff/operations/queue/` ([`staffportal:task_list`](file:///home/sami/PycharmProjects/Github/easy-apply/staffportal/urls.py#L65)).
 2. System displays active, completed, and failed `AITask` records with task kind, user, percent completion, step name, error traces, and duration.
+   - Each row shows a progress bar with the step it is on (`3/5 · Matching Languages`), how long it waited in the queue, how long it has been running, and how long since it last made progress; an open job silent for 5 minutes is flagged *Possibly stuck*.
+   - Clicking a job opens `/staff/operations/queue/<pk>/`: progress and timeline, the account, profile and object it is about, the Celery task id, earlier runs for the same object and, for job analysis and matching, the state of every section (each a task of its own). The page refreshes every 5 seconds while the job is open.
+   - `/staff/operations/queue/workers/` asks the Celery workers what each is running right now (task, running time, arguments, the job it belongs to), how many tasks each has reserved and how many messages wait in the broker.
 3. Operator selects a failed task and clicks *"Retry"* (`/staff/operations/queue/<pk>/retry/`):
    - System re-dispatches the appropriate Celery task signature.
    - Resets `state="queued"`, clears `error_message`.

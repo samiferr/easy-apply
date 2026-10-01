@@ -37,6 +37,24 @@ def money(cents) -> str:
 
 
 @register.filter
+def duration(seconds) -> str:
+    """1h 05m / 3m 20s / 45s — for how long something has waited or run."""
+    if seconds is None or seconds == "":
+        return "—"
+    try:
+        seconds = int(seconds)
+    except (TypeError, ValueError):
+        return "—"
+    hours, rest = divmod(seconds, 3600)
+    minutes, secs = divmod(rest, 60)
+    if hours:
+        return f"{hours}h {minutes:02d}m"
+    if minutes:
+        return f"{minutes}m {secs:02d}s"
+    return f"{secs}s"
+
+
+@register.filter
 def status_tone(value: str) -> str:
     """Maps a status string onto the badge palette already in the design system."""
     tones = {

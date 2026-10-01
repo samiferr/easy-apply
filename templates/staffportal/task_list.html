@@ -2,6 +2,7 @@
 {% load staffportal %}
 {% block breadcrumb %}{% include "partials/_crumb.html" with crumb_label="AI queue" only %}{% endblock %}
 {% block page_actions %}
+  <a href="{% url 'staffportal:worker_list' %}" class="btn-secondary">Workers</a>
   <a href="{% url 'staffportal:task_export' %}{% if querystring %}?{{ querystring }}{% endif %}" class="btn-secondary">Export CSV</a>
 {% endblock %}
 {% block content %}
@@ -37,14 +38,32 @@
 
   <div class="card overflow-x-auto p-5">
     <table class="data-table data-table-wide">
-      <thead><tr><th>Job</th><th>Account</th><th>State</th><th>Queued</th><th>Error</th><th></th></tr></thead>
+      <thead><tr><th>Job</th><th>Account</th><th>Progress</th><th>Timing</th><th>Error</th><th></th></tr></thead>
       <tbody>
         {% for task in tasks %}
           <tr>
-            <td><span class="font-medium text-slate-900 dark:text-white">{{ task.get_kind_display }}</span><p class="text-muted">#{{ task.pk }} · attempt {{ task.attempts }}</p></td>
+            <td>
+              <a href="{% url 'staffportal:task_detail' task.pk %}" class="font-medium text-slate-900 hover:underline dark:text-white">{{ task.get_kind_display }}</a>
+              <p class="text-muted">#{{ task.pk }} · attempt {{ task.attempts }}</p>
+            </td>
             <td>{% if task.user_id %}<a href="{% url 'staffportal:user_detail' task.user_id %}" class="text-brand-700 hover:underline dark:text-brand-400">{{ task.user.email }}</a>{% else %}—{% endif %}</td>
-            <td><span class="badge {{ task.state|status_tone }}">{{ task.get_state_display }}</span></td>
-            <td class="text-muted">{{ task.queued_at|date:"Y-m-d H:i" }}</td>
+            <td class="min-w-[14rem]">
+              <span class="badge {{ task.state|status_tone }}">{{ task.get_state_display }}</span>
+              {% if task.looks_stalled %}<span class="badge badge-danger" title="No progress for {{ task.idle_seconds|duration }}">Possibly stuck</span>{% endif %}
+              {% if not task.is_terminal or task.state == "done" %}
+                <div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800" role="progressbar" aria-valuemin="0" aria-valuemax="100" {% if not task.is_indeterminate %}aria-valuenow="{{ task.percent }}"{% endif %}>
+                  <div class="h-full rounded-full {% if task.state == 'done' %}bg-emerald-500{% else %}bg-brand-600{% endif %} {% if task.is_indeterminate and not task.is_terminal %}w-1/3 animate-pulse{% endif %}"{% if not task.is_indeterminate or task.is_terminal %} style="width: {{ task.percent }}%"{% endif %}></div>
+                </div>
+              {% endif %}
+              <p class="mt-1 text-muted">
+                {% if not task.is_indeterminate %}step {{ task.steps_done }}/{{ task.steps_total }}{% if task.current_step %} · {% endif %}{% endif %}{{ task.current_step|default:"" }}
+              </p>
+            </td>
+            <td class="whitespace-nowrap text-muted">
+              <p title="{{ task.queued_at|date:'Y-m-d H:i:s' }}">queued {{ task.queued_at|date:"Y-m-d H:i" }}</p>
+              <p>waited {{ task.wait_seconds|duration }}{% if task.started_at %} · ran {{ task.run_seconds|duration }}{% if not task.is_terminal %} so far{% endif %}{% endif %}</p>
+              {% if not task.is_terminal %}<p>last progress {{ task.idle_seconds|duration }} ago</p>{% endif %}
+            </td>
             <td class="max-w-xs truncate text-muted" title="{{ task.error_message }}">{{ task.error_message|default:"—" }}</td>
             <td class="text-right">
               {% if "operations.manage" in portal_capabilities %}

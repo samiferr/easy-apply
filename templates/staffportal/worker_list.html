@@ -1,0 +1,42 @@
+{% extends "staffportal/base.html" %}
+{% load staffportal %}
+{% block breadcrumb %}
+  {% url 'staffportal:task_list' as task_list_url %}
+  {% include "partials/_crumb.html" with crumb_label="AI queue" crumb_url=task_list_url only %}
+  {% include "partials/_crumb.html" with crumb_label="Workers" only %}
+{% endblock %}
+{% block content %}
+<div class="space-y-4">
+  {% if report.waiting_in_broker is not None %}
+    <div class="grid gap-4 sm:grid-cols-3">
+      {% include "staffportal/partials/_metric.html" with label="Waiting in the broker" value=report.waiting_in_broker hint="Sent, not yet picked up" %}
+    </div>
+  {% endif %}
+
+  {% if not report.available %}
+    <div class="card p-5 text-sm text-muted">{{ report.reason }}</div>
+  {% endif %}
+
+  {% for worker in report.workers %}
+    <section class="card overflow-x-auto p-5">
+      <div class="flex flex-wrap items-baseline justify-between gap-3">
+        <h2 class="section-title font-mono">{{ worker.name }}</h2>
+        <p class="text-sm text-muted">{{ worker.running|length }} running · {{ worker.reserved }} reserved (fetched, not started)</p>
+      </div>
+      <table class="data-table data-table-wide mt-3">
+        <thead><tr><th>Task</th><th>Running for</th><th>Arguments</th><th>Job</th></tr></thead>
+        <tbody>
+          {% for run in worker.running %}
+            <tr>
+              <td><span class="font-medium text-slate-900 dark:text-white">{{ run.task }}</span><p class="break-all font-mono text-xs text-muted">{{ run.id }}</p></td>
+              <td class="tabular-nums">{{ run.seconds|duration }}</td>
+              <td class="max-w-xs truncate font-mono text-xs text-muted" title="{{ run.args }}">{{ run.args }}</td>
+              <td>{% if run.ai_task %}<a href="{% url 'staffportal:task_detail' run.ai_task.pk %}" class="text-brand-700 hover:underline dark:text-brand-400">{{ run.ai_task.get_kind_display }} #{{ run.ai_task.pk }}</a><p class="text-muted">{{ run.ai_task.user.email }}</p>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+            </tr>
+          {% empty %}<tr><td colspan="4" class="py-4 text-muted">Idle.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </section>
+  {% endfor %}
+</div>
+{% endblock %}

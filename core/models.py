@@ -107,6 +107,35 @@ class AITask(models.Model):
     def is_running(self) -> bool:
         return self.state in (self.QUEUED, self.RUNNING)
 
+    # --- Timing ----------------------------------------------------------
+    @property
+    def wait_seconds(self) -> int:
+        """How long it sat in the queue before a worker picked it up — or, while
+        it is still waiting, how long it has been waiting."""
+        end = self.started_at or self.finished_at or timezone.now()
+        return max(0, int((end - self.queued_at).total_seconds()))
+
+    @property
+    def run_seconds(self) -> int | None:
+        """How long a worker has been (or was) on it; None if it never started."""
+        if self.started_at is None:
+            return None
+        end = self.finished_at or timezone.now()
+        return max(0, int((end - self.started_at).total_seconds()))
+
+    @property
+    def idle_seconds(self) -> int:
+        """Time since the record last changed — a live task moves its step or
+        counter every few seconds, so a long silence means a worker that died."""
+        return max(0, int((timezone.now() - self.updated_at).total_seconds()))
+
+    #: Silence after which an open task is shown as "possibly stuck".
+    STALLED_AFTER_SECONDS = 300
+
+    @property
+    def looks_stalled(self) -> bool:
+        return not self.is_terminal and self.idle_seconds >= self.STALLED_AFTER_SECONDS
+
     # --- Transitions -----------------------------------------------------
     def mark_running(self, step: str = "", *, steps_total: int | None = None):
         fields = ["state", "current_step", "attempts", "updated_at"]

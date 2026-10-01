@@ -28,12 +28,13 @@ from django.contrib.auth import get_user_model, logout
 from django.contrib.auth.forms import PasswordResetForm
 from django.db import transaction
 from django.db.models import Count, Q
+from django.urls import reverse
 from django.utils import timezone
 
 from core.exceptions import PreconditionFailed, Refused, ServiceError
 from core.models import AITask
 from jobs.models import JobPost
-from resume.models import TailoredResume
+from resume.models import ResumeImport, TailoredResume
 
 from .domain import (
     access,
@@ -939,6 +940,133 @@ def queue_counts() -> dict:
         "running": AITask.objects.filter(state=AITask.RUNNING).count(),
         "failed": AITask.objects.filter(state=AITask.FAILED).count(),
     }
+
+
+# UC-08.9 — step 2: one job in detail — where it is, how long each phase took,
+# what it is about and, for job analysis and matching, how far every section got
+def task_detail(task: AITask) -> dict:
+    target = task.target
+    sections = []
+    if isinstance(target, JobPost):
+        for section in target.sections.prefetch_related("elements"):
+            rows = list(section.elements.all())
+            sections.append(
+                {
+                    "label": section.label,
+                    "state": section.match_state,
+                    "error": section.match_error,
+                    "matched_at": section.matched_at,
+                    "rows": len(rows),
+                    "evaluated": sum(1 for row in rows if row.match_status),
+                    "matched": section.is_matched_section,
+                }
+            )
+
+    timeline = [("Queued", task.queued_at)]
+    if task.started_at:
+        timeline.append(("A worker picked it up", task.started_at))
+    if not task.is_terminal:
+        timeline.append(("Last progress", task.updated_at))
+    if task.finished_at:
+        timeline.append((task.get_state_display(), task.finished_at))
+
+    url = ""
+    if target is not None and hasattr(target, "get_absolute_url"):
+        url = target.get_absolute_url()
+    elif isinstance(target, ResumeImport):
+        url = reverse("resume:review", args=[target.pk])
+
+    history = AITask.objects.filter(
+        content_type=task.content_type, object_id=task.object_id
+    ).exclude(pk=task.pk).order_by("-queued_at")[:10]
+
+    return {
+        "task": task,
+        "target": target,
+        "target_url": url,
+        "target_state": getattr(target, "status", None) or getattr(target, "state", ""),
+        "sections": sections,
+        "timeline": timeline,
+        "history": history,
+        "stalled_after": AITask.STALLED_AFTER_SECONDS,
+    }
+
+
+#: How long the worker inspection waits for replies.
+WORKER_INSPECT_TIMEOUT = 1.0
+
+
+# UC-08.9 — step 2: what the workers are doing right now
+def worker_report() -> dict:
+    """Ask the Celery workers what they are running and holding, and count what
+    is still waiting in the broker. Never raises: when the answer cannot be had
+    (tasks run inline in development, the broker is down, no worker replied) it
+    says why instead."""
+    if settings.CELERY_TASK_ALWAYS_EAGER:
+        return {
+            "available": False,
+            "reason": "Tasks run inside the web process (eager mode), so there are no workers to inspect.",
+        }
+    try:
+        from config.celery import app
+
+        inspector = app.control.inspect(timeout=WORKER_INSPECT_TIMEOUT)
+        active = inspector.active()
+        # Only worth a second round trip if somebody answered the first.
+        reserved = (inspector.reserved() or {}) if active else {}
+    except Exception as exc:
+        return {"available": False, "reason": f"Could not reach the broker: {exc}"}
+    if not active:
+        return {
+            "available": False,
+            "reason": "No worker answered. Is one running (celery -A config worker)?",
+            "waiting_in_broker": _broker_backlog(),
+        }
+
+    tracked = {
+        task.celery_task_id: task
+        for task in AITask.objects.filter(
+            celery_task_id__in=[
+                running["id"] for running_tasks in active.values() for running in running_tasks
+            ]
+        ).select_related("user")
+    }
+    now = timezone.now().timestamp()
+    workers = []
+    for name, running_tasks in sorted(active.items()):
+        workers.append(
+            {
+                "name": name,
+                "reserved": len(reserved.get(name, [])),
+                "running": [
+                    {
+                        "id": running["id"],
+                        "task": running["name"].rsplit(".", 1)[-1],
+                        "started": running.get("time_start"),
+                        "seconds": (
+                            max(0, int(now - running["time_start"]))
+                            if running.get("time_start")
+                            else None
+                        ),
+                        "args": str(running.get("args", ""))[:120],
+                        "ai_task": tracked.get(running["id"]),
+                    }
+                    for running in running_tasks
+                ],
+            }
+        )
+    return {"available": True, "workers": workers, "waiting_in_broker": _broker_backlog()}
+
+
+def _broker_backlog():
+    """Messages waiting in the broker's default queue, or None if unknown."""
+    try:
+        import redis
+
+        client = redis.Redis.from_url(settings.CELERY_BROKER_URL, socket_connect_timeout=1)
+        return int(client.llen("celery"))
+    except Exception:
+        return None
 
 
 # UC-08.9 — step 4: the queue as a CSV

@@ -49,6 +49,39 @@ class TaskListView(PortalListView):
         return ctx
 
 
+class TaskDetailView(StaffPortalMixin, TemplateView):
+    """One job: progress, timing, what it is about, and what happened to the
+    sections it fans out into."""
+
+    template_name = "staffportal/task_detail.html"
+    required_capability = access.VIEW_OPERATIONS
+    section = "operations"
+
+    def get_page_title(self):
+        return f"{self.task.get_kind_display()} #{self.task.pk}"
+
+    def get_context_data(self, **kwargs):
+        self.task = get_object_or_404(services.ai_tasks().select_related("user", "profile"), pk=self.kwargs["pk"])
+        ctx = super().get_context_data(**kwargs)
+        ctx.update(services.task_detail(self.task))
+        return ctx
+
+
+class WorkerListView(StaffPortalMixin, TemplateView):
+    """What each Celery worker is running right now."""
+
+    template_name = "staffportal/worker_list.html"
+    required_capability = access.VIEW_OPERATIONS
+    section = "operations"
+    page_title = "Workers"
+    page_subtitle = "What the background workers are running right now."
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["report"] = services.worker_report()
+        return ctx
+
+
 class TaskExportView(StaffPortalMixin, View):
     required_capability = access.VIEW_OPERATIONS
     section = "operations"

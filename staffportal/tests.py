@@ -1002,6 +1002,166 @@ class QueueOperationsTests(PortalTestCase):
         self.assertEqual(response.status_code, 403)
 
 
+class QueueDetailTests(PortalTestCase):
+    """UC-08.9: what the queue says about a job that is running."""
+
+    def setUp(self):
+        super().setUp()
+        self.operator = make_staff("admin@example.com", StaffRole.ADMIN)
+        self.customer = make_user("customer@example.com")
+        self.profile = Profile.objects.get(user=self.customer)
+        self.job = JobPost.objects.create(profile=self.profile, title="Backend engineer")
+        self.task = AITask.start_for(
+            self.profile, AITask.JOB_MATCH, self.job, steps_total=4, step="Matching Languages"
+        )
+        self.client.force_login(self.operator)
+
+    def age(self, **fields):
+        AITask.objects.filter(pk=self.task.pk).update(**fields)
+        self.task.refresh_from_db()
+
+    def test_timing_splits_waiting_from_running_and_flags_silence(self):
+        now = timezone.now()
+        self.age(queued_at=now - timedelta(seconds=100), started_at=now - timedelta(seconds=40),
+                 state=AITask.RUNNING, updated_at=now - timedelta(seconds=10))
+        self.assertEqual(self.task.wait_seconds, 60)
+        self.assertEqual(self.task.run_seconds, 40)
+        self.assertEqual(self.task.idle_seconds, 10)
+        self.assertFalse(self.task.looks_stalled)
+
+        self.age(updated_at=now - timedelta(minutes=6))
+        self.assertTrue(self.task.looks_stalled)
+        self.task.mark_done()
+        self.assertFalse(self.task.looks_stalled)
+
+    def test_a_task_that_never_started_has_no_run_time_and_keeps_waiting(self):
+        self.age(queued_at=timezone.now() - timedelta(seconds=30))
+        self.assertIsNone(self.task.run_seconds)
+        self.assertGreaterEqual(self.task.wait_seconds, 30)
+
+    def test_the_list_shows_progress_timing_and_a_stuck_warning(self):
+        self.task.advance("Matching Languages")
+        response = self.client.get(reverse("staffportal:task_list"))
+        self.assertContains(response, "step 1/4")
+        self.assertContains(response, "Matching Languages")
+        self.assertContains(response, "waited")
+        self.assertContains(response, reverse("staffportal:task_detail", args=[self.task.pk]))
+        self.assertNotContains(response, "Possibly stuck")
+
+        self.age(updated_at=timezone.now() - timedelta(minutes=10))
+        self.assertContains(self.client.get(reverse("staffportal:task_list")), "Possibly stuck")
+
+    def test_the_detail_page_names_the_object_the_account_and_every_section(self):
+        analysis = {
+            "title": "Backend engineer",
+            "sections": [{"key": "required_technical_skills", "body": "", "elements": ["Python", "Go"]}],
+        }
+        from jobs.domain.importer import apply_analysis
+
+        apply_analysis(self.job, analysis, "text", language="en")
+        section = self.job.sections.get(key="required_technical_skills")
+        element = section.elements.first()
+        element.match_status = "strong"
+        element.save()
+        section.match_state = "failed"
+        section.match_error = "provider timed out"
+        section.save()
+
+        response = self.client.get(reverse("staffportal:task_detail", args=[self.task.pk]))
+        self.assertContains(response, "customer@example.com")
+        self.assertContains(response, "Backend engineer")
+        self.assertContains(response, "Required Technical Skills")
+        self.assertContains(response, "1/2")
+        self.assertContains(response, "provider timed out")
+        self.assertContains(response, 'http-equiv="refresh"')
+
+    def test_a_finished_job_stops_refreshing_and_lists_earlier_runs(self):
+        earlier = AITask.start_for(self.profile, AITask.JOB_MATCH, self.job)
+        self.task.mark_failed("boom")
+        response = self.client.get(reverse("staffportal:task_detail", args=[self.task.pk]))
+        self.assertNotContains(response, 'http-equiv="refresh"')
+        self.assertContains(response, "boom")
+        self.assertContains(response, reverse("staffportal:task_detail", args=[earlier.pk]))
+
+    def test_a_job_whose_object_is_gone_still_has_a_page(self):
+        self.job.delete()
+        # The task goes with its job (cascade through the generic key is not
+        # defined), so only assert the page copes when the row remains.
+        if AITask.objects.filter(pk=self.task.pk).exists():
+            response = self.client.get(reverse("staffportal:task_detail", args=[self.task.pk]))
+            self.assertContains(response, "deleted")
+
+    def test_the_queue_pages_need_operations_access(self):
+        self.client.logout()
+        customer = make_user("plain@example.com")
+        self.client.force_login(customer)
+        for name, args in (("task_detail", [self.task.pk]), ("worker_list", [])):
+            self.assertEqual(self.client.get(reverse(f"staffportal:{name}", args=args)).status_code, 404)
+
+    def test_workers_cannot_be_inspected_when_tasks_run_inline(self):
+        with self.settings(CELERY_TASK_ALWAYS_EAGER=True):
+            report = services.worker_report()
+        self.assertFalse(report["available"])
+        self.assertIn("eager", report["reason"])
+        response = self.client.get(reverse("staffportal:worker_list"))
+        self.assertContains(response, "no workers to inspect")
+
+    def test_the_worker_report_lists_what_each_worker_is_running(self):
+        self.task.celery_task_id = "root-1"
+        self.task.save()
+        started = timezone.now().timestamp() - 42
+
+        class Inspector:
+            def active(self):
+                return {"worker@a": [{"id": "root-1", "name": "jobs.tasks.match_job_section",
+                                      "args": [7, 1], "time_start": started}], "worker@b": []}
+
+            def reserved(self):
+                return {"worker@a": [{}, {}], "worker@b": []}
+
+        class Control:
+            def inspect(self, timeout):
+                return Inspector()
+
+        with self.settings(CELERY_TASK_ALWAYS_EAGER=False), \
+                patch("config.celery.app.control", Control()), \
+                patch.object(services, "_broker_backlog", return_value=3):
+            report = services.worker_report()
+            response = self.client.get(reverse("staffportal:worker_list"))
+
+        self.assertTrue(report["available"])
+        self.assertEqual(report["waiting_in_broker"], 3)
+        worker_a, worker_b = report["workers"]
+        self.assertEqual((worker_a["name"], worker_a["reserved"]), ("worker@a", 2))
+        run = worker_a["running"][0]
+        self.assertEqual((run["task"], run["ai_task"]), ("match_job_section", self.task))
+        self.assertGreaterEqual(run["seconds"], 42)
+        self.assertEqual(worker_b["running"], [])
+        self.assertContains(response, "match_job_section")
+        self.assertContains(response, "Idle.")
+
+    def test_no_reply_from_any_worker_or_a_dead_broker_is_explained_not_raised(self):
+        class Silent:
+            def active(self):
+                return None
+
+        class Control:
+            def inspect(self, timeout):
+                return Silent()
+
+        with self.settings(CELERY_TASK_ALWAYS_EAGER=False), \
+                patch("config.celery.app.control", Control()), \
+                patch.object(services, "_broker_backlog", return_value=None):
+            self.assertIn("No worker answered", services.worker_report()["reason"])
+
+        class Broken:
+            def inspect(self, timeout):
+                raise OSError("connection refused")
+
+        with self.settings(CELERY_TASK_ALWAYS_EAGER=False), patch("config.celery.app.control", Broken()):
+            self.assertIn("connection refused", services.worker_report()["reason"])
+
+
 class SeedCommandTests(PortalTestCase):
     def test_seeding_is_idempotent_and_back_fills(self):
         from django.core.management import call_command
