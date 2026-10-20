@@ -159,7 +159,10 @@ secret.
 | `DEEPSEEK_API_BASE` | `https://api.deepseek.com` | |
 | `DEEPSEEK_MODEL` | `deepseek-v4-flash` | |
 | `DEEPSEEK_TIMEOUT` | `60` | Seconds |
-| `EMAIL_BACKEND` | console (emails only logged) | `django.core.mail.backends.smtp.EmailBackend` to send password resets for real |
+| `RESEND_API_KEY` | empty | Resend API key (secret). When set, every email (password resets...) goes out through Resend; `DEFAULT_FROM_EMAIL`'s domain must be verified in Resend |
+| `GOOGLE_OAUTH_CLIENT_ID` | empty | Google OAuth client id ("Web application"); shows "Continue with Google" on log-in and sign-up. Authorized redirect URI: `https://<DOMAIN>/accounts/google/callback/` |
+| `GOOGLE_OAUTH_CLIENT_SECRET` | empty | That client's secret (secret) |
+| `EMAIL_BACKEND` | Resend if `RESEND_API_KEY` is set, else console (emails only logged) | `django.core.mail.backends.smtp.EmailBackend` to use SMTP instead |
 | `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_USE_TLS` | empty, `587`, empty, `True` | SMTP settings |
 | `EMAIL_HOST_PASSWORD` | empty | SMTP password (secret) |
 | `DEFAULT_FROM_EMAIL` | `Easy Apply <noreply@easy-apply.app>` | |

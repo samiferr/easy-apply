@@ -1,11 +1,18 @@
 """Profiles as workspaces: creation, language enforcement, switching, isolation."""
 
+import base64
+import json
+import time
+from unittest import mock
+from urllib.parse import parse_qs, urlparse
+
 from django.contrib.auth import get_user_model
 from django.contrib.messages import get_messages
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from accounts.models import Profile
+from accounts.domain import google_oauth
+from accounts.models import GoogleIdentity, Profile
 from accounts.services import ACTIVE_PROFILE_SESSION_KEY
 from education.models import Certificate, Degree
 from experience.models import WorkExperience
@@ -602,3 +609,111 @@ class ProfileSwitchLanguageTests(TestCase):
         self.assertEqual(response.cookies["django_language"].value, "fr")
         self.assertRedirects(response, reverse("core:dashboard"), fetch_redirect_response=False)
         self.assertEqual(flash(response), ["Switched to “Analyste”."])
+
+
+
+def _id_token(**claims):
+    def part(data):
+        return base64.urlsafe_b64encode(json.dumps(data).encode()).rstrip(b"=").decode()
+
+    return f"{part({'alg': 'RS256'})}.{part(claims)}.sig"
+
+
+@override_settings(GOOGLE_OAUTH_CLIENT_ID="client-123", GOOGLE_OAUTH_CLIENT_SECRET="shh")
+class GoogleSignInTests(TestCase):
+    """"Continue with Google": an OIDC code flow with state, nonce and PKCE."""
+
+    def start(self):
+        response = self.client.get(reverse("accounts:google_login"), {"next": "/jobs/"})
+        self.assertEqual(response.status_code, 302)
+        query = parse_qs(urlparse(response["Location"]).query)
+        self.assertEqual(query["client_id"], ["client-123"])
+        self.assertEqual(query["code_challenge_method"], ["S256"])
+        return query["state"][0], query["nonce"][0]
+
+    def finish(self, state, nonce, **claims):
+        base = {
+            "iss": "https://accounts.google.com", "aud": "client-123", "exp": time.time() + 300,
+            "nonce": nonce, "sub": "google-sub-1", "email": "ada@example.com", "email_verified": True,
+            "given_name": "Ada", "family_name": "Lovelace",
+        }
+        base.update(claims)
+        reply = mock.Mock(status_code=200)
+        reply.json.return_value = {"id_token": _id_token(**base)}
+        with mock.patch("accounts.domain.google_oauth.requests.post", return_value=reply) as post:
+            response = self.client.get(reverse("accounts:google_callback"), {"code": "c0de", "state": state})
+        return response, post
+
+    def test_a_new_visitor_gets_an_account_and_is_signed_in(self):
+        state, nonce = self.start()
+        response, post = self.finish(state, nonce)
+        self.assertRedirects(response, "/jobs/", fetch_redirect_response=False)
+        user = User.objects.get(email="ada@example.com")
+        self.assertFalse(user.has_usable_password())
+        self.assertEqual(user.first_name, "Ada")
+        self.assertEqual(GoogleIdentity.objects.get(user=user).sub, "google-sub-1")
+        self.assertTrue(Profile.objects.filter(user=user).exists())
+        self.assertIn("code_verifier", post.call_args.kwargs["data"])
+        self.assertEqual(int(self.client.session["_auth_user_id"]), user.pk)
+
+    def test_an_existing_account_is_linked_by_verified_email(self):
+        existing = User.objects.create_user(email="ada@example.com", password="pw12345678")
+        state, nonce = self.start()
+        self.finish(state, nonce, email="ADA@example.com")
+        self.assertEqual(GoogleIdentity.objects.get(sub="google-sub-1").user, existing)
+        self.assertEqual(User.objects.filter(email__iexact="ada@example.com").count(), 1)
+
+    def test_an_unverified_email_never_claims_an_account(self):
+        User.objects.create_user(email="ada@example.com", password="pw12345678")
+        state, nonce = self.start()
+        response, _ = self.finish(state, nonce, email_verified=False)
+        self.assertRedirects(response, reverse("accounts:login"), fetch_redirect_response=False)
+        self.assertFalse(GoogleIdentity.objects.exists())
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_a_forged_state_a_wrong_nonce_or_another_audience_is_refused(self):
+        for label, kwargs, state_override in (
+            ("state", {}, "forged"),
+            ("nonce", {"nonce": "other"}, None),
+            ("audience", {"aud": "someone-else"}, None),
+            ("issuer", {"iss": "https://evil.example"}, None),
+            ("expiry", {"exp": time.time() - 1}, None),
+        ):
+            with self.subTest(label):
+                state, nonce = self.start()
+                response, _ = self.finish(state_override or state, kwargs.pop("nonce", nonce), **kwargs)
+                self.assertRedirects(response, reverse("accounts:login"), fetch_redirect_response=False)
+                self.assertNotIn("_auth_user_id", self.client.session)
+        self.assertFalse(User.objects.filter(email="ada@example.com").exists())
+
+    def test_a_state_cannot_be_replayed(self):
+        state, nonce = self.start()
+        self.finish(state, nonce)
+        self.client.logout()
+        response, _ = self.finish(state, nonce)
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_a_suspended_account_stays_out(self):
+        user = User.objects.create_user(email="ada@example.com", password="pw12345678", is_active=False)
+        GoogleIdentity.objects.create(user=user, sub="google-sub-1", email=user.email)
+        state, nonce = self.start()
+        self.finish(state, nonce)
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_an_offsite_next_is_dropped(self):
+        response = self.client.get(reverse("accounts:google_login"), {"next": "https://evil.example/"})
+        self.assertEqual(self.client.session[google_oauth.SESSION_KEY]["next"], "")
+
+    def test_the_button_shows_only_when_configured(self):
+        self.assertContains(self.client.get(reverse("accounts:login")), "Continue with Google")
+        with override_settings(GOOGLE_OAUTH_CLIENT_ID=""):
+            self.assertNotContains(self.client.get(reverse("accounts:login")), "Continue with Google")
+            self.assertEqual(self.client.get(reverse("accounts:google_login")).status_code, 404)
+
+    def test_a_google_only_account_sets_a_password_rather_than_changing_one(self):
+        state, nonce = self.start()
+        self.finish(state, nonce)
+        body = self.client.get(reverse("accounts:security")).content.decode()
+        self.assertIn("Set a password", body)
+        self.assertNotIn('name="old_password"', body)
+        self.assertIn('name="email"', body)  # account deletion confirms by email

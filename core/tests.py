@@ -34,7 +34,7 @@ from core.services import (
     recap_filename,
 )
 from core.tasks import is_retryable
-from core.testing import fake_deepseek
+from core.testing import fake_deepseek, pin_language
 from jobs.domain.importer import apply_analysis
 from jobs.models import JobPost
 from resume.models import TailoredResume
@@ -855,6 +855,9 @@ class ProfileSnapshotTests(TestCase):
     """The tailored-resume path legitimately gets everything."""
 
     def setUp(self):
+        # Calls the snapshot code directly, so it must not inherit a language
+        # an earlier test left active (core.testing.pin_language).
+        pin_language(self)
         self.profile = make_rich_profile()
 
     def test_the_profile_snapshot_gathers_every_recorded_part(self):
@@ -1549,3 +1552,44 @@ class DataTableTests(TestCase):
         body = self.client.get(reverse("core:dashboard")).content.decode()
         sidebar = body.split('id="app-sidebar"', 1)[1]
         self.assertLess(sidebar.index('id="profile-switcher-panel"'), sidebar.index('aria-label="Main navigation"'))
+
+
+@override_settings(RESEND_API_KEY="re_test", EMAIL_BACKEND="core.mail.ResendEmailBackend", DEFAULT_FROM_EMAIL="Easy Apply <hi@example.com>")
+class ResendEmailBackendTests(SimpleTestCase):
+    """Mail goes to Resend's HTTP API; failures are loud unless asked not to be."""
+
+    def send(self, status=200, **kwargs):
+        from unittest import mock
+
+        from django.core.mail import EmailMultiAlternatives
+
+        message = EmailMultiAlternatives("Reset", "Plain body", to=["ada@example.com"], reply_to=["help@example.com"])
+        message.attach_alternative("<p>HTML body</p>", "text/html")
+        message.attach("notes.txt", "hello", "text/plain")
+        reply = mock.Mock(status_code=status, text="nope")
+        with mock.patch("core.mail.requests.Session.post", return_value=reply) as post:
+            sent = message.send(**kwargs)
+        return sent, post
+
+    def test_a_message_becomes_one_api_call(self):
+        sent, post = self.send()
+        self.assertEqual(sent, 1)
+        payload = post.call_args.kwargs["json"]
+        self.assertEqual(payload["from"], "Easy Apply <hi@example.com>")
+        self.assertEqual(payload["to"], ["ada@example.com"])
+        self.assertEqual(payload["text"], "Plain body")
+        self.assertEqual(payload["html"], "<p>HTML body</p>")
+        self.assertEqual(payload["reply_to"], ["help@example.com"])
+        self.assertEqual(payload["attachments"][0]["filename"], "notes.txt")
+        self.assertEqual(post.call_args.args[0], settings.RESEND_API_URL)
+
+    def test_a_refusal_raises_unless_silent(self):
+        with self.assertRaises(RuntimeError):
+            self.send(status=422)
+        sent, _ = self.send(status=422, fail_silently=True)
+        self.assertEqual(sent, 0)
+
+    def test_the_key_selects_resend_by_default(self):
+        from staffportal.domain import health
+
+        self.assertEqual(health._email().status, health.OK)

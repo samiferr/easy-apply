@@ -131,3 +131,22 @@ class Profile(models.Model):
         ]
         filled = sum(1 for f in fields if f)
         return round((filled / len(fields)) * 100)
+
+
+class GoogleIdentity(models.Model):
+    """The Google account a user signs in with.
+
+    Keyed on Google's `sub` — the stable, never-reassigned account id — rather
+    than the email address, which a Google user can change. The email is kept
+    only to show which Google account is linked.
+    """
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="google_identity"
+    )
+    sub = models.CharField(max_length=255, unique=True)
+    email = models.EmailField()
+    linked_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.email} (Google)"

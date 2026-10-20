@@ -207,9 +207,17 @@ LOGOUT_REDIRECT_URL = "core:home"
 
 # Email (defaults to console backend for local development)
 
-EMAIL_BACKEND = config(
-    "EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend"
+# Email. With RESEND_API_KEY set, mail goes out through Resend's HTTP API
+# (core/mail.py) unless EMAIL_BACKEND names another backend; without it, the
+# console backend prints mail for local development. SMTP stays available by
+# setting EMAIL_BACKEND and the EMAIL_HOST* values.
+RESEND_API_KEY = config("RESEND_API_KEY", default="")
+RESEND_API_URL = config("RESEND_API_URL", default="https://api.resend.com/emails")
+# `or`: an `EMAIL_BACKEND=` line left empty in .env means "the default" too.
+EMAIL_BACKEND = config("EMAIL_BACKEND", default="") or (
+    "core.mail.ResendEmailBackend" if RESEND_API_KEY else "django.core.mail.backends.console.EmailBackend"
 )
+EMAIL_TIMEOUT = config("EMAIL_TIMEOUT", default=10, cast=int)
 EMAIL_HOST = config("EMAIL_HOST", default="")
 EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
 EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
@@ -223,6 +231,13 @@ DEFAULT_FROM_EMAIL = config(
 PASSWORD_RESET_TIMEOUT = 60 * 60 * 24 * 3
 
 SITE_NAME = "Easy Apply"
+
+# "Continue with Google" (accounts/domain/google_oauth.py). Create an OAuth
+# client of type "Web application" in Google Cloud Console and register
+# https://<your domain>/accounts/google/callback/ as an authorized redirect URI.
+# Leave both empty to hide the button.
+GOOGLE_OAUTH_CLIENT_ID = config("GOOGLE_OAUTH_CLIENT_ID", default="")
+GOOGLE_OAUTH_CLIENT_SECRET = config("GOOGLE_OAUTH_CLIENT_SECRET", default="")
 
 # --- Staff portal ---------------------------------------------------------
 # Only set this to True when a reverse proxy in front of the app *overwrites*

@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth.forms import PasswordChangeForm, SetPasswordForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import (
     LoginView,
@@ -10,7 +10,7 @@ from django.contrib.auth.views import (
     PasswordResetDoneView,
     PasswordResetView,
 )
-from django.http import HttpResponseRedirect
+from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -18,10 +18,11 @@ from django.utils.translation import gettext as _
 from django.views import View
 from django.views.generic import CreateView, ListView, TemplateView, UpdateView
 
-from core.exceptions import Blocked, Refused
+from core.exceptions import Blocked, Refused, ServiceError
 from core.forms import TEXT_INPUT_CLASSES
 
 from . import services
+from .domain import google_oauth
 from .forms import (
     AccountDeleteForm,
     EmailAuthenticationForm,
@@ -74,6 +75,42 @@ class EmailLoginView(LoginView):
         return response
 
 
+class GoogleLoginView(View):
+    """Send the visitor to Google's account chooser (UC-01.2, Google flow)."""
+
+    def get(self, request):
+        if not google_oauth.is_configured():
+            raise Http404
+        next_url = request.GET.get("next", "")
+        if not url_has_allowed_host_and_scheme(next_url, {request.get_host()}, require_https=request.is_secure()):
+            next_url = ""
+        redirect_uri = request.build_absolute_uri(reverse("accounts:google_callback"))
+        return redirect(google_oauth.authorization_url(request, redirect_uri, next_url))
+
+
+class GoogleCallbackView(View):
+    """Google sends the visitor back here with a one-time code."""
+
+    def get(self, request):
+        if not google_oauth.is_configured():
+            raise Http404
+        if request.GET.get("error"):
+            # The visitor pressed "Cancel" at Google: nothing went wrong.
+            request.session.pop(google_oauth.SESSION_KEY, None)
+            messages.info(request, _("Google sign-in was cancelled."))
+            return redirect("accounts:login")
+        redirect_uri = request.build_absolute_uri(reverse("accounts:google_callback"))
+        try:
+            claims, next_url = google_oauth.exchange_code(
+                request, request.GET.get("code", ""), request.GET.get("state", ""), redirect_uri
+            )
+            services.sign_in_with_google(request, claims)
+        except ServiceError as error:
+            messages.error(request, str(error))
+            return redirect("accounts:login")
+        return redirect(next_url or settings.LOGIN_REDIRECT_URL)
+
+
 @login_required
 def logout_confirm_view(request):
     """Simple GET confirmation page; the actual logout happens via POST."""
@@ -107,7 +144,10 @@ class SecurityView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["password_form"] = kwargs.get("password_form") or PasswordChangeForm(self.request.user)
+        password_form = kwargs.get("password_form") or self._password_form_class()(self.request.user)
+        for field in password_form.fields.values():
+            field.widget.attrs.setdefault("class", TEXT_INPUT_CLASSES)
+        ctx["password_form"] = password_form
         ctx["delete_form"] = kwargs.get("delete_form") or AccountDeleteForm(user=self.request.user)
         return ctx
 
@@ -118,8 +158,13 @@ class SecurityView(LoginRequiredMixin, TemplateView):
             return self._handle_account_delete(request)
         return redirect("accounts:security")
 
+    def _password_form_class(self):
+        # Google sign-in accounts start without a password: they *set* one
+        # (no "current password" to ask for) and can then sign in either way.
+        return PasswordChangeForm if self.request.user.has_usable_password() else SetPasswordForm
+
     def _handle_password_change(self, request):
-        form = PasswordChangeForm(request.user, request.POST)
+        form = self._password_form_class()(request.user, request.POST)
         # Django's own form, so it gets the shared widget styling here rather
         # than a second copy of the class list that can drift out of step.
         for field in form.fields.values():

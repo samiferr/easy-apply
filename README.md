@@ -68,10 +68,11 @@ call made inside it.
   expiration tracking).
 - **One-click Markdown recap** — preview it in the browser, copy it to the
   clipboard, or download it as a `.md` file, generated live from your data.
-- **Full account system**: registration, login/logout, email-based password
-  reset & recovery, profile editing (with avatar upload), a security page
-  (change password, delete account), all built on Django's auth framework
-  with a custom email-based user model.
+- **Full account system**: registration, login/logout, **"Continue with
+  Google"**, email-based password reset & recovery (sent through **Resend**),
+  profile editing (with avatar upload), a security page (change or set a
+  password, delete account), all built on Django's auth framework with a
+  custom email-based user model.
 - **Responsive, accessible UI** on the Lumen design system, built with
   Tailwind CSS and Alpine.js: light and dark themes, a side navigation that
   becomes a modal drawer on phones, labelled 40px fields and buttons, inline
@@ -622,10 +623,41 @@ one workspace never touches another.
 
 `/accounts/password-reset/` sends a signed, expiring link (3 days) to the
 account's email address to set a new password — this covers both "I forgot
-my password" and "I need to recover access to my account". In development,
-`EMAIL_BACKEND` defaults to the console backend, so reset links are printed
-to the terminal instead of actually being emailed. Configure `EMAIL_*` in
-`.env` to send real emails in production.
+my password" and "I need to recover access to my account".
+
+**Sending email.** Set `RESEND_API_KEY` and every email goes out through
+[Resend](https://resend.com)'s HTTP API (`core/mail.py`, a Django email
+backend); `DEFAULT_FROM_EMAIL`'s domain must be verified in Resend. Without a
+key, `EMAIL_BACKEND` defaults to the console backend and reset links are
+printed to the terminal. SMTP still works by setting `EMAIL_BACKEND` and
+`EMAIL_*`. The staff portal's health screen reports which one is in use.
+
+## Signing in with Google
+
+Set `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` (a Google Cloud
+OAuth client of type "Web application", with
+`https://<your domain>/accounts/google/callback/` as an authorized redirect
+URI) and "Continue with Google" appears on the log-in and sign-up pages.
+
+It is the OpenID Connect authorization-code flow with `state`, `nonce` and
+PKCE, implemented in `accounts/domain/google_oauth.py` with `requests` (no
+extra dependency). The ID token is taken straight from Google's token
+endpoint over TLS, and its issuer, audience, expiry and nonce are checked.
+`accounts.services.sign_in_with_google` then decides who that is:
+
+1. a Google account already linked (`GoogleIdentity`, keyed on Google's stable
+   `sub`) signs straight in;
+2. otherwise an account with the same email is linked — only if Google says
+   the address is verified;
+3. otherwise a new account is created, if sign-ups are open, with no password
+   and a first profile in the language the visitor is reading the site in.
+
+Suspended accounts stay out. A Google-only account can later *set* a password
+on the security page, and confirms account deletion by typing its email.
+
+In production all three keys come from GitHub Actions secrets
+(`RESEND_API_KEY`, `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`) via
+`.github/workflows/deploy.yml` and `deploy/deploy.sh` — see `deploy/README.md`.
 
 ## The operator console (`/staff/`)
 
