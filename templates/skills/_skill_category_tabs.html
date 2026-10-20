@@ -47,7 +47,7 @@ tab's count follows the matches — see static/js/data-table.js.
     }"
   >
     {% include "partials/_table_search.html" with label=_("Search skills") controls="skill-panels" %}
-    <div class="tab-strip" role="tablist" aria-label="{% trans 'Skill categories' %}"
+    <div class="tab-strip" role="tablist" aria-label="{% trans 'Skill categories' %}" aria-orientation="horizontal"
          @keydown.right.prevent="move(1)" @keydown.left.prevent="move(-1)"
          @keydown.home.prevent="select(tabs[0], true)"
          @keydown.end.prevent="select(tabs[tabs.length - 1], true)">
@@ -61,8 +61,8 @@ tab's count follows the matches — see static/js/data-table.js.
           :aria-selected="active === 'category-{{ category.pk }}' ? 'true' : 'false'"
           :tabindex="active === 'category-{{ category.pk }}' ? 0 : -1"
           @click="select('category-{{ category.pk }}')">
-          <span class="truncate">{% if category.icon %}{{ category.icon }} {% endif %}{{ category.name }}</span>
-          <span class="tab-count" data-count-for="panel-category-{{ category.pk }}">{{ skills|length }}</span>
+          {% comment %}No category emoji: Lumen copy has none, and an emoji would read out before the name.{% endcomment %}
+          <span class="tab-label">{{ category.name }}<span class="tab-count" data-count-for="panel-category-{{ category.pk }}">{{ skills|length }}</span></span>
         </button>
       {% endfor %}
     </div>

@@ -22,29 +22,36 @@ The panel opens downwards and spans the column.
   </button>
 
   <div x-show="open" x-transition x-cloak
-    id="profile-switcher-panel" class="surface-menu absolute left-0 right-0 top-full z-50 mt-spacing-100 origin-top divide-y divide-border-subtle">
-    <div class="px-spacing-200 py-spacing-100">
+    id="profile-switcher-panel" class="surface-menu absolute left-0 top-full z-50 mt-spacing-100 w-[18rem] max-w-[calc(100vw-2rem)] origin-top divide-y divide-border-subtle">
+    <div class="flex items-start gap-spacing-200 px-spacing-200 py-spacing-100">
+      {% icon "users" size="s" class="mt-0.5 shrink-0 text-content-subdued" %}
+      <div>
       <p class="text-title-s text-content-heading">{% trans "Profiles" %}</p>
       <p class="mt-1 text-xs text-muted">{% trans "Each profile keeps its own jobs, skills and resumes." %}</p>
+      </div>
     </div>
-    <div class="max-h-72 overflow-y-auto py-1">
+    <div class="max-h-72 overflow-y-auto py-spacing-50">
       {% for profile in user_profiles %}
         <form method="post" action="{% url 'accounts:profile_switch' profile.pk %}">
           {% csrf_token %}
           <input type="hidden" name="next" value="{{ request.get_full_path }}" />
           <button type="submit"
-            class="menu-item flex w-full items-center justify-between gap-2 {% if profile.pk == active_profile.pk %}font-bold text-content-heading{% endif %}"
+            class="menu-item rounded-corner-radius-300 {% if profile.pk == active_profile.pk %}font-bold text-content-heading{% endif %}"
             {% if profile.pk == active_profile.pk %}aria-current="true"{% endif %}>
+            {% icon "folder" size="s" class="shrink-0 text-content-subdued" %}
             <span class="min-w-0 flex-1 truncate">{{ profile.name }}</span>
-            {% if profile.pk == active_profile.pk %}{% icon "check" size="s" class="shrink-0 text-accent-content" %}{% endif %}
-            <span class="shrink-0 rounded-corner-radius-100 bg-fill-neutral-hover px-1.5 py-0.5 text-detail-xs font-bold uppercase text-content-subdued">{{ profile.language }}</span>
+            <span class="inline-flex shrink-0 items-center gap-spacing-50 rounded-corner-radius-100 bg-fill-neutral-hover px-1.5 py-0.5 text-detail-xs font-bold uppercase text-content-subdued" title="{{ profile.get_language_display }}">
+              {% icon "globe" size=12 class="shrink-0" %}{{ profile.language }}<span class="sr-only"> — {{ profile.get_language_display }}</span>
+            </span>
+            {% comment %}A fixed slot, so names line up whether or not the row is the current one.{% endcomment %}
+            <span class="flex w-4 shrink-0 justify-center">{% if profile.pk == active_profile.pk %}{% icon "check" size="s" class="text-accent-content" %}{% endif %}</span>
           </button>
         </form>
       {% endfor %}
     </div>
-    <div class="py-1">
-      <a href="{% url 'accounts:profile_create' %}" class="menu-item">{% trans "New profile…" %}</a>
-      <a href="{% url 'accounts:profile_list' %}" class="menu-item">{% trans "Manage profiles" %}</a>
+    <div class="py-spacing-50">
+      <a href="{% url 'accounts:profile_create' %}" class="menu-item rounded-corner-radius-300">{% icon "add" size="s" class="shrink-0 text-content-subdued" %}{% trans "New profile…" %}</a>
+      <a href="{% url 'accounts:profile_list' %}" class="menu-item rounded-corner-radius-300">{% icon "sliders" size="s" class="shrink-0 text-content-subdued" %}{% trans "Manage profiles" %}</a>
     </div>
   </div>
 </div>

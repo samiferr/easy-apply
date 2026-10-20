@@ -21,16 +21,17 @@ is here so it is written once.
 
 {% block content %}
 <div class="max-w-5xl">
-  <div class="grid grid-cols-1 gap-8 md:grid-cols-4">
-    <nav class="flex gap-1 overflow-x-auto md:col-span-1 md:flex-col">
-      <a href="{% url 'accounts:profile' %}" class="nav-link whitespace-nowrap {% if request.resolver_match.url_name == 'profile' %}nav-link-active{% endif %}">{% trans "Personal info" %}</a>
-      <a href="{% url 'accounts:profile_list' %}" class="nav-link whitespace-nowrap {% if active_tab == 'profiles' %}nav-link-active{% endif %}">{% trans "Profiles" %}</a>
-      <a href="{% url 'accounts:security' %}" class="nav-link whitespace-nowrap {% if request.resolver_match.url_name == 'security' %}nav-link-active{% endif %}">{% trans "Security" %}</a>
-      <a href="{% url 'core:export_preview' %}" class="nav-link whitespace-nowrap">{% trans "Export recap" %}</a>
-    </nav>
-    <div class="md:col-span-3">
-      {% block settings_content %}{% endblock %}
-    </div>
-  </div>
+  {% comment %}
+  Lumen tabs between the account's peer pages (links, so each page keeps its
+  own URL). "Export recap" is not one of them — it lives in the user menu.
+  {% endcomment %}
+  {% with url_name=request.resolver_match.url_name %}
+  <nav class="tab-strip mb-spacing-400" aria-label="{% trans 'Account settings' %}">
+    <a href="{% url 'accounts:profile' %}" class="tab-strip-item{% if url_name == 'profile' %} tab-strip-item-active{% endif %}"{% if url_name == 'profile' %} aria-current="page"{% endif %}><span class="tab-label">{% trans "Personal info" %}</span></a>
+    <a href="{% url 'accounts:profile_list' %}" class="tab-strip-item{% if active_tab == 'profiles' %} tab-strip-item-active{% endif %}"{% if active_tab == 'profiles' %} aria-current="page"{% endif %}><span class="tab-label">{% trans "Profiles" %}</span></a>
+    <a href="{% url 'accounts:security' %}" class="tab-strip-item{% if url_name == 'security' %} tab-strip-item-active{% endif %}"{% if url_name == 'security' %} aria-current="page"{% endif %}><span class="tab-label">{% trans "Security" %}</span></a>
+  </nav>
+  {% endwith %}
+  {% block settings_content %}{% endblock %}
 </div>
 {% endblock %}

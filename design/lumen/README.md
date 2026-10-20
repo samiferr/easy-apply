@@ -58,11 +58,14 @@ departure is listed here and next to the code that implements it.
 | Default control height 32px | Buttons and fields 40px (`btn-sm` is the 32px desktop size) | Lumen's touch scale; well clear of SC 2.5.8's 24px minimum |
 | Checkbox 16px | 20px, label clickable | Larger target for the same visual weight |
 | Accent text on `*-subtle` tints | Never: text on tints stays `content-default` / `content-heading` | `accent-content` on `informative-subtle` and `negative-content` on `negative-subtle` measure 4.2:1 in light |
+| Tabs: emphasized is an option | App tabs are always emphasized (accent label and indicator) | One consistent "you are here" cue across skill categories, job sections, settings and the portal |
 | (not specified) | Flash messages stay until dismissed | SC 2.2.1: no message disappears on a timer |
 | (not specified) | Off-canvas navigation is `invisible` when closed and focus moves into it on open | Hidden links must not be in the tab order |
 
 Contrast was measured on the generated `static/src/tokens.css` for every
 foreground/background pair the components use, in both themes.
+
+Tabs follow the Spectrum 2 rebuild of `components/Tabs.md` (1px divider, sliding 2px indicator, medium-weight labels, vertical and compact variants, overflow into a picker) through `.tab-strip*` in `static/src/input.css` and `static/js/tabs.js`.
 
 Icons are rendered server-side by `{% icon "name" %}` (`core/templatetags/lumen.py`,
 paths in `core/icons.py`): the 56 Lumen icons plus a few more Lucide glyphs

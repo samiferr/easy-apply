@@ -1593,3 +1593,44 @@ class ResendEmailBackendTests(SimpleTestCase):
         from staffportal.domain import health
 
         self.assertEqual(health._email().status, health.OK)
+
+
+class LumenTabsTests(TestCase):
+    """Tabs follow the Spectrum 2 rebuild; the profile menu carries its icons."""
+
+    def setUp(self):
+        self.profile = make_profile("tabs@example.com")
+        self.client.force_login(self.profile.user)
+
+    def test_settings_pages_are_tabs_with_the_current_one_marked(self):
+        body = self.client.get(reverse("accounts:security")).content.decode()
+        nav = body.split('aria-label="Account settings"', 1)[1].split("</nav>", 1)[0]
+        self.assertIn('tab-strip-item tab-strip-item-active" aria-current="page"><span class="tab-label">Security', nav)
+        self.assertEqual(nav.count('aria-current="page"'), 1)
+        self.assertIn("js/tabs.js", body)
+
+    def test_skill_tabs_name_categories_without_emoji(self):
+        from skills.models import SkillCategory, UserSkill
+
+        category = SkillCategory.objects.create(name="Emoji test category", kind=SkillCategory.TECHNICAL, icon="🗄️")
+        UserSkill.objects.create(profile=self.profile, category=category, name="Postgres")
+        body = self.client.get(reverse("skills:list", args=["technical"])).content.decode()
+        tab = body.split(f'id="tab-category-{category.pk}"', 1)[1].split("</button>", 1)[0]
+        self.assertIn('<span class="tab-label">', tab)
+        self.assertNotIn(category.icon, tab)
+
+    def test_the_job_sections_are_vertical_tabs(self):
+        from jobs.domain.importer import apply_analysis
+
+        job = JobPost.objects.create(profile=self.profile)
+        apply_analysis(job, {"title": "X", "sections": [{"key": "overview", "body": "b", "elements": []}]}, "raw")
+        body = self.client.get(job.get_absolute_url()).content.decode()
+        self.assertIn('class="tab-strip tab-strip-vertical"', body)
+
+    def test_the_profile_menu_has_an_icon_on_every_row(self):
+        body = self.client.get(reverse("core:dashboard")).content.decode()
+        panel = body.split('id="profile-switcher-panel"', 1)[1].split("</div>\n</div>", 1)[0]
+        for row in ("New profile", "Manage profiles", self.profile.name):
+            with self.subTest(row=row):
+                before = panel.split(row, 1)[0].rsplit("<svg", 1)
+                self.assertEqual(len(before), 2, f"no icon before {row!r}")

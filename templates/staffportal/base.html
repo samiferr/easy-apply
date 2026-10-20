@@ -63,7 +63,7 @@ design system as the product, so there is one set of components to maintain.
             {% if nav.tabs %}
               <nav class="tab-strip mt-spacing-400" aria-label="Pages in this section">
                 {% for tab in nav.tabs %}
-                  <a href="{{ tab.href }}" class="tab-strip-item{% if tab.active %} tab-strip-item-active{% endif %}"{% if tab.active %} aria-current="page"{% endif %}>{{ tab.label }}</a>
+                  <a href="{{ tab.href }}" class="tab-strip-item{% if tab.active %} tab-strip-item-active{% endif %}"{% if tab.active %} aria-current="page"{% endif %}><span class="tab-label">{{ tab.label }}</span></a>
                 {% endfor %}
               </nav>
             {% endif %}
@@ -86,6 +86,7 @@ design system as the product, so there is one set of components to maintain.
   </div>
 
   <script defer src="{% static 'js/data-table.js' %}"></script>
+  <script defer src="{% static 'js/tabs.js' %}"></script>
   <script defer src="{% static 'js/alpine.min.js' %}"></script>
   <script>
     function portalShell() {
