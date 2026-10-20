@@ -2341,7 +2341,7 @@ class PortalNavigationTests(PortalTestCase):
         body = self.client.get(reverse("staffportal:subscription_list")).content.decode()
         tabs = body.split('aria-label="Pages in this section"', 1)[1].split("</nav>", 1)[0]
         self.assertIn(reverse("staffportal:billing"), tabs)
-        self.assertIn(f'href="{reverse("staffportal:subscription_list")}" class="tab-strip-item tab-strip-item-active" aria-current="page"', tabs)
+        self.assertIn(f'href="{reverse("staffportal:subscription_list")}" class="tab-strip-item tab-strip-item-active" aria-current="page"><span class="tab-label">Subscriptions</span>', tabs)
 
     def test_a_viewer_never_sees_rows_or_tabs_they_cannot_open(self):
         self.client.force_login(self.viewer)
