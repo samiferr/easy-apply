@@ -1,49 +1,66 @@
 {% extends "base_app.html" %}
-{% load i18n %}
+{% load i18n lumen %}
 {% block title %}{% trans "Tailored resumes" %} · {{ SITE_NAME }}{% endblock %}
 {% block breadcrumb %}{% include "partials/_crumb.html" with crumb_label=_("Tailored resumes") only %}{% endblock %}
 {% block page_title %}{% trans "Tailored resumes" %}{% endblock %}
 {% block page_subtitle %}{% trans "One resume per job post, written for that specific posting." %}{% endblock %}
 
 {% block content %}
-<div>
-  {% if tailored_resumes %}
-    <div class="space-y-4">
-      {% for resume in tailored_resumes %}
-        <article class="card flex flex-col justify-between gap-4 p-5 sm:flex-row sm:items-center sm:p-6">
-          <div class="min-w-0">
-            <h2 class="truncate text-heading-m text-content-heading">
-              {{ resume.job.title|default:_("Untitled role") }}
-            </h2>
-            <p class="mt-1 truncate text-sm text-content-subdued">
-              {{ resume.job.company_name|default:"—" }} ·
-              {% if resume.generated_at %}
-                {% blocktrans with when=resume.generated_at|timesince %}Generated {{ when }} ago{% endblocktrans %}
-              {% else %}{% trans "Not generated yet" %}{% endif %}
-              {% if resume.edited_by_user %} · {% trans "Edited by you" %}{% endif %}
-            </p>
-            {% if resume.state == "failed" %}
-              <p class="mt-2 text-sm text-negative-content">{{ resume.error_message }}</p>
-            {% endif %}
-          </div>
-          <div class="flex shrink-0 flex-wrap gap-2">
-            <a href="{% url 'resume:tailored' resume.job_id %}" class="btn-primary !px-3 !py-1.5 !text-xs">{% trans "Open" %}</a>
-            {% if resume.is_ready %}
-              <a href="{% url 'resume:tailored_pdf' resume.job_id %}" class="btn-secondary !px-3 !py-1.5 !text-xs">{% trans "PDF" %}</a>
-            {% endif %}
-            <a href="{{ resume.job.get_absolute_url }}" class="btn-ghost !px-3 !py-1.5 !text-xs">{% trans "Job post" %}</a>
-          </div>
-        </article>
-      {% endfor %}
+{% if tailored_resumes %}
+  <div data-table>
+    {% include "partials/_table_search.html" with label=_("Search resumes") controls="resumes-table" %}
+    <div class="table-card">
+      <table class="data-table" id="resumes-table">
+        <caption class="sr-only">{% trans "Tailored resumes" %}</caption>
+        <thead>
+          <tr>
+            {% include "partials/_th_sort.html" with label=_("Job post") %}
+            {% include "partials/_th_sort.html" with label=_("Company") %}
+            {% include "partials/_th_sort.html" with label=_("Generated") %}
+            {% include "partials/_th_sort.html" with label=_("Status") %}
+            <th scope="col"><span class="sr-only">{% trans "Actions" %}</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for resume in tailored_resumes %}
+            <tr data-row>
+              <th scope="row" class="py-[10px] text-left font-normal">
+                <a href="{% url 'resume:tailored' resume.job_id %}" class="font-bold text-content-heading hover:underline">{{ resume.job.title|default:_("Untitled role") }}</a>
+              </th>
+              <td>{{ resume.job.company_name|default:"—" }}</td>
+              <td class="whitespace-nowrap" data-sort-value="{{ resume.generated_at|date:'U'|default:'0' }}">
+                {% if resume.generated_at %}{% blocktrans with when=resume.generated_at|timesince %}{{ when }} ago{% endblocktrans %}{% else %}—{% endif %}
+              </td>
+              <td>
+                {% if resume.state == "failed" %}
+                  <span class="badge-negative">{% trans "Failed" %}</span>
+                  {% if resume.error_message %}<span class="mt-spacing-50 block max-w-xs whitespace-normal text-body-xs text-negative-content">{{ resume.error_message }}</span>{% endif %}
+                {% elif not resume.generated_at %}
+                  <span class="badge-neutral">{% trans "Not generated yet" %}</span>
+                {% elif resume.edited_by_user %}
+                  <span class="badge-informative">{% trans "Edited by you" %}</span>
+                {% else %}
+                  <span class="badge-positive">{% trans "Ready" %}</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="flex justify-end gap-spacing-100">
+                  {% if resume.is_ready %}<a href="{% url 'resume:tailored_pdf' resume.job_id %}" class="btn-secondary btn-sm">{% icon "download" size="s" %}{% trans "PDF" %}</a>{% endif %}
+                  <a href="{{ resume.job.get_absolute_url }}" class="btn-ghost btn-sm">{% trans "Job post" %}</a>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% include "partials/_table_empty.html" %}
     </div>
-  {% else %}
-    <div class="card mt-6 border-dashed py-16 text-center">
-      <h2 class="section-title">{% trans "No tailored resumes yet" %}</h2>
-      <p class="mx-auto mt-2 max-w-md text-content-subdued">
-        {% trans "Analyze a job post, then generate a resume written for it." %}
-      </p>
-      <a href="{% url 'jobs:list' %}" class="btn-primary mt-6">{% trans "Go to my job posts" %}</a>
-    </div>
-  {% endif %}
-</div>
+  </div>
+{% else %}
+  <div class="card empty-state max-w-none">
+    <h2 class="empty-state-title">{% trans "No tailored resumes yet" %}</h2>
+    <p class="empty-state-desc">{% trans "Analyze a job post, then generate a resume written for it." %}</p>
+    <a href="{% url 'jobs:list' %}" class="btn-primary mt-spacing-100">{% trans "Go to my job posts" %}</a>
+  </div>
+{% endif %}
 {% endblock %}

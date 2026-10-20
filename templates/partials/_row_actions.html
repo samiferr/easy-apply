@@ -1,0 +1,4 @@
+{% load i18n lumen %}{% comment %}Edit and delete for one row, named after the row (`name`) so a screen reader hears "Edit Python", not a list of "Edit".{% endcomment %}<div class="flex justify-end gap-spacing-50">
+  {% if edit_url %}<a href="{{ edit_url }}" class="btn-icon h-component-height-100 w-component-height-100" aria-label="{% blocktrans %}Edit {{ name }}{% endblocktrans %}" title="{% trans 'Edit' %}">{% icon "edit" size="s" %}</a>{% endif %}
+  {% if delete_url %}<a href="{{ delete_url }}" class="btn-icon h-component-height-100 w-component-height-100 hover:text-negative-content" aria-label="{% blocktrans %}Delete {{ name }}{% endblocktrans %}" title="{% trans 'Delete' %}">{% icon "delete" size="s" %}</a>{% endif %}
+</div>

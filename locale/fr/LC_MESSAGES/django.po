@@ -3373,3 +3373,177 @@ msgstr "CV"
 
 msgid "Paste a job post. Easy Apply checks it against your profile, requirement by requirement, and writes a resume tailored to it."
 msgstr "Collez une offre d’emploi. Easy Apply la compare à votre profil, exigence par exigence, et rédige un CV adapté."
+
+msgid "Actions"
+msgstr "Actions"
+
+msgid "Search profiles"
+msgstr "Rechercher des profils"
+
+msgid "Add degree"
+msgstr "Ajouter un diplôme"
+
+msgid "Grade"
+msgstr "Mention"
+
+msgid "Add certificate"
+msgstr "Ajouter un certificat"
+
+msgid "View credential"
+msgstr "Voir le certificat"
+
+msgid "(opens in a new tab)"
+msgstr "(s’ouvre dans un nouvel onglet)"
+
+msgid "Expired"
+msgstr "Expiré"
+
+msgid "Valid until"
+msgstr "Valide jusqu’en"
+
+msgid "Search degrees"
+msgstr "Rechercher des diplômes"
+
+msgid "School"
+msgstr "Établissement"
+
+msgid "Dates"
+msgstr "Dates"
+
+msgid "Search certificates"
+msgstr "Rechercher des certificats"
+
+msgid "Issuer"
+msgstr "Émetteur"
+
+msgid "Issued"
+msgstr "Délivré"
+
+msgid "Status"
+msgstr "Statut"
+
+msgid "Current"
+msgstr "En cours"
+
+msgid "Search experience"
+msgstr "Rechercher une expérience"
+
+msgid "Role"
+msgstr "Poste"
+
+msgid "Type"
+msgstr "Type"
+
+msgid "filtered"
+msgstr "filtré"
+
+msgid "Analyzed"
+msgstr "Analysé"
+
+msgid "%(strong)s strong · %(partial)s partial"
+msgstr "%(strong)s fortes · %(partial)s partielles"
+
+msgid "Tailored resume for %(name)s"
+msgstr "CV adapté pour %(name)s"
+
+msgid "Add language"
+msgstr "Ajouter une langue"
+
+msgid "Search languages"
+msgstr "Rechercher des langues"
+
+msgid "Profile: %(name)s. Switch profile"
+msgstr "Profil : %(name)s. Changer de profil"
+
+msgid "Navigation"
+msgstr "Navigation"
+
+msgid "Search benefits"
+msgstr "Rechercher des avantages"
+
+msgid "Ready"
+msgstr "Prêt"
+
+msgid "Search resumes"
+msgstr "Rechercher des CV"
+
+msgid "Generated"
+msgstr "Généré"
+
+msgid "Search skills"
+msgstr "Rechercher des compétences"
+
+msgid "Nothing matches your search."
+msgstr "Aucun résultat pour cette recherche."
+
+msgid "Showing {shown} of {total}"
+msgstr "{shown} sur {total} affichés"
+
+msgid "Sign-in with Google and email delivery"
+msgstr "Connexion avec Google et envoi des courriels"
+
+msgid "If you choose “Continue with Google”, Google tells us your name, email address and an account identifier, and that the address is verified. We never see your Google password, and we store only the identifier and the email."
+msgstr "Si vous choisissez « Continuer avec Google », Google nous transmet votre nom, votre adresse courriel et un identifiant de compte, et nous indique que l’adresse est vérifiée. Nous ne voyons jamais votre mot de passe Google et ne conservons que l’identifiant et l’adresse courriel."
+
+msgid "Emails we send you, such as password resets, are delivered through Resend, an email provider acting as our sub-processor. It receives your email address and the message."
+msgstr "Les courriels que nous vous envoyons, comme la réinitialisation du mot de passe, passent par Resend, un fournisseur de courriel agissant comme notre sous-traitant. Il reçoit votre adresse courriel et le message."
+
+msgid "Continue with Google"
+msgstr "Continuer avec Google"
+
+msgid "or"
+msgstr "ou"
+
+msgid "Google sign-in was cancelled."
+msgstr "La connexion avec Google a été annulée."
+
+msgid "Set a password"
+msgstr "Définir un mot de passe"
+
+msgid "You sign in with Google. Add a password to also sign in with your email address."
+msgstr "Vous vous connectez avec Google. Ajoutez un mot de passe pour pouvoir aussi vous connecter avec votre adresse courriel."
+
+msgid "Your Google account's email address is not verified, so it can't be used to sign in."
+msgstr "L’adresse courriel de votre compte Google n’est pas vérifiée : elle ne peut pas servir à vous connecter."
+
+msgid "This email is linked to another Google account. Sign in with that one, or with your password."
+msgstr "Cette adresse est liée à un autre compte Google. Connectez-vous avec celui-ci, ou avec votre mot de passe."
+
+msgid "This account is suspended. Contact support if you think this is a mistake."
+msgstr "Ce compte est suspendu. Contactez le support si vous pensez qu’il s’agit d’une erreur."
+
+msgid "That sign-in link has expired. Please try again."
+msgstr "Ce lien de connexion a expiré. Veuillez réessayer."
+
+msgid "That sign-in took too long. Please try again."
+msgstr "La connexion a pris trop de temps. Veuillez réessayer."
+
+msgid "Google did not complete the sign-in."
+msgstr "Google n’a pas terminé la connexion."
+
+msgid "Google could not be reached. Please try again."
+msgstr "Google est injoignable. Veuillez réessayer."
+
+msgid "Google refused the sign-in. Please try again."
+msgstr "Google a refusé la connexion. Veuillez réessayer."
+
+msgid "Google did not return an identity."
+msgstr "Google n’a renvoyé aucune identité."
+
+msgid "Google sent an unreadable sign-in token."
+msgstr "Google a envoyé un jeton de connexion illisible."
+
+msgid "That sign-in did not come from Google."
+msgstr "Cette connexion ne provient pas de Google."
+
+msgid "That sign-in was meant for another application."
+msgstr "Cette connexion était destinée à une autre application."
+
+msgid "That sign-in has expired. Please try again."
+msgstr "Cette connexion a expiré. Veuillez réessayer."
+
+msgid "That sign-in could not be verified. Please try again."
+msgstr "Cette connexion n’a pas pu être vérifiée. Veuillez réessayer."
+
+msgid "Google did not return an account id."
+msgstr "Google n’a renvoyé aucun identifiant de compte."

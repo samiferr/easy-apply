@@ -34,7 +34,7 @@ from core.services import (
     recap_filename,
 )
 from core.tasks import is_retryable
-from core.testing import fake_deepseek
+from core.testing import fake_deepseek, pin_language
 from jobs.domain.importer import apply_analysis
 from jobs.models import JobPost
 from resume.models import TailoredResume
@@ -855,6 +855,9 @@ class ProfileSnapshotTests(TestCase):
     """The tailored-resume path legitimately gets everything."""
 
     def setUp(self):
+        # Calls the snapshot code directly, so it must not inherit a language
+        # an earlier test left active (core.testing.pin_language).
+        pin_language(self)
         self.profile = make_rich_profile()
 
     def test_the_profile_snapshot_gathers_every_recorded_part(self):
@@ -1513,3 +1516,80 @@ class AccessibleShellTests(TestCase):
         self.assertIn('class="alert alert-negative', html)
         self.assertIn('role="alert"', html)
         self.assertIn('role="status"', html)
+
+
+class DataTableTests(TestCase):
+    """Every data page is a real table with live search; tabs and the profile
+    switcher sit where the layout promises."""
+
+    def setUp(self):
+        from education.models import Degree
+
+        self.profile = make_profile("tables@example.com")
+        self.client.force_login(self.profile.user)
+        Degree.objects.create(profile=self.profile, degree="BSc", school="McGill")
+
+    def test_data_pages_render_searchable_tables(self):
+        pages = [
+            reverse("education:list"),
+            reverse("accounts:profile_list"),
+        ]
+        for url in pages:
+            with self.subTest(url=url):
+                body = self.client.get(url).content.decode()
+                self.assertIn("<table", body)
+                self.assertIn("data-table-search", body)
+                self.assertIn('aria-sort="none"', body)
+                self.assertIn("js/data-table.js", body)
+
+    def test_the_job_list_is_a_table_searched_on_the_server(self):
+        JobPost.objects.create(profile=self.profile, title="Platform engineer")
+        body = self.client.get(reverse("jobs:list")).content.decode()
+        self.assertIn('<table class="data-table">', body)
+        self.assertIn('name="q"', body)
+
+    def test_the_profile_switcher_comes_before_the_navigation(self):
+        body = self.client.get(reverse("core:dashboard")).content.decode()
+        sidebar = body.split('id="app-sidebar"', 1)[1]
+        self.assertLess(sidebar.index('id="profile-switcher-panel"'), sidebar.index('aria-label="Main navigation"'))
+
+
+@override_settings(RESEND_API_KEY="re_test", EMAIL_BACKEND="core.mail.ResendEmailBackend", DEFAULT_FROM_EMAIL="Easy Apply <hi@example.com>")
+class ResendEmailBackendTests(SimpleTestCase):
+    """Mail goes to Resend's HTTP API; failures are loud unless asked not to be."""
+
+    def send(self, status=200, **kwargs):
+        from unittest import mock
+
+        from django.core.mail import EmailMultiAlternatives
+
+        message = EmailMultiAlternatives("Reset", "Plain body", to=["ada@example.com"], reply_to=["help@example.com"])
+        message.attach_alternative("<p>HTML body</p>", "text/html")
+        message.attach("notes.txt", "hello", "text/plain")
+        reply = mock.Mock(status_code=status, text="nope")
+        with mock.patch("core.mail.requests.Session.post", return_value=reply) as post:
+            sent = message.send(**kwargs)
+        return sent, post
+
+    def test_a_message_becomes_one_api_call(self):
+        sent, post = self.send()
+        self.assertEqual(sent, 1)
+        payload = post.call_args.kwargs["json"]
+        self.assertEqual(payload["from"], "Easy Apply <hi@example.com>")
+        self.assertEqual(payload["to"], ["ada@example.com"])
+        self.assertEqual(payload["text"], "Plain body")
+        self.assertEqual(payload["html"], "<p>HTML body</p>")
+        self.assertEqual(payload["reply_to"], ["help@example.com"])
+        self.assertEqual(payload["attachments"][0]["filename"], "notes.txt")
+        self.assertEqual(post.call_args.args[0], settings.RESEND_API_URL)
+
+    def test_a_refusal_raises_unless_silent(self):
+        with self.assertRaises(RuntimeError):
+            self.send(status=422)
+        sent, _ = self.send(status=422, fail_silently=True)
+        self.assertEqual(sent, 0)
+
+    def test_the_key_selects_resend_by_default(self):
+        from staffportal.domain import health
+
+        self.assertEqual(health._email().status, health.OK)

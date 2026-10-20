@@ -12,12 +12,13 @@
     A key with no row here evaluates to <strong>off</strong>, so deleting a flag retires its feature.
   </div>
 
-  <div class="card overflow-x-auto p-5">
-    <table class="data-table data-table-wide">
+  <div data-table class="card overflow-x-auto p-5">
+    {% include "partials/_table_search.html" with label="Search flags" controls="flag-list-table" %}
+    <table class="data-table data-table-wide" id="flag-list-table">
       <thead><tr><th>Key</th><th>State</th><th>Overrides</th><th>For you</th><th>Updated</th><th></th></tr></thead>
       <tbody>
         {% for flag in flags %}
-          <tr>
+          <tr data-row>
             <td>
               <span class="font-medium text-content-default">{{ flag.key }}</span>
               <p class="text-muted">{{ flag.name }}</p>
@@ -39,6 +40,7 @@
         {% endfor %}
       </tbody>
     </table>
+    {% include "partials/_table_empty.html" %}
   </div>
   {% include "staffportal/partials/_pagination.html" %}
 </div>

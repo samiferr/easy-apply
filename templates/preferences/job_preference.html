@@ -48,8 +48,9 @@
       {% trans "A job's benefits are matched against this list." %}
     </p>
 
-    <div class="mt-5 overflow-x-auto">
-      <table class="data-table">
+    <div data-table class="mt-5 overflow-x-auto">
+      {% include "partials/_table_search.html" with label=_("Search benefits") controls="job-preference-table" %}
+      <table class="data-table" id="job-preference-table">
         <thead>
           <tr>
             <th scope="col" class="pr-4">{% trans "Benefit" %}</th>
@@ -60,7 +61,7 @@
         </thead>
         <tbody>
           {% for benefit in benefits %}
-            <tr>
+            <tr data-row>
               <td class="pr-4 font-medium text-content-default">{{ benefit.name }}</td>
               <td class="pr-4">
                 <form method="post" action="{% url 'preferences:benefit_update' benefit.pk %}">
@@ -85,6 +86,7 @@
           {% endfor %}
         </tbody>
       </table>
+      {% include "partials/_table_empty.html" %}
     </div>
 
     <form method="post" action="{% url 'preferences:benefit_add' %}" class="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_12rem_minmax(0,1fr)_auto]">

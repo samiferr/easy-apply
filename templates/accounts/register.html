@@ -5,7 +5,8 @@
   <h1 class="card-title">{% trans "Create your account" %}</h1>
   <p class="mt-1 text-sm text-content-subdued">{% trans "Start building your skills recap in minutes." %}</p>
 
-  <form method="post" novalidate class="mt-6 space-y-5">
+  <div class="mt-6">{% include "accounts/_google_button.html" %}</div>
+  <form method="post" novalidate class="space-y-5{% if not GOOGLE_SIGN_IN %} mt-6{% endif %}">
     {% csrf_token %}
     {% if form.non_field_errors %}
       <div class="alert alert-negative block" role="alert">

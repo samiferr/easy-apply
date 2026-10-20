@@ -192,6 +192,10 @@ def _email() -> Check:
             f"{backend}: password-reset emails are not delivered to anyone.",
             "Configuration",
         )
+    if settings.EMAIL_BACKEND == "core.mail.ResendEmailBackend":
+        if not settings.RESEND_API_KEY:
+            return Check("Email", FAIL, "Resend selected but RESEND_API_KEY is empty.", "Configuration")
+        return Check("Email", OK, f"Resend API, from {settings.DEFAULT_FROM_EMAIL}.", "Configuration")
     if not settings.EMAIL_HOST:
         return Check("Email", FAIL, "No EMAIL_HOST configured.", "Configuration")
     return Check("Email", OK, f"{backend} via {settings.EMAIL_HOST}.", "Configuration")

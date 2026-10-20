@@ -19,7 +19,7 @@ from django.utils.translation import gettext
 
 from core.exceptions import Blocked, Refused
 
-from .models import Profile, default_profile_language
+from .models import GoogleIdentity, Profile, default_profile_language
 
 #: Session key holding the id of the profile the user is currently working in.
 ACTIVE_PROFILE_SESSION_KEY = "active_profile_id"
@@ -49,6 +49,58 @@ def complete_registration(request, user, profile_language: str) -> None:
     """
     Profile.objects.filter(user=user).update(language=profile_language)
     login(request, user)
+
+
+# UC-01.2 — Email Authentication & Session Inception: the "Continue with
+# Google" alternative flow (accounts/domain/google_oauth.py runs the OAuth
+# exchange; this decides who the verified Google account is here).
+def sign_in_with_google(request, claims: dict):
+    """Sign in the account behind validated Google ID-token `claims`.
+
+    1. A Google account already linked (by its stable `sub`) signs straight in.
+    2. Otherwise an account with the same email is linked — but only when
+       Google has verified that address, or anyone could claim an account by
+       creating a Google account with someone else's unverified email.
+    3. Otherwise a new account is created (if sign-ups are open), with no
+       usable password and a first profile in the language the visitor is
+       reading the site in; they can set a password later through "Forgot
+       password?".
+
+    Raises `Refused` for a suspended account, an unverified email or closed
+    sign-ups. Returns the user, signed in.
+    """
+    from django.contrib.auth import get_user_model
+
+    User = get_user_model()
+    sub = str(claims["sub"])
+    email = (claims.get("email") or "").strip()
+    identity = GoogleIdentity.objects.select_related("user").filter(sub=sub).first()
+    user = identity.user if identity else None
+
+    if user is None:
+        if not email or not claims.get("email_verified"):
+            raise Refused(gettext("Your Google account's email address is not verified, so it can't be used to sign in."))
+        user = User.objects.filter(email__iexact=email).first()
+        if user is None:
+            if not signups_open():
+                raise Refused(gettext("New sign-ups are paused right now. Please check back shortly."))
+            with transaction.atomic():
+                user = User(
+                    email=email,
+                    first_name=(claims.get("given_name") or "")[:150],
+                    last_name=(claims.get("family_name") or "")[:150],
+                )
+                user.set_unusable_password()
+                user.save()
+        if GoogleIdentity.objects.filter(user=user).exists():
+            # This account is already tied to a *different* Google account.
+            raise Refused(gettext("This email is linked to another Google account. Sign in with that one, or with your password."))
+        GoogleIdentity.objects.create(user=user, sub=sub, email=email)
+
+    if not user.is_active:
+        raise Refused(gettext("This account is suspended. Contact support if you think this is a mistake."))
+    login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+    return user
 
 
 # UC-01.2 — Email Authentication & Session Inception (step 4)

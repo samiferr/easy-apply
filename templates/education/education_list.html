@@ -1,87 +1,108 @@
 {% extends "partials/profile_base.html" %}
-{% load i18n %}
+{% load i18n lumen %}
 {% block title %}Education · {{ SITE_NAME }}{% endblock %}
 {% block breadcrumb %}{% include "partials/_crumb.html" with crumb_label=_("Education") only %}{% endblock %}
 {% block page_title %}{% trans "Education & Certifications" %}{% endblock %}
 {% block page_subtitle %}{% trans "Your degrees and professional certificates." %}{% endblock %}
 
 {% block profile_content %}
-<div>
-  <section>
-    <div class="flex items-center justify-between">
-      <h2 class="text-heading-s text-content-heading">{% trans "Degrees" %}</h2>
-      <a href="{% url 'education:degree_add' %}" class="btn-secondary">{% trans "+ Add degree" %}</a>
+<div class="space-y-spacing-600">
+  <section aria-labelledby="degrees-title" data-table>
+    <div class="mb-spacing-200 flex items-center justify-between gap-spacing-200">
+      <h2 id="degrees-title" class="section-title">{% trans "Degrees" %}</h2>
+      <a href="{% url 'education:degree_add' %}" class="btn-secondary">{% icon "add" size="s" %}{% trans "Add degree" %}</a>
     </div>
     {% if degrees %}
-      <div class="mt-4 space-y-4">
-        {% for degree in degrees %}
-          <div class="card group flex items-start justify-between gap-4 p-5">
-            <div>
-              <p class="font-semibold text-content-default">{{ degree.degree }}</p>
-              <p class="text-sm text-content-subdued">{{ degree.school }}{% if degree.field_of_study %} · {{ degree.field_of_study }}{% endif %}</p>
-              <p class="mt-1 text-xs font-medium text-accent-content">
-                {% if degree.start_date %}{{ degree.start_date|date:"M Y" }}{% endif %} – {% if degree.is_current %}Present{% elif degree.end_date %}{{ degree.end_date|date:"M Y" }}{% endif %}
-                {% if degree.grade %} · Grade: {{ degree.grade }}{% endif %}
-              </p>
-              {% if degree.description %}<p class="mt-2 text-sm text-content-subdued">{{ degree.description }}</p>{% endif %}
-            </div>
-            <div class="flex shrink-0 items-center gap-1 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100 max-md:opacity-100">
-              <a href="{% url 'education:degree_edit' degree.pk %}" class="rounded p-2 text-content-subdued hover:bg-fill-neutral-hover hover:text-content-subdued" aria-label="{% trans 'Edit' %}">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /></svg>
-              </a>
-              <a href="{% url 'education:degree_delete' degree.pk %}" class="rounded p-2 text-content-subdued hover:bg-negative-subtle hover:text-negative-content" aria-label="{% trans 'Delete' %}">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg>
-              </a>
-            </div>
-          </div>
-        {% endfor %}
+      {% include "partials/_table_search.html" with label=_("Search degrees") controls="degrees-table" %}
+      <div class="table-card">
+        <table class="data-table" id="degrees-table">
+          <caption class="sr-only">{% trans "Degrees" %}</caption>
+          <thead>
+            <tr>
+              {% include "partials/_th_sort.html" with label=_("Degree") %}
+              {% include "partials/_th_sort.html" with label=_("School") %}
+              {% include "partials/_th_sort.html" with label=_("Dates") %}
+              <th scope="col">{% trans "Grade" %}</th>
+              <th scope="col"><span class="sr-only">{% trans "Actions" %}</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for degree in degrees %}
+              <tr data-row data-search="{{ degree.description }}">
+                <th scope="row" class="py-[10px] text-left font-normal">
+                  <a href="{% url 'education:degree_edit' degree.pk %}" class="font-bold text-content-heading hover:underline">{{ degree.degree }}</a>
+                  {% if degree.field_of_study %}<span class="block text-body-xs text-content-subdued">{{ degree.field_of_study }}</span>{% endif %}
+                </th>
+                <td>{{ degree.school }}</td>
+                <td class="whitespace-nowrap tabular-nums" data-sort-value="{{ degree.start_date|date:'Y-m-d' }}">
+                  {% if degree.start_date %}{{ degree.start_date|date:"M Y" }}{% endif %} – {% if degree.is_current %}{% trans "Present" %}{% elif degree.end_date %}{{ degree.end_date|date:"M Y" }}{% endif %}
+                </td>
+                <td>{{ degree.grade|default:"—" }}</td>
+                <td>{% url 'education:degree_edit' degree.pk as edit_url %}{% url 'education:degree_delete' degree.pk as delete_url %}{% include "partials/_row_actions.html" with name=degree.degree edit_url=edit_url delete_url=delete_url only %}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% include "partials/_table_empty.html" %}
       </div>
     {% else %}
-      <div class="card mt-4 flex flex-col items-center gap-3 p-8 text-center">
-        <p class="text-sm text-content-subdued">{% trans "No degrees added yet." %}</p>
-        <a href="{% url 'education:degree_add' %}" class="btn-primary">{% trans "Add a degree" %}</a>
+      <div class="card empty-state max-w-none">
+        <p class="empty-state-desc">{% trans "No degrees added yet." %}</p>
+        <a href="{% url 'education:degree_add' %}" class="btn-primary mt-spacing-100">{% trans "Add a degree" %}</a>
       </div>
     {% endif %}
   </section>
 
-  <section class="mt-10">
-    <div class="flex items-center justify-between">
-      <h2 class="text-heading-s text-content-heading">{% trans "Certificates" %}</h2>
-      <a href="{% url 'education:certificate_add' %}" class="btn-secondary">{% trans "+ Add certificate" %}</a>
+  <section aria-labelledby="certificates-title" data-table>
+    <div class="mb-spacing-200 flex items-center justify-between gap-spacing-200">
+      <h2 id="certificates-title" class="section-title">{% trans "Certificates" %}</h2>
+      <a href="{% url 'education:certificate_add' %}" class="btn-secondary">{% icon "add" size="s" %}{% trans "Add certificate" %}</a>
     </div>
     {% if certificates %}
-      <div class="mt-4 space-y-4">
-        {% for cert in certificates %}
-          <div class="card group flex items-start justify-between gap-4 p-5">
-            <div>
-              <p class="font-semibold text-content-default">{{ cert.name }}</p>
-              <p class="text-sm text-content-subdued">{{ cert.issuing_organization }}</p>
-              <p class="mt-1 text-xs font-medium text-accent-content">
-                {% if cert.issue_date %}Issued {{ cert.issue_date|date:"M Y" }}{% endif %}
-                {% if cert.does_not_expire %} · No expiration{% elif cert.expiry_date %} · {% if cert.is_expired %}Expired{% else %}Expires{% endif %} {{ cert.expiry_date|date:"M Y" }}{% endif %}
-              </p>
-              {% if cert.credential_url %}
-                <a href="{{ cert.credential_url }}" target="_blank" rel="noopener" class="mt-1 inline-flex items-center gap-1 text-sm font-medium text-accent-content hover:text-accent-content">
-                  View credential
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.25 5.5a.75.75 0 00-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 00.75-.75v-4a.75.75 0 011.5 0v4A2.25 2.25 0 0112.75 17h-8.5A2.25 2.25 0 012 14.75v-8.5A2.25 2.25 0 014.25 4h5a.75.75 0 010 1.5h-5z" clip-rule="evenodd" /><path fill-rule="evenodd" d="M6.194 12.753a.75.75 0 001.06.053L16.5 4.44v2.81a.75.75 0 001.5 0v-4.5a.75.75 0 00-.75-.75h-4.5a.75.75 0 000 1.5h2.553l-9.056 8.194a.75.75 0 00-.053 1.06z" clip-rule="evenodd" /></svg>
-                </a>
-              {% endif %}
-            </div>
-            <div class="flex shrink-0 items-center gap-1 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100 max-md:opacity-100">
-              <a href="{% url 'education:certificate_edit' cert.pk %}" class="rounded p-2 text-content-subdued hover:bg-fill-neutral-hover hover:text-content-subdued" aria-label="{% trans 'Edit' %}">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /></svg>
-              </a>
-              <a href="{% url 'education:certificate_delete' cert.pk %}" class="rounded p-2 text-content-subdued hover:bg-negative-subtle hover:text-negative-content" aria-label="{% trans 'Delete' %}">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg>
-              </a>
-            </div>
-          </div>
-        {% endfor %}
+      {% include "partials/_table_search.html" with label=_("Search certificates") controls="certificates-table" %}
+      <div class="table-card">
+        <table class="data-table" id="certificates-table">
+          <caption class="sr-only">{% trans "Certificates" %}</caption>
+          <thead>
+            <tr>
+              {% include "partials/_th_sort.html" with label=_("Certificate") %}
+              {% include "partials/_th_sort.html" with label=_("Issuer") %}
+              {% include "partials/_th_sort.html" with label=_("Issued") %}
+              {% include "partials/_th_sort.html" with label=_("Status") %}
+              <th scope="col"><span class="sr-only">{% trans "Actions" %}</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for cert in certificates %}
+              <tr data-row>
+                <th scope="row" class="py-[10px] text-left font-normal">
+                  <a href="{% url 'education:certificate_edit' cert.pk %}" class="font-bold text-content-heading hover:underline">{{ cert.name }}</a>
+                  {% if cert.credential_url %}
+                    <a href="{{ cert.credential_url }}" target="_blank" rel="noopener" class="link mt-0.5 flex w-fit items-center gap-1 text-body-xs">{% trans "View credential" %}{% icon "external-link" size="xs" %}<span class="sr-only">{% trans "(opens in a new tab)" %}</span></a>
+                  {% endif %}
+                </th>
+                <td>{{ cert.issuing_organization }}</td>
+                <td class="whitespace-nowrap tabular-nums" data-sort-value="{{ cert.issue_date|date:'Y-m-d' }}">{{ cert.issue_date|date:"M Y"|default:"—" }}</td>
+                <td data-sort-value="{% if cert.does_not_expire %}9999{% else %}{{ cert.expiry_date|date:'Y-m-d' }}{% endif %}">
+                  {% if cert.does_not_expire %}
+                    <span class="tag">{% trans "No expiration" %}</span>
+                  {% elif cert.expiry_date and cert.is_expired %}
+                    <span class="badge-negative">{% trans "Expired" %} {{ cert.expiry_date|date:"M Y" }}</span>
+                  {% elif cert.expiry_date %}
+                    <span class="badge-positive">{% trans "Valid until" %} {{ cert.expiry_date|date:"M Y" }}</span>
+                  {% else %}—{% endif %}
+                </td>
+                <td>{% url 'education:certificate_edit' cert.pk as edit_url %}{% url 'education:certificate_delete' cert.pk as delete_url %}{% include "partials/_row_actions.html" with name=cert.name edit_url=edit_url delete_url=delete_url only %}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% include "partials/_table_empty.html" %}
       </div>
     {% else %}
-      <div class="card mt-4 flex flex-col items-center gap-3 p-8 text-center">
-        <p class="text-sm text-content-subdued">{% trans "No certificates added yet." %}</p>
-        <a href="{% url 'education:certificate_add' %}" class="btn-primary">{% trans "Add a certificate" %}</a>
+      <div class="card empty-state max-w-none">
+        <p class="empty-state-desc">{% trans "No certificates added yet." %}</p>
+        <a href="{% url 'education:certificate_add' %}" class="btn-primary mt-spacing-100">{% trans "Add a certificate" %}</a>
       </div>
     {% endif %}
   </section>

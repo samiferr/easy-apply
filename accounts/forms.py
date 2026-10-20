@@ -194,7 +194,19 @@ class AccountDeleteForm(StyledFormMixin, forms.Form):
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.user = user
+        # An account made through Google sign-in has no password to confirm
+        # with; typing its email address is the deliberate step instead.
+        if user is not None and not user.has_usable_password():
+            del self.fields["password"]
+            self.fields["email"] = forms.EmailField(label="Type your email address to confirm")
+            self.order_fields(["email", "confirm"])
         self._style_fields()
+
+    def clean_email(self):
+        email = self.cleaned_data["email"]
+        if email.strip().lower() != self.user.email.lower():
+            raise forms.ValidationError("That is not this account's email address.")
+        return email
 
     def clean_password(self):
         password = self.cleaned_data["password"]

@@ -7,12 +7,13 @@
 {% block content %}
 <div class="space-y-4">
   <div class="card p-4 text-sm text-muted">Live announcements appear as a banner at the top of every in-app screen for their audience. Translated content is your responsibility — write in the language your customers read.</div>
-  <div class="card overflow-x-auto p-5">
-    <table class="data-table data-table-wide">
+  <div data-table class="card overflow-x-auto p-5">
+    {% include "partials/_table_search.html" with label="Search announcements" controls="announcement-list-table" %}
+    <table class="data-table data-table-wide" id="announcement-list-table">
       <thead><tr><th>Title</th><th>Level</th><th>Audience</th><th>Window</th><th>State</th><th></th></tr></thead>
       <tbody>
         {% for announcement in announcements %}
-          <tr>
+          <tr data-row>
             <td>
               <span class="font-medium text-content-default">{{ announcement.title }}</span>
               {% if announcement.body %}<p class="max-w-md truncate text-muted">{{ announcement.body }}</p>{% endif %}
@@ -32,6 +33,7 @@
         {% endfor %}
       </tbody>
     </table>
+    {% include "partials/_table_empty.html" %}
   </div>
   {% include "staffportal/partials/_pagination.html" %}
 </div>

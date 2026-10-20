@@ -22,8 +22,13 @@
     </div>
 
     <div class="card p-6 sm:p-8">
-      <h2 class="text-heading-s text-content-heading">{% trans "Change password" %}</h2>
-      <p class="mt-1 text-sm text-content-subdued">{% trans "Use a strong password you don't use elsewhere." %}</p>
+      {% if user.has_usable_password %}
+        <h2 class="text-heading-s text-content-heading">{% trans "Change password" %}</h2>
+        <p class="mt-1 text-sm text-content-subdued">{% trans "Use a strong password you don't use elsewhere." %}</p>
+      {% else %}
+        <h2 class="text-heading-s text-content-heading">{% trans "Set a password" %}</h2>
+        <p class="mt-1 text-sm text-content-subdued">{% trans "You sign in with Google. Add a password to also sign in with your email address." %}</p>
+      {% endif %}
       <form method="post" novalidate class="mt-5 space-y-5">
         {% csrf_token %}
         <input type="hidden" name="change_password" value="1" />
@@ -32,7 +37,7 @@
             {% for error in password_form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
           </div>
         {% endif %}
-        {% include "partials/field.html" with field=password_form.old_password %}
+        {% if password_form.old_password %}{% include "partials/field.html" with field=password_form.old_password %}{% endif %}
         <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
           {% include "partials/field.html" with field=password_form.new_password1 %}
           {% include "partials/field.html" with field=password_form.new_password2 %}
@@ -62,7 +67,7 @@
                 {% for error in delete_form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
               </div>
             {% endif %}
-            {% include "partials/field.html" with field=delete_form.password %}
+            {% if delete_form.password %}{% include "partials/field.html" with field=delete_form.password %}{% else %}{% include "partials/field.html" with field=delete_form.email %}{% endif %}
             {% include "partials/field.html" with field=delete_form.confirm %}
             <div class="flex justify-end gap-3">
               <button type="button" @click="confirmOpen = false" class="btn-secondary">{% trans "Cancel" %}</button>
