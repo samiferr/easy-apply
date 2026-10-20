@@ -8,7 +8,8 @@ The `resume` app enables candidates to author job-specific tailored resumes. Usi
 ## UC-07.1: AI Generation of Job-Tailored Resume Draft
 
 - **Primary Actor:** Candidate / Background AI Worker
-- **Supporting System:** `staffportal.services.quotas`, `resume.services.tailored`, `templates/resume_template.md`
+- **Supporting System:** `staffportal.domain.quotas`, `resume.domain.tailored`, `templates/resume_template.md`
+- **Implemented by:** `core.services.build_profile_snapshot`, `core.services.profile_snapshot_is_empty`, `core.services.build_resume_snapshot`, `resume.services.start_tailored_resume`, `resume.services.tailored_resume_task`, `resume.tasks.generate_tailored_resume_task`, `resume.tasks.enqueue_tailored_resume`, `resume.domain.tailored.render_markdown`, `resume.domain.tailored.generate_tailored_resume`
 - **Objective:** Generate a job-tailored resume draft highlighting the candidate's most relevant qualifications for a specific position.
 
 ### Preconditions
@@ -25,7 +26,7 @@ The `resume` app enables candidates to author job-specific tailored resumes. Usi
 6. System enqueues background task `enqueue_tailored_resume(job)`:
    - Instantiates `AITask` (`kind="tailored_resume"`).
    - Celery worker executes `generate_tailored_resume`:
-     a. Gathers full candidate snapshot via `core.utils.build_resume_snapshot(profile)`.
+     a. Gathers full candidate snapshot via `core.services.build_resume_snapshot(profile)`.
      b. Gathers job details and match evaluation (strong, partial, missing elements).
      c. Enforces profile language via `core.language.language_clause(profile.language)`.
      d. Loads base template structure `templates/resume_template.md`.
@@ -43,7 +44,7 @@ The `resume` app enables candidates to author job-specific tailored resumes. Usi
 
 ### Key Code References
 - View: [`resume.views.TailoredResumeGenerateView`](file:///home/sami/PycharmProjects/Github/easy-apply/resume/views.py#L104)
-- Service: [`resume.services.tailored.draft_tailored_resume`](file:///home/sami/PycharmProjects/Github/easy-apply/resume/services/tailored.py)
+- Service: [`resume.domain.tailored.draft_tailored_resume`](file:///home/sami/PycharmProjects/Github/easy-apply/resume/domain/tailored.py)
 - Model: [`resume.models.TailoredResume`](file:///home/sami/PycharmProjects/Github/easy-apply/resume/models.py#L40)
 
 ---
@@ -52,6 +53,7 @@ The `resume` app enables candidates to author job-specific tailored resumes. Usi
 
 - **Primary Actor:** Candidate
 - **Supporting System:** `resume.views.TailoredResumeEditView`, `TailoredResumeForm`
+- **Implemented by:** `resume.services.profile_tailored_resumes`, `resume.services.save_tailored_edits`
 - **Objective:** Review, refine, and manually customize the AI-generated resume draft in a live Markdown editor.
 
 ### Main Success Scenario
@@ -74,14 +76,15 @@ The `resume` app enables candidates to author job-specific tailored resumes. Usi
 ## UC-07.3: ReportLab PDF Compilation with Strict Language Formatting
 
 - **Primary Actor:** Candidate
-- **Supporting System:** `resume.services.pdf.render_markdown_pdf`, ReportLab engine
+- **Supporting System:** `resume.domain.pdf.render_markdown_pdf`, ReportLab engine
+- **Implemented by:** `resume.services.profile_tailored_resumes`, `resume.services.tailored_resume_pdf`, `resume.domain.pdf.render_markdown_pdf`
 - **Objective:** Compile the Markdown resume into an ATS-friendly, clean, high-resolution PDF document.
 
 ### Main Success Scenario
 1. Candidate clicks *"Download PDF"* from the tailored resume screen (or selects action `"pdf"` from the editor form).
 2. Request hits `/resume/tailored/<job_pk>/pdf/` ([`resume:tailored_pdf`](file:///home/sami/PycharmProjects/Github/easy-apply/resume/views.py#L160-L165)).
 3. System calls `tailored_resume_pdf_response(tailored_resume)`:
-   - System invokes `resume.services.pdf.render_markdown_pdf(markdown_text, title=job.title, author=full_name)`.
+   - System invokes `resume.domain.pdf.render_markdown_pdf(markdown_text, title=job.title, author=full_name)`.
    - Parses Markdown AST into ReportLab `Flowable` components:
      - Header block (Full name in primary bold typography, contact info separated by bullets).
      - Section headings (`#`, `##`) with underline accents and proportional vertical spacing.
@@ -99,13 +102,14 @@ The `resume` app enables candidates to author job-specific tailored resumes. Usi
 
 ### Key Code References
 - View / Handler: [`resume.views.tailored_resume_pdf_response`](file:///home/sami/PycharmProjects/Github/easy-apply/resume/views.py#L203-L211)
-- PDF Engine: [`resume.services.pdf.render_markdown_pdf`](file:///home/sami/PycharmProjects/Github/easy-apply/resume/services/pdf.py)
+- PDF Engine: [`resume.domain.pdf.render_markdown_pdf`](file:///home/sami/PycharmProjects/Github/easy-apply/resume/domain/pdf.py)
 
 ---
 
 ## UC-07.4: Raw Markdown Export & Tailored Resume Lifecycle
 
 - **Primary Actor:** Candidate
+- **Implemented by:** `resume.services.profile_tailored_resumes`, `resume.services.remove_tailored_resume`
 - **Objective:** Download the raw Markdown document for external tools or delete obsolete drafts.
 
 ### Main Success Scenario (Markdown Download)

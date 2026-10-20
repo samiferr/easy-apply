@@ -2,8 +2,8 @@
 
 from django import template
 
-from ..services import access as access_service
-from ..services import flags as flags_service
+from ..domain import access as access_service
+from ..domain import flags as flags_service
 
 register = template.Library()
 
@@ -34,6 +34,24 @@ def money(cents) -> str:
         return f"{int(cents) / 100:,.2f}"
     except (TypeError, ValueError):
         return "0.00"
+
+
+@register.filter
+def duration(seconds) -> str:
+    """1h 05m / 3m 20s / 45s — for how long something has waited or run."""
+    if seconds is None or seconds == "":
+        return "—"
+    try:
+        seconds = int(seconds)
+    except (TypeError, ValueError):
+        return "—"
+    hours, rest = divmod(seconds, 3600)
+    minutes, secs = divmod(rest, 60)
+    if hours:
+        return f"{hours}h {minutes:02d}m"
+    if minutes:
+        return f"{minutes}m {secs:02d}s"
+    return f"{secs}s"
 
 
 @register.filter

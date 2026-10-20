@@ -1,12 +1,12 @@
-"""Delete terminal AITask rows older than settings.AI_TASK_RETENTION_DAYS."""
+"""Delete terminal AITask rows older than settings.AI_TASK_RETENTION_DAYS.
 
-from datetime import timedelta
+The rule itself lives in `core.services.prune_finished_tasks`.
+"""
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
-from django.utils import timezone
 
-from core.models import AITask
+from core import services
 
 
 class Command(BaseCommand):
@@ -24,13 +24,8 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        cutoff = timezone.now() - timedelta(days=options["days"])
-        qs = AITask.objects.filter(
-            state__in=AITask.TERMINAL_STATES, finished_at__lt=cutoff
-        )
-        count = qs.count()
+        count, cutoff = services.prune_finished_tasks(options["days"], dry_run=options["dry_run"])
         if options["dry_run"]:
             self.stdout.write(f"Would delete {count} AI task(s) finished before {cutoff:%Y-%m-%d}.")
             return
-        qs.delete()
         self.stdout.write(self.style.SUCCESS(f"Deleted {count} AI task(s)."))

@@ -1,41 +1,25 @@
+/* Easy Apply on the Tonal design system (design/tonal/README.md).
+
+   Colour roles, spacing, shape, elevation and state opacities are CSS custom
+   properties generated from design/tonal/tokens.json (python design/build_tokens.py
+   -> tokens.css); tailwind.config.js exposes the colour roles as utilities
+   (`bg-primary`, `text-on-surface`, ...). Both themes live in the variables, so
+   a component is declared once and follows `.dark` on its own — there are no
+   `dark:` colour pairs. */
+@import "./tokens.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  /* --- Theme tokens -------------------------------------------------------
-     Surfaces and lines live here rather than as `x dark:y` pairs on every
-     element, so a component is declared once and both themes follow.
-     `--line-strong` is the boundary that identifies a form control; it is
-     held at >= 3:1 against both surfaces to satisfy WCAG 1.4.11, while
-     `--line` is decorative and free to be quieter.
-  --------------------------------------------------------------------- */
-  :root {
-    --canvas: 241 245 249; /* slate-100 — the app background */
-    --surface: 255 255 255; /* cards, menus, inputs */
-    --surface-sunken: 241 245 249; /* wells and progress tracks on a card */
-    --line: 226 232 240; /* slate-200 */
-    --line-strong: 127 143 165; /* 3.30:1 on white, 3.01:1 on the canvas */
-  }
-  .dark {
-    --canvas: 2 6 23; /* slate-950 */
-    --surface: 15 23 42; /* slate-900 */
-    --surface-sunken: 30 41 59; /* slate-800 */
-    --line: 30 41 59; /* slate-800 */
-    --line-strong: 89 104 124; /* 3.14:1 on slate-900 */
-  }
-
   html {
     @apply scroll-smooth;
   }
   body {
-    /* Body copy sits a step below pure slate-900: 10.4:1 on a card is well
-       past the 4.5:1 floor, without the halation of maximum contrast. */
-    @apply bg-canvas text-slate-700 antialiased dark:text-slate-300;
-    font-feature-settings: "cv11", "ss01";
+    @apply bg-surface font-sans text-on-surface antialiased;
   }
   h1, h2, h3, h4 {
-    @apply text-slate-900 dark:text-white;
+    @apply text-on-surface;
     text-wrap: balance;
   }
   p {
@@ -44,100 +28,143 @@
   [x-cloak] {
     display: none !important;
   }
+  /* Keyboard focus is never removed, only restyled: Tonal's 3px `secondary` ring
+     offset 2px, which holds at least 3:1 on every surface tone in both themes.
+     Text inputs thicken their own border instead (see TEXT_INPUT_CLASSES). */
+  :where(a, button, summary, [role="button"], [tabindex]):focus-visible {
+    outline: 3px solid rgb(var(--secondary-rgb));
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after {
+      scroll-behavior: auto !important;
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+    }
+  }
 }
 
 @layer components {
-  /* Keyboard focus is never removed, only restyled: a 2px brand ring at 3.68:1
-     on a card and 3.36:1 on the canvas. */
   .focus-ring {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500
-      focus-visible:ring-offset-2 focus-visible:ring-offset-canvas;
+    @apply focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2
+      focus-visible:outline-secondary;
   }
 
+  /* --- Buttons ---------------------------------------------------------- */
+  /* Pill-shaped, 40px tall, 24px side padding. Hover, focus and press are a
+     `currentColor` veil at the state opacities (an inset shadow, so it paints
+     under the label), not a different fill. */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold
-      transition focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
-      disabled:cursor-not-allowed disabled:opacity-50;
+    @apply relative inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap
+      rounded-full px-6 text-label-lg transition disabled:cursor-not-allowed disabled:opacity-[0.38];
   }
+  .btn:hover:not(:disabled),
+  .btn:focus-visible {
+    box-shadow: inset 0 0 0 999px color-mix(in srgb, currentColor calc(var(--state-hover) * 100%), transparent);
+  }
+  .btn:active:not(:disabled) {
+    box-shadow: inset 0 0 0 999px color-mix(in srgb, currentColor calc(var(--state-pressed) * 100%), transparent);
+  }
+  /* Filled: one per view, the primary action. */
   .btn-primary {
-    @apply btn bg-brand-600 text-white shadow-sm hover:bg-brand-700
-      focus-visible:ring-brand-500 dark:focus-visible:ring-offset-slate-950;
+    @apply btn bg-primary text-on-primary;
   }
+  .btn-primary:hover:not(:disabled) {
+    box-shadow: var(--elevation-1),
+      inset 0 0 0 999px color-mix(in srgb, currentColor calc(var(--state-hover) * 100%), transparent);
+  }
+  /* Tonal: the important-but-secondary action. */
   .btn-secondary {
-    @apply btn bg-surface text-slate-700 shadow-sm ring-1 ring-inset ring-line-strong/70
-      hover:bg-slate-50 focus-visible:ring-brand-500 dark:text-slate-200
-      dark:hover:bg-slate-800;
+    @apply btn bg-secondary-container text-on-secondary-container;
   }
+  /* Outlined in `error`: destructive, always with words as well as colour. */
   .btn-danger {
-    @apply btn bg-surface text-rose-700 shadow-sm ring-1 ring-inset ring-rose-300
-      hover:bg-rose-50 focus-visible:ring-rose-500 dark:text-rose-300 dark:ring-rose-900/60
-      dark:hover:bg-rose-950/40;
+    @apply btn border border-error bg-transparent text-error;
   }
+  /* Text: low emphasis. */
   .btn-ghost {
-    @apply btn text-slate-600 hover:bg-slate-900/5 focus-visible:ring-brand-500
-      dark:text-slate-300 dark:hover:bg-white/10;
+    @apply btn bg-transparent px-3 text-primary;
   }
+
+  /* --- Surfaces --------------------------------------------------------- */
+  /* An elevated card: level 1 on `surface-container-low`. Cards at rest never
+     go past level 1; hierarchy is carried by tone first and shadow second. */
   .card {
-    @apply rounded-2xl bg-surface shadow-card dark:shadow-none dark:ring-1 dark:ring-white/5;
+    @apply rounded-xl bg-surface-container-low text-on-surface shadow-elevation-1;
   }
-  /* A card that is a link or a button gets a lift on hover. */
   .card-interactive {
-    @apply card transition duration-200 hover:-translate-y-0.5 hover:shadow-card-hover
-      dark:hover:ring-white/10;
+    @apply card cursor-pointer transition-shadow duration-200 hover:shadow-elevation-2;
   }
+  /* Chip-sized status, in the role pairs: a fill and the text that sits on it. */
   .badge {
-    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold;
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-label-md;
   }
+  .badge-strong {
+    @apply badge bg-secondary-container text-on-secondary-container;
+  }
+  .badge-partial {
+    @apply badge bg-tertiary-container text-on-tertiary-container;
+  }
+  .badge-none {
+    @apply badge bg-surface-container-highest text-on-surface-variant;
+  }
+  .badge-pending {
+    @apply badge bg-primary-container text-on-primary-container;
+  }
+  /* The fourth verdict: something is wrong (failed jobs, failing checks,
+     suspended accounts). */
+  .badge-danger {
+    @apply badge bg-error-container text-on-error-container;
+  }
+
+  /* --- Fields ----------------------------------------------------------- */
   .field-label {
-    @apply mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300;
+    @apply mb-1.5 block text-label-lg text-on-surface-variant;
   }
   .field-error {
-    @apply mt-1.5 text-sm text-rose-600 dark:text-rose-400;
+    @apply mt-1.5 text-label-md text-error;
   }
   .field-help {
-    @apply mt-1.5 text-sm text-slate-600 dark:text-slate-400;
+    @apply mt-1.5 text-label-md text-on-surface-variant;
   }
-  /* Secondary and meta copy. Both steps clear 4.5:1 on every app surface —
-     slate-400 on white was 2.56:1 and is never correct in light mode. */
+  /* Secondary and meta copy: `on-surface-variant`, 4.5:1 on every surface tone. */
   .text-muted {
-    @apply text-slate-600 dark:text-slate-400;
+    @apply text-on-surface-variant;
   }
-  /* Caps long-form copy at a comfortable reading measure. */
   .measure {
     @apply max-w-measure;
   }
+
+  /* --- Navigation ------------------------------------------------------- */
+  /* Items are full-radius pills; the current one fills with `secondary-container`
+     and its label gains weight. Hover is the state veil. */
   .nav-link {
-    @apply rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100
-      hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white;
+    @apply rounded-full px-4 py-2 text-label-lg text-on-surface-variant transition
+      hover:bg-on-surface/[0.08] hover:text-on-surface;
   }
   .nav-link-active {
-    @apply bg-brand-600/10 text-brand-700 hover:bg-brand-600/10 hover:text-brand-700
-      dark:bg-brand-400/15 dark:text-brand-300 dark:hover:bg-brand-400/15 dark:hover:text-brand-300;
+    @apply bg-secondary-container text-on-secondary-container hover:bg-secondary-container
+      hover:text-on-secondary-container;
   }
-
-  /* --- App shell ------------------------------------------------------- */
   .nav-side {
-    @apply flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600
-      transition hover:bg-slate-900/5 hover:text-slate-900 focus-visible:outline-none
-      focus-visible:ring-2 focus-visible:ring-brand-500 dark:text-slate-300
-      dark:hover:bg-white/10 dark:hover:text-white;
+    @apply flex min-h-[48px] items-center gap-3 rounded-full px-4 py-2 text-label-lg
+      text-on-surface-variant transition hover:bg-on-surface/[0.08] hover:text-on-surface;
   }
   .nav-side-active {
-    @apply bg-brand-600/10 font-semibold text-brand-700 hover:bg-brand-600/10
-      hover:text-brand-700 dark:bg-brand-400/15 dark:text-brand-300
-      dark:hover:bg-brand-400/15 dark:hover:text-brand-300;
+    @apply bg-secondary-container font-bold text-on-secondary-container
+      hover:bg-secondary-container hover:text-on-secondary-container;
   }
   .menu-item {
-    @apply block px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-900/5
-      focus-visible:outline-none focus-visible:bg-slate-900/5 dark:text-slate-200
-      dark:hover:bg-white/10 dark:focus-visible:bg-white/10;
+    @apply block px-4 py-3 text-left text-base text-on-surface transition
+      hover:bg-on-surface/[0.08] focus-visible:bg-on-surface/[0.1];
   }
-  /* A floating panel: menus, popovers, the profile switcher. */
+  /* A floating panel: menus, popovers, the profile switcher — level 2 on
+     `surface-container`. */
   .surface-menu {
-    @apply rounded-xl bg-surface shadow-card-hover ring-1 ring-slate-900/10 dark:ring-white/10;
+    @apply rounded-lg bg-surface-container shadow-elevation-2;
   }
   .footer-link {
-    @apply text-slate-600 transition hover:text-slate-900 dark:text-slate-400 dark:hover:text-white;
+    @apply text-on-surface-variant transition hover:text-on-surface;
   }
 
   /* --- Data tables ------------------------------------------------------ */
@@ -145,88 +172,61 @@
     @apply w-full border-collapse text-left text-sm;
   }
   .data-table thead th {
-    @apply border-b border-line pb-2 text-xs font-semibold uppercase tracking-wider
-      text-slate-600 dark:text-slate-400;
+    @apply border-b border-outline-variant pb-2 text-label-md uppercase text-on-surface-variant;
   }
   .data-table tbody td {
-    @apply border-b border-line/70 py-3 align-top text-slate-700 dark:text-slate-300;
+    @apply border-b border-outline-variant/70 py-3 align-top text-on-surface;
   }
   /* The staff portal's tables run to six columns. Without a gutter a
      right-aligned number sits flush against the next column's text and the two
-     read as one value. The app's own two tables are narrow enough not to need
-     it, so it is a modifier rather than a change to the base. */
+     read as one value. */
   .data-table-wide thead th,
   .data-table-wide tbody td {
     @apply pe-6 last:pe-0;
   }
 
-  /* --- Match verdict badges -------------------------------------------- */
-  .badge-strong {
-    @apply badge bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300;
-  }
-  .badge-partial {
-    @apply badge bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300;
-  }
-  .badge-none {
-    @apply badge bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300;
-  }
-  .badge-pending {
-    @apply badge bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300;
-  }
-  /* The fourth verdict: something is wrong. Used by the staff portal for failed
-     jobs, failing health checks and suspended accounts. */
-  .badge-danger {
-    @apply badge bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300;
-  }
-
   /* --- Tabs ------------------------------------------------------------- */
-  /* A horizontal strip of tabs over one shared panel, used where a screen's
-     content splits into named groups that are read one at a time (the skill
-     categories). Like the sidebar and the settings nav, the active tab is a
-     tinted pill rather than an underline or a boxed tab — the shell has no
-     dividing rules and this is what carries the structure everywhere else.
-
-     The strip scrolls sideways instead of wrapping, so the panel below it
-     never shifts down as categories come and go. */
+  /* Tonal tabs: `primary` label and a 3px indicator under the current one. The
+     strip scrolls sideways instead of wrapping, so the panel below it never
+     shifts down as categories come and go. */
   .tab-strip {
-    @apply flex gap-1 overflow-x-auto pb-1;
+    @apply flex overflow-x-auto border-b border-outline-variant;
   }
   .tab-strip-item {
-    @apply flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium
-      text-slate-600 transition hover:bg-slate-900/5 hover:text-slate-900
-      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500
-      dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white;
+    @apply relative flex shrink-0 items-center gap-2 px-4 py-3 text-label-lg
+      text-on-surface-variant transition hover:bg-on-surface/[0.08] hover:text-on-surface;
   }
   .tab-strip-item-active {
-    @apply bg-brand-600/10 font-semibold text-brand-700 hover:bg-brand-600/10
-      hover:text-brand-700 dark:bg-brand-400/15 dark:text-brand-300
-      dark:hover:bg-brand-400/15 dark:hover:text-brand-300;
+    @apply font-bold text-primary hover:text-primary;
+    box-shadow: inset 0 -3px 0 0 rgb(var(--primary-rgb));
   }
-  /* How many rows are behind a tab, so an empty-looking strip still tells you
-     where everything is. */
+  /* The vertical rail of sections beside a job post: the same pills as the
+     sidebar. (Its CSS was dropped with the profile tab rail while job_detail.html
+     kept using it, which left the rail unstyled.) */
+  .tab-rail-item {
+    @apply flex w-full items-center justify-between gap-2 rounded-full px-4 py-2.5 text-left
+      text-label-lg text-on-surface-variant transition hover:bg-on-surface/[0.08] hover:text-on-surface;
+  }
+  .tab-rail-item-active {
+    @apply bg-secondary-container font-bold text-on-secondary-container
+      hover:bg-secondary-container hover:text-on-secondary-container;
+  }
+  /* How many rows are behind a tab. */
   .tab-count {
-    @apply rounded-full bg-slate-900/10 px-1.5 text-xs font-semibold tabular-nums
-      text-slate-600 dark:bg-white/10 dark:text-slate-300;
+    @apply rounded-full bg-on-surface/10 px-1.5 text-label-sm tabular-nums text-on-surface-variant;
   }
 
   /* --- Page shell ------------------------------------------------------- */
   /* Every application screen renders inside this one container, so the
      breadcrumb, the title and the subtitle land in exactly the same place on
-     every page — dashboard, lists, detail screens, add/edit forms and delete
-     confirmations alike. `base_app.html` owns the markup; a page only fills
-     the blocks.
-
-     Content columns below the header are capped but *not* centred
-     (`max-w-2xl`, never `mx-auto max-w-2xl`), so a narrow form still starts
-     on the same left edge as the title above it. */
+     every page. `base_app.html` owns the markup; a page only fills the blocks.
+     Content columns below the header are capped but *not* centred. */
   .page-shell {
     @apply mx-auto w-full max-w-7xl px-4 pb-12 sm:px-6 lg:px-8;
   }
   .page-header {
     @apply pb-6 pt-6;
   }
-  /* Title and subtitle on the left, the screen's primary actions on the
-     right; the actions drop under the title below `sm`. */
   .page-header-row {
     @apply mt-3 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between;
   }
@@ -235,9 +235,6 @@
   }
 
   /* --- Breadcrumb ------------------------------------------------------- */
-  /* The first line of every page: where you are, and one click back to each
-     step above. It replaces the ad-hoc "← Back to …" links the form and
-     detail screens each used to carry in their own spot. */
   .breadcrumb {
     @apply flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm;
   }
@@ -245,56 +242,42 @@
     @apply flex min-w-0 items-center gap-1.5;
   }
   .breadcrumb-link {
-    @apply rounded text-slate-600 transition hover:text-slate-900 focus-visible:outline-none
-      focus-visible:ring-2 focus-visible:ring-brand-500 dark:text-slate-400 dark:hover:text-white;
+    @apply rounded text-on-surface-variant transition hover:text-on-surface;
   }
-  /* The last crumb is the page itself: never a link, and truncated rather
-     than allowed to wrap when the title is a long job post name. */
+  /* The last crumb is the page itself: never a link, truncated rather than
+     wrapped when the title is a long job post name. */
   .breadcrumb-current {
-    @apply max-w-[12rem] truncate font-medium text-slate-900 sm:max-w-sm dark:text-white;
+    @apply max-w-[12rem] truncate font-medium text-on-surface sm:max-w-sm;
   }
-  /* Purely decorative and `aria-hidden`: the crumb order carries the meaning,
-     so this one chevron is exempt from the 3:1 floor the rest of the palette
-     holds to — it is deliberately quiet next to the labels. */
+  /* Decorative and `aria-hidden`; the crumb order carries the meaning. */
   .breadcrumb-sep {
-    @apply h-3.5 w-3.5 shrink-0 text-slate-400 dark:text-slate-600;
+    @apply h-3.5 w-3.5 shrink-0 text-outline;
   }
 
   /* --- Headings --------------------------------------------------------- */
-  /* Sizes come from the `heading-*` scale in `tailwind.config.js`, which is
-     Tailwind's body scale plus 30%. Never hard-code a heading size here or in
-     a template — use a `heading-*` step so every heading moves together. */
-  /* The one heading class for a page that has a page header — which is every
-     screen in the app, plus the legal pages. The header in `base_app.html`
-     writes the tag, so position, size and weight cannot drift between
-     screens. */
+  /* Sizes are the Tonal type steps via the `heading-*` scale in
+     `tailwind.config.js`; Tonal headlines and titles are regular weight, so a
+     heading is told apart by size, not by boldness. */
   .page-title {
-    @apply text-heading-2xl font-bold tracking-tight text-slate-900 sm:text-heading-3xl dark:text-white;
+    @apply text-heading-2xl font-normal text-on-surface sm:text-heading-3xl;
   }
   .section-title {
-    @apply text-heading-lg font-semibold tracking-tight text-slate-900 dark:text-white;
+    @apply text-heading-lg font-normal text-on-surface;
   }
-  /* The line under a page title. */
   .page-lead {
-    @apply measure mt-2 text-slate-600 dark:text-slate-400;
+    @apply measure mt-2 text-on-surface-variant;
   }
-  /* The heading inside a narrower single-purpose card that carries no page
-     header of its own: the log in, register and password-reset screens. One
-     size down from `.page-title` because the card itself, not the viewport,
-     sets its scale — a responsive bump here would make short headings feel
-     oversized in a max-w-md column. */
   .card-title {
-    @apply text-heading-xl font-bold text-slate-900 dark:text-white;
+    @apply text-heading-xl font-normal text-on-surface;
   }
 
   /* --- Legal pages ------------------------------------------------------ */
   .legal-prose {
-    /* ~65 characters a line, the range sustained reading is most comfortable
-       in, and 1.625 leading to match. */
-    @apply measure text-slate-700 dark:text-slate-300;
+    /* ~65 characters a line, with generous leading. */
+    @apply measure text-on-surface;
   }
   .legal-prose h2 {
-    @apply mt-10 text-heading-xl font-bold tracking-tight text-slate-900 dark:text-white;
+    @apply mt-10 text-heading-xl font-normal text-on-surface;
   }
   .legal-prose p {
     @apply mt-4 leading-relaxed;
@@ -303,18 +286,18 @@
     @apply mt-4 list-disc space-y-2 pl-6;
   }
   .legal-prose a {
-    @apply font-medium text-brand-600 underline underline-offset-2 hover:text-brand-700 dark:text-brand-400;
+    @apply font-medium text-primary underline underline-offset-2;
   }
   .legal-prose code {
-    @apply rounded bg-surface-sunken px-1.5 py-0.5 text-sm;
+    @apply rounded bg-surface-container-high px-1.5 py-0.5 text-sm;
   }
   .legal-prose table {
     @apply mt-4 w-full border-collapse text-left text-sm;
   }
   .legal-prose th {
-    @apply border-b border-line py-2 pr-4 align-top font-semibold text-slate-900 dark:text-white;
+    @apply border-b border-outline-variant py-2 pr-4 align-top font-medium text-on-surface;
   }
   .legal-prose td {
-    @apply border-b border-line/70 py-2 pr-4 align-top;
+    @apply border-b border-outline-variant/70 py-2 pr-4 align-top;
   }
 }

@@ -4,6 +4,9 @@ defensively — the AI is asked for a specific shape but we never trust it.
 Note the transaction discipline: `apply_analysis` does database work only. The
 AI call happens before it, in jobs/tasks.py, so a write lock is never held
 across a 30-second HTTP request (the SQLite worker concern in spec §7.1).
+
+Use cases: UC-05.2 (steps 3-4) and UC-05.3 (step 1) in
+docs/use-cases/UC05_JOB_POSTING_MATCHING.md.
 """
 
 import logging
@@ -45,6 +48,8 @@ def _clean_list(value):
     return [str(item).strip() for item in value if str(item).strip()]
 
 
+# UC-05.2 — 13-Section Deep Extraction Pipeline (step 3: the sections the AI
+# returned, checked against the closed set of keys)
 def normalize_sections(data: dict) -> list[dict]:
     """Validate the AI's `sections` against the closed enum.
 
@@ -131,6 +136,8 @@ def _fallback_sections(job: JobPost) -> list[dict]:
     return list(out.values())
 
 
+# UC-05.2 — 13-Section Deep Extraction Pipeline (steps 3-4: title, company and
+# the other scalar fields, then the sections and their rows)
 def apply_analysis(job: JobPost, data: dict, raw_text: str, language: str = "") -> None:
     """Populate `job` and its sections/elements from the AI's dict.
 
@@ -204,6 +211,7 @@ def apply_analysis(job: JobPost, data: dict, raw_text: str, language: str = "") 
                 )
 
 
+# UC-05.3 — Scoped Profile Slice Matching (step 1: the sections that carry rows)
 def matched_sections_for(job: JobPost):
     """The sections of `job` that carry rows and are compared to the profile."""
     return [

@@ -19,7 +19,7 @@ from django.utils.translation import gettext_lazy as _
 
 # --- Profile slice keys -----------------------------------------------------
 # These name the parts of the candidate profile that can be sent to the AI.
-# `core.utils.build_profile_slice` maps each one to real data.
+# `core.services.build_profile_slice` maps each one to real data.
 SLICE_PREFERENCES_LOCATION = "preferences_location"
 SLICE_PREFERENCES_COMPENSATION = "preferences_compensation"
 SLICE_EXPERIENCE = "experience"

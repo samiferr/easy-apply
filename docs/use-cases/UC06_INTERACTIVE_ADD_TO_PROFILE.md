@@ -9,6 +9,7 @@ When an analyzed job requirement is flagged as missing or partial (`match_level=
 
 - **Primary Actor:** Candidate
 - **Supporting System:** `jobs.profile_targets.get_add_target`, `jobs.views.JobElementAddToProfileView`
+- **Implemented by:** `jobs.services.profile_elements`, `jobs.services.add_target_for`, `jobs.services.can_add_to_profile`, `jobs.services.add_to_profile_form`
 - **Objective:** Open an interactive modal dialog allowing the candidate to add an unfulfilled job requirement to their profile.
 
 ### Preconditions
@@ -47,6 +48,7 @@ When an analyzed job requirement is flagged as missing or partial (`match_level=
 
 - **Primary Actor:** Candidate
 - **Supporting System:** Form validation & uniqueness constraints
+- **Implemented by:** `jobs.services.add_to_profile_form`
 - **Objective:** Review and adjust pre-filled requirement attributes before committing them to the permanent profile.
 
 ### Main Success Scenario
@@ -71,6 +73,7 @@ When an analyzed job requirement is flagged as missing or partial (`match_level=
 
 - **Primary Actor:** Candidate / Background AI Worker
 - **Supporting System:** `jobs.tasks.match_job_element`, `jobs.tasks.enqueue_element_match`
+- **Implemented by:** `jobs.services.profile_elements`, `jobs.services.add_to_profile`, `jobs.services.rematch_element`, `jobs.services.element_row_state`, `jobs.tasks.match_job_element`, `jobs.tasks.enqueue_element_match`, `jobs.domain.deepseek_client.match_single_element`, `jobs.domain.matcher.match_element_to_profile`
 - **Objective:** Save the profile record and re-evaluate only the single affected job element in real-time.
 
 ### Main Success Scenario

@@ -7,11 +7,11 @@ no JS charting library (spec §9). Screen readers get the table below.
   <div class="flex flex-wrap items-baseline justify-between gap-2">
     <div>
       <h2 class="section-title">{% trans "Jobs analyzed" %}</h2>
-      <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">{{ chart.month_label }}</p>
+      <p class="mt-1 text-sm text-on-surface-variant">{{ chart.month_label }}</p>
     </div>
-    <p class="text-2xl font-bold text-brand-600 dark:text-brand-400">
+    <p class="text-2xl font-bold text-primary">
       {{ chart.total }}
-      <span class="text-sm font-medium text-slate-600 dark:text-slate-400">
+      <span class="text-sm font-medium text-on-surface-variant">
         {% blocktrans count counter=chart.total %}job{% plural %}jobs{% endblocktrans %}
       </span>
     </p>
@@ -23,24 +23,24 @@ no JS charting library (spec §9). Screen readers get the table below.
       {% for bar in chart.bars %}
         <div class="group relative flex h-full flex-1 flex-col justify-end">
           <div class="w-full rounded-t transition-all
-                      {% if bar.count %}bg-brand-500 group-hover:bg-brand-600 dark:bg-brand-500 dark:group-hover:bg-brand-400
-                      {% elif bar.is_future %}bg-slate-50 dark:bg-slate-800/40
-                      {% else %}bg-slate-100 dark:bg-slate-800{% endif %}
-                      {% if bar.is_today %}ring-1 ring-brand-400{% endif %}"
+                      {% if bar.count %}bg-primary group-hover:bg-primary/90
+                      {% elif bar.is_future %}bg-surface-container-low
+                      {% else %}bg-surface-container-high{% endif %}
+                      {% if bar.is_today %}ring-1 ring-primary{% endif %}"
                style="height: {% if bar.count %}{{ bar.percent }}%{% else %}3px{% endif %}"></div>
-          <span class="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-xs text-white group-hover:block dark:bg-slate-700">
+          <span class="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-inverse-surface px-2 py-1 text-xs text-on-primary group-hover:block">
             {{ bar.day|date:"j M" }} · {{ bar.count }}
           </span>
         </div>
       {% endfor %}
     </div>
-    <div class="mt-2 flex justify-between text-xs text-slate-600 dark:text-slate-400">
+    <div class="mt-2 flex justify-between text-xs text-on-surface-variant">
       <span>1</span>
       <span>{{ chart.bars|length }}</span>
     </div>
   {% else %}
-    <div class="mt-6 flex h-40 flex-col items-center justify-center rounded-lg border border-dashed border-line">
-      <p class="text-sm text-slate-600 dark:text-slate-400">{% trans "No job posts analyzed this month yet." %}</p>
+    <div class="mt-6 flex h-40 flex-col items-center justify-center rounded-lg border border-dashed border-outline-variant">
+      <p class="text-sm text-on-surface-variant">{% trans "No job posts analyzed this month yet." %}</p>
       <a href="{% url 'jobs:add' %}" class="btn-primary mt-3 !py-1.5 !text-xs">{% trans "Analyze a job post" %}</a>
     </div>
   {% endif %}

@@ -2,17 +2,17 @@
 <div class="surface-menu w-full max-w-lg p-6">
   <div class="flex items-start justify-between gap-4">
     <div>
-      <h2 class="text-heading-lg font-bold text-slate-900 dark:text-white">{{ target.title }}</h2>
+      <h2 class="text-heading-lg font-bold text-on-surface">{{ target.title }}</h2>
       {% if target.help_text %}
-        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">{{ target.help_text }}</p>
+        <p class="mt-1 text-sm text-on-surface-variant">{{ target.help_text }}</p>
       {% endif %}
     </div>
-    <button type="button" @click="closeAdd()" class="rounded-lg p-1 text-slate-600 dark:text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800" aria-label="{% trans 'Close' %}">
+    <button type="button" @click="closeAdd()" class="rounded-lg p-1 text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface-variant" aria-label="{% trans 'Close' %}">
       <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
     </button>
   </div>
 
-  <blockquote class="mt-4 rounded-lg border-l-4 border-brand-300 bg-brand-50 px-3 py-2 text-sm text-slate-700 dark:border-brand-700 dark:bg-brand-950/40 dark:text-slate-300">
+  <blockquote class="mt-4 rounded-lg border-l-4 border-primary-container bg-primary-container px-3 py-2 text-sm text-on-surface-variant">
     {{ element.text }}
   </blockquote>
 
@@ -22,7 +22,7 @@
         class="mt-5 space-y-4">
     {% csrf_token %}
     {% if form.non_field_errors %}
-      <div class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-300">
+      <div class="rounded-lg border border-error/30 bg-error-container px-3 py-2 text-sm text-on-error-container">
         {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
       </div>
     {% endif %}

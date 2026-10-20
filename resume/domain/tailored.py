@@ -5,6 +5,8 @@ speak the job's language, ordered by what that job asks for) as JSON; the
 document itself is then assembled here, following the section skeleton in
 `templates/resume_template.md`, so the layout — and the contact details in
 the header — never depend on the model getting them right.
+
+Use case: UC-07.1 in docs/use-cases/UC07_TAILORED_RESUME_GENERATION.md.
 """
 
 import json
@@ -16,7 +18,9 @@ from django.utils.translation import gettext_lazy as _
 
 from core.ai import AIServiceError, call_deepseek_json
 from core.language import language_clause, use_language
-from core.utils import build_resume_snapshot, profile_snapshot_is_empty
+from core.parallel import run_parallel
+from core.prompts import load_prompt
+from core.services import build_resume_snapshot, profile_snapshot_is_empty
 
 from ..models import TailoredResume
 
@@ -51,56 +55,30 @@ SECTION_HEADINGS = {
     LANGUAGES: _("LANGUAGES"),
 }
 
-SYSTEM_PROMPT = """You are an expert resume writer. You are given a JSON \
-object with three keys: "job" (a structured job posting, including every \
-requirement extracted from it and — when available — whether the \
-candidate's profile already matches that requirement), \
-"candidate_profile" (everything the candidate has recorded: skills, \
-languages, work experience with highlight bullets, degrees and \
-certificates) and "resume_template" (the Markdown skeleton the finished \
-resume must fill).
-
-Write the content of a one-to-two page resume tailored to that job. \
-Return ONLY a single JSON object (no markdown fences, no commentary) with \
-this shape:
-
-{
-  "professional_summary": string,
-  "skills": [{"group": string, "items": [string]}],
-  "experience": [
-    {
-      "job_title": string, "company": string, "location": string,
-      "dates": string, "highlights": [string]
-    }
-  ],
-  "education": [
-    {"title": string, "organization": string, "dates": string, "details": string}
-  ],
-  "languages": [string]
+#: One writer call per resume section: its prompt file and the slices of the
+#: candidate's snapshot it needs. Sections are independent, so they are written
+#: at the same time.
+WRITE_SECTIONS = {
+    "summary": ("contact", "headline", "bio", "experience", "technical_skills", "soft_skills"),
+    "skills": ("technical_skills", "soft_skills"),
+    "experience": ("experience",),
+    "education": ("degrees", "certificates"),
+    "languages": ("languages",),
 }
-
-Rules:
-- Use ONLY facts present in "candidate_profile". Never invent an employer, \
-a date, a degree, a certificate, a tool or a metric the candidate did not \
-record. Do not upgrade a skill's level or stretch a date range.
-- Copy "job_title", "company", "location" and "dates" verbatim from the \
-matching profile entry — they are facts, not prose.
-- Include every role in "experience", most recent first, but spend the \
-most bullets (4-6) on the roles closest to this job and fewer (1-3) on \
-distant ones. Rewrite each highlight in the job's own vocabulary, keeping \
-it truthful, starting with a strong action verb, and one or two lines long.
-- "professional_summary" is 2-4 sentences positioning the candidate for \
-THIS job, naming their strongest genuinely-matching qualifications.
-- "skills" groups the candidate's real skills under short headings (e.g. \
-"Programming", "Cloud & DevOps", "Soft skills"), listing first the ones \
-this job asks for. Never add a skill the candidate hasn't recorded.
-- "education" covers degrees first, then certificates; "details" is a \
-short optional line (field of study, grade, credential id) or "".
-- "languages" is a list of short strings like "French — Native".
-- Where a requirement is marked as not covered by the profile, do not \
-paper over it with an invented claim — simply lead with the evidence the \
-candidate does have.
-"""
+#: The one key each writer returns.
+WRITE_KEYS = {
+    "summary": "professional_summary",
+    "skills": "skills",
+    "experience": "experience",
+    "education": "education",
+    "languages": "languages",
+}
+_SHARED = load_prompt("resume/write/shared").rstrip("\n")
+SECTION_PROMPTS = {
+    name: f"{_SHARED}\n\n{load_prompt(f'resume/write/{name}')}" for name in WRITE_SECTIONS
+}
+#: Every section prompt, for code that checks them as a whole.
+SYSTEM_PROMPT = "\n\n".join(SECTION_PROMPTS.values())
 
 
 def _clean_str(value, max_length=None) -> str:
@@ -299,6 +277,8 @@ SECTION_BUILDERS = {
 }
 
 
+# UC-07.1 — AI Generation of Job-Tailored Resume Draft (the document, laid out
+# from the template's section skeleton)
 def render_markdown(profile, data: dict, sections=None) -> str:
     """Assemble the AI's section content into one Markdown document laid
     out like resume_template.md. Sections the AI returned nothing for are
@@ -329,6 +309,8 @@ def render_markdown(profile, data: dict, sections=None) -> str:
 # --- Entry point ------------------------------------------------------------
 
 
+# UC-07.1 — AI Generation of Job-Tailored Resume Draft (the AI call and the
+# stored draft, as run by the Celery task)
 def generate_tailored_resume(job, profile=None) -> dict:
     """Draft (or re-draft) the tailored resume for `job` and store it as
     editable Markdown. Returns {"skipped": "empty_profile"} when there's
@@ -352,18 +334,39 @@ def generate_tailored_resume(job, profile=None) -> dict:
 
     with use_language(profile.language):
         job_payload = build_job_payload(job)
-    payload = json.dumps(
-        {
-            "job": job_payload,
-            "candidate_profile": profile_snapshot,
-            "resume_template": load_template_text(),
-        },
-        # Accented profile content reaches the model as text, not as \uXXXX
-        # escapes — same as the matcher's payload.
-        ensure_ascii=False,
+    template = load_template_text()
+    clause = language_clause(profile.language)
+
+    def write(name):
+        payload = json.dumps(
+            {
+                "job": job_payload,
+                "candidate_profile": {
+                    key: profile_snapshot[key]
+                    for key in WRITE_SECTIONS[name]
+                    if key in profile_snapshot
+                },
+                "resume_template": template,
+            },
+            # Accented profile content reaches the model as text, not as \uXXXX
+            # escapes — same as the matcher's payload.
+            ensure_ascii=False,
+        )
+        user_content = f"{clause}\n\n{payload}"
+        return lambda: call_deepseek_json(SECTION_PROMPTS[name], user_content, temperature=0.3)
+
+    # A section that fails is left out and reported; the rest of the draft is
+    # kept. Only when every section fails is the error raised.
+    answers, errors = run_parallel(
+        {name: write(name) for name in WRITE_SECTIONS}, keep_partial=True
     )
-    user_content = f"{language_clause(profile.language)}\n\n{payload}"
-    data = call_deepseek_json(SYSTEM_PROMPT, user_content, temperature=0.3)
+    data = {"_model": next((a["_model"] for a in answers.values() if "_model" in a), "")}
+    for name, answer in answers.items():
+        # Only what each writer was asked for, so a chatty answer cannot
+        # overwrite another section's.
+        key = WRITE_KEYS[name]
+        if key in answer:
+            data[key] = answer[key]
 
     markdown = render_markdown(profile, data)
     if not markdown.strip():
@@ -377,7 +380,13 @@ def generate_tailored_resume(job, profile=None) -> dict:
             "ai_model": _clean_str(data.get("_model"), 100),
             "edited_by_user": False,
             "state": TailoredResume.STATE_COMPLETED,
-            "error_message": "",
+            "error_message": (
+                "Some sections couldn't be written and are missing from this draft: "
+                + ", ".join(errors)
+                + ". Generate it again to retry, or write them yourself here."
+                if errors
+                else ""
+            ),
             "generated_at": timezone.now(),
         },
     )

@@ -15,23 +15,23 @@ flow and becomes a `fixed` off-canvas drawer over the scrim, opened by the
 floating button in base_app.html.
 {% endcomment %}
 <aside id="app-sidebar"
-  class="fixed inset-y-0 left-0 z-50 flex w-64 shrink-0 flex-col bg-surface shadow-card-hover transition-[width,transform] duration-200
-    md:sticky md:top-0 md:z-30 md:h-svh md:translate-x-0 md:bg-canvas md:shadow-none"
+  class="fixed inset-y-0 left-0 z-50 flex w-64 shrink-0 flex-col bg-surface-container-low shadow-card-hover transition-[width,transform] duration-200
+    md:sticky md:top-0 md:z-30 md:h-svh md:translate-x-0 md:bg-surface md:shadow-none"
   :class="[collapsed ? 'md:w-[4.75rem]' : 'md:w-64', mobileOpen ? 'translate-x-0' : '-translate-x-full']"
 >
   <!-- Brand -->
   <div class="flex h-16 shrink-0 items-center gap-2 px-4">
     <a href="{% url 'core:dashboard' %}" aria-label="{{ SITE_NAME }}"
-       class="flex min-w-0 items-center gap-2.5 overflow-hidden rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
-      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white shadow-sm">
+       class="flex min-w-0 items-center gap-2.5 overflow-hidden rounded-lg">
+      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-on-primary shadow-sm">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" /></svg>
       </span>
-      <span x-show="!collapsed" x-cloak class="truncate text-lg font-bold tracking-tight text-slate-900 dark:text-white">{{ SITE_NAME }}</span>
+      <span x-show="!collapsed" x-cloak class="truncate text-lg font-bold tracking-tight text-on-surface">{{ SITE_NAME }}</span>
     </a>
 
     <!-- Close the drawer (mobile only — desktop collapses instead) -->
     <button type="button" @click="mobileOpen = false"
-      class="ms-auto rounded-lg p-2 text-slate-600 transition hover:bg-slate-900/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 md:hidden dark:text-slate-300 dark:hover:bg-white/10"
+      class="ms-auto rounded-lg p-2 text-on-surface-variant transition hover:bg-on-surface/5 md:hidden"
       aria-label="{% trans 'Close navigation' %}">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
     </button>
@@ -46,7 +46,7 @@ floating button in base_app.html.
     </div>
 
     <div class="space-y-1">
-      <p x-show="!collapsed" x-cloak class="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">{% trans "Jobs" %}</p>
+      <p x-show="!collapsed" x-cloak class="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-on-surface-variant">{% trans "Jobs" %}</p>
       <a href="{% url 'jobs:list' %}" class="nav-side {% if request.resolver_match.view_name == 'jobs:list' or request.resolver_match.view_name == 'jobs:detail' %}nav-side-active{% endif %}">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
         <span :class="collapsed && 'sr-only'">{% trans "Job list" %}</span>
@@ -58,7 +58,7 @@ floating button in base_app.html.
     </div>
 
     <div class="space-y-1">
-      <p x-show="!collapsed" x-cloak class="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">{% trans "Profile" %}</p>
+      <p x-show="!collapsed" x-cloak class="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-on-surface-variant">{% trans "Profile" %}</p>
       <a href="{% url 'preferences:detail' %}" class="nav-side {% if request.resolver_match.app_name == 'preferences' %}nav-side-active{% endif %}">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4z"/></svg>
         <span :class="collapsed && 'sr-only'">{% trans "Job preferences" %}</span>
@@ -86,7 +86,7 @@ floating button in base_app.html.
     </div>
 
     <div class="space-y-1">
-      <p x-show="!collapsed" x-cloak class="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">{% trans "Resume" %}</p>
+      <p x-show="!collapsed" x-cloak class="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-on-surface-variant">{% trans "Resume" %}</p>
       <a href="{% url 'resume:upload' %}" class="nav-side {% if request.resolver_match.view_name == 'resume:upload' or request.resolver_match.view_name == 'resume:review' %}nav-side-active{% endif %}">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
         <span :class="collapsed && 'sr-only'">{% trans "Import from resume" %}</span>

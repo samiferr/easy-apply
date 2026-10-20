@@ -19,7 +19,7 @@
     <form method="post" novalidate class="space-y-5" x-data="{ isCurrent: {{ form.is_current.value|yesno:'true,false' }} }">
       {% csrf_token %}
       {% if form.non_field_errors %}
-        <div class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">
+        <div class="rounded-lg border border-error/30 bg-error-container px-4 py-3 text-sm text-on-error-container">
           {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
         </div>
       {% endif %}
@@ -32,9 +32,9 @@
         {% include "partials/field.html" with field=form.employment_type %}
       </div>
       <div>
-        <label class="flex items-start gap-2.5 text-sm text-slate-700 dark:text-slate-300">
+        <label class="flex items-start gap-2.5 text-sm text-on-surface-variant">
           <input type="checkbox" name="{{ form.is_current.html_name }}" id="{{ form.is_current.id_for_label }}"
-                 x-model="isCurrent" class="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                 x-model="isCurrent" class="h-4 w-4 rounded border-outline text-primary focus:ring-primary"
                  {% if form.is_current.value %}checked{% endif %} />
           <span>{{ form.is_current.label }}</span>
         </label>
@@ -52,7 +52,7 @@
 
         {{ formset.management_form }}
         {% if formset.non_form_errors %}
-          <div class="mb-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">
+          <div class="mb-3 rounded-lg border border-error/30 bg-error-container px-4 py-3 text-sm text-on-error-container">
             {% for error in formset.non_form_errors %}<p>{{ error }}</p>{% endfor %}
           </div>
         {% endif %}
@@ -91,7 +91,7 @@
         </template>
       </div>
 
-      <div class="flex justify-end gap-3 border-t border-line pt-5">
+      <div class="flex justify-end gap-3 border-t border-outline-variant pt-5">
         <a href="{% url 'experience:list' %}" class="btn-secondary">{% trans "Cancel" %}</a>
         <button type="submit" class="btn-primary">{% if object %}Save changes{% else %}Add experience{% endif %}</button>
       </div>

@@ -1,23 +1,15 @@
-from itertools import groupby
-
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import Http404
+from django.http import Http404, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import gettext as _, gettext_lazy
 from django.views.generic import CreateView, DeleteView, TemplateView, UpdateView
 
 from core.mixins import ConfirmDeleteMixin
 
+from . import services
 from .forms import UserSkillForm
 from .models import SkillCategory, UserSkill
-
-
-def _grouped_by_category(qs):
-    grouped = []
-    for category, items in groupby(qs, key=lambda s: s.category):
-        grouped.append((category, list(items)))
-    return grouped
 
 
 def skills_url(kind: str, category=None) -> str:
@@ -53,7 +45,7 @@ class SkillKindMixin:
 
     def get_kind(self):
         kind = self.kwargs.get("kind")
-        if kind not in (SkillCategory.SOFT, SkillCategory.TECHNICAL):
+        if not services.is_valid_kind(kind):
             raise Http404("Unknown skill type")
         return kind
 
@@ -73,11 +65,7 @@ class SkillListView(SkillKindMixin, LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["grouped"] = _grouped_by_category(
-            UserSkill.objects.filter(
-                profile=self.request.profile, category__kind=ctx["kind"]
-            ).select_related("category")
-        )
+        ctx["grouped"] = services.skills_by_category(self.request.profile, ctx["kind"])
         return ctx
 
 
@@ -87,7 +75,7 @@ class BaseSkillFormView(SkillKindMixin, LoginRequiredMixin):
     template_name = "skills/skill_form.html"
 
     def get_queryset(self):
-        return UserSkill.objects.filter(profile=self.request.profile)
+        return services.profile_skills(self.request.profile)
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -100,22 +88,23 @@ class BaseSkillFormView(SkillKindMixin, LoginRequiredMixin):
 
 class SkillCreateView(BaseSkillFormView, CreateView):
     def form_valid(self, form):
-        form.instance.profile = self.request.profile
-        messages.success(self.request, f"Added “{form.instance.name}” to your skills.")
-        return super().form_valid(form)
+        self.object = services.add_skill(self.request.profile, form)
+        messages.success(self.request, f"Added “{self.object.name}” to your skills.")
+        return HttpResponseRedirect(self.get_success_url())
 
 
 class SkillUpdateView(BaseSkillFormView, UpdateView):
     def form_valid(self, form):
-        messages.success(self.request, f"Updated “{form.instance.name}”.")
-        return super().form_valid(form)
+        self.object = services.update_skill(form)
+        messages.success(self.request, f"Updated “{self.object.name}”.")
+        return HttpResponseRedirect(self.get_success_url())
 
 
 class SkillDeleteView(ConfirmDeleteMixin, LoginRequiredMixin, DeleteView):
     model = UserSkill
 
     def get_queryset(self):
-        return UserSkill.objects.filter(profile=self.request.profile)
+        return services.profile_skills(self.request.profile)
 
     def get_success_url(self):
         return skills_url(self.object.category.kind, self.object.category)
@@ -131,6 +120,11 @@ class SkillDeleteView(ConfirmDeleteMixin, LoginRequiredMixin, DeleteView):
 
     def get_detail(self):
         return f"{self.object.name} — {self.object.get_level_display()}"
+
+    def form_valid(self, form):
+        success_url = self.get_success_url()
+        services.remove_skill(self.object)
+        return HttpResponseRedirect(success_url)
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()

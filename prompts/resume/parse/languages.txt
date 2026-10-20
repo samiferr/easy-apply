@@ -1,0 +1,10 @@
+Your part: the human languages the candidate speaks.
+
+{
+  "languages": [
+    {"name": string, "proficiency": "basic" | "conversational" | "professional" | "fluent" | "native"}
+  ]
+}
+
+Rules:
+- Do not duplicate a language already covered by another entry.

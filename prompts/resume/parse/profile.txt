@@ -1,0 +1,18 @@
+Your part: the candidate's personal and contact information.
+
+{
+  "profile": {
+    "first_name": string,
+    "last_name": string,
+    "headline": string,
+    "phone": string,
+    "location": string,
+    "bio": string,
+    "linkedin_url": string,
+    "portfolio_url": string,
+    "github_url": string
+  }
+}
+
+Rules:
+- "headline" is a one-line professional summary (e.g. "Senior Backend Engineer specializing in distributed systems"), and "bio" is a short paragraph (2-4 sentences) summarizing their background, if the resume has a summary section — otherwise leave both blank rather than inventing one.

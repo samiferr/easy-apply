@@ -1,0 +1,14 @@
+Your part: the candidate's soft skills and technical skills.
+
+{
+  "soft_skills": [
+    {"name": string, "category": string, "level": "beginner" | "intermediate" | "advanced" | "expert"}
+  ],
+  "technical_skills": [
+    {"name": string, "category": string, "level": "beginner" | "intermediate" | "advanced" | "expert"}
+  ]
+}
+
+Rules:
+- Classify each skill's level based on context (years of experience, how it's described, its position/emphasis in the resume) — default to "intermediate" if genuinely unclear.
+- Do not list the same skill twice.

@@ -1,0 +1,11 @@
+Your part: the candidate's professional certificates.
+
+{
+  "certificates": [
+    {
+      "name": string, "issuing_organization": string,
+      "issue_date": "YYYY-MM-DD" | null, "expiry_date": "YYYY-MM-DD" | null,
+      "does_not_expire": true | false, "credential_id": string, "credential_url": string
+    }
+  ]
+}

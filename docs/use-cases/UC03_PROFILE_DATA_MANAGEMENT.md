@@ -14,6 +14,7 @@ The candidate profile data model is decomposed into specialized apps:
 
 - **Primary Actor:** Candidate
 - **Supporting System:** `skills.models.SkillCategory`, `skills.models.UserSkill`
+- **Implemented by:** `skills.services.is_valid_kind`, `skills.services.profile_skills`, `skills.services.skills_by_category`, `skills.services.group_by_category`, `skills.services.add_skill`, `skills.services.update_skill`, `skills.services.remove_skill`
 - **Objective:** Record, update, and categorize technical competencies (e.g. Languages, Frameworks, Databases, Cloud) with proficiency ratings.
 
 ### Main Success Scenario
@@ -47,6 +48,7 @@ The candidate profile data model is decomposed into specialized apps:
 
 - **Primary Actor:** Candidate
 - **Supporting System:** `skills.models.SkillCategory (kind="soft")`
+- **Implemented by:** `skills.services.is_valid_kind`, `skills.services.profile_skills`, `skills.services.skills_by_category`, `skills.services.add_skill`
 - **Objective:** Curate interpersonal, leadership, and operational soft skills.
 
 ### Main Success Scenario
@@ -62,6 +64,7 @@ The candidate profile data model is decomposed into specialized apps:
 
 - **Primary Actor:** Candidate
 - **Supporting System:** `languages.models.Language`, `languages.models.UserLanguage`
+- **Implemented by:** `languages.services.profile_languages`, `languages.services.list_languages`, `languages.services.add_language`, `languages.services.update_language`, `languages.services.remove_language`
 - **Objective:** Declare spoken and written language capabilities.
 
 ### Main Success Scenario
@@ -85,6 +88,7 @@ The candidate profile data model is decomposed into specialized apps:
 
 - **Primary Actor:** Candidate
 - **Supporting System:** `experience.models.WorkExperience`, `experience.models.ExperienceHighlight`, Django FormSets
+- **Implemented by:** `experience.services.profile_experiences`, `experience.services.list_experiences`, `experience.services.save_experience`, `experience.services.remove_experience`
 - **Objective:** Record comprehensive employment history with discrete, re-orderable achievement bullet points.
 
 ### Main Success Scenario
@@ -116,6 +120,7 @@ The candidate profile data model is decomposed into specialized apps:
 
 - **Primary Actor:** Candidate
 - **Supporting System:** `education.models.Degree`, `education.models.Certificate`
+- **Implemented by:** `education.services.profile_degrees`, `education.services.profile_certificates`, `education.services.education_overview`, `education.services.add_degree`, `education.services.update_degree`, `education.services.remove_degree`, `education.services.add_certificate`, `education.services.update_certificate`, `education.services.remove_certificate`
 - **Objective:** Track academic background and verified credentials.
 
 ### Main Success Scenario (Degree)
@@ -137,6 +142,7 @@ The candidate profile data model is decomposed into specialized apps:
 
 - **Primary Actor:** Candidate
 - **Supporting System:** `preferences.models.JobPreference`, `preferences.models.BenefitPreference`
+- **Implemented by:** `preferences.services.get_or_create_preference`, `preferences.services.preference_screen`, `preferences.services.save_preferences`, `preferences.services.profile_benefits`, `preferences.services.add_benefit`, `preferences.services.change_benefit_importance`, `preferences.services.remove_benefit`
 - **Objective:** Define explicit compensation requirements, geographical/remote flexibility, and prioritized fringe benefits used for semantic matching against job listings.
 
 ### Main Success Scenario

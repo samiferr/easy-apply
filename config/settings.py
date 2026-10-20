@@ -240,6 +240,10 @@ DEEPSEEK_API_BASE = config("DEEPSEEK_API_BASE", default="https://api.deepseek.co
 DEEPSEEK_MODEL = config("DEEPSEEK_MODEL", default="deepseek-v4-flash")
 DEEPSEEK_TIMEOUT = config("DEEPSEEK_TIMEOUT", default=60, cast=int)
 
+# Where the prompts sent to the AI live: one plain-text file per prompt. See
+# prompts/README.md and core/prompts.py.
+PROMPTS_DIR = BASE_DIR / "prompts"
+
 # Resume upload (jobs -> profile auto-fill)
 RESUME_MAX_UPLOAD_BYTES = config("RESUME_MAX_UPLOAD_BYTES", default=8_000_000, cast=int)
 
@@ -305,6 +309,9 @@ CELERY_REDIS_SOCKET_TIMEOUT = 10
 
 # How long a running AITask may go without an update before the worker's
 # startup sweep marks it failed (seconds).
+# How many AI calls one task may have in flight at once (resume parsing and
+# resume writing send one call per section).
+AI_MAX_PARALLEL = config("AI_MAX_PARALLEL", default=6, cast=int)
 AI_TASK_STALE_AFTER = config("AI_TASK_STALE_AFTER", default=3600, cast=int)
 # Terminal AITask rows older than this many days are pruned by
 # `manage.py prune_ai_tasks`.

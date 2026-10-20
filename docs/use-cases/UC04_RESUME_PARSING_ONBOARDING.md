@@ -8,7 +8,8 @@ The `resume` app enables candidates to upload existing resumes in multiple forma
 ## UC-04.1: Multi-Format Resume Upload & Quota Validation
 
 - **Primary Actor:** Candidate
-- **Supporting System:** `staffportal.services.quotas`, `resume.tasks.enqueue_resume_analysis`
+- **Supporting System:** `staffportal.domain.quotas`, `resume.tasks.enqueue_resume_analysis`
+- **Implemented by:** `resume.services.start_resume_import`, `resume.tasks.enqueue_resume_analysis`
 - **Objective:** Securely upload a resume file and trigger background AI extraction without blocking the web request.
 
 ### Preconditions
@@ -46,18 +47,19 @@ The `resume` app enables candidates to upload existing resumes in multiple forma
 ## UC-04.2: Background Asynchronous Extraction via DeepSeek LLM
 
 - **Primary Actor:** Background AI Worker
-- **Supporting System:** `resume.services.extractor`, `resume.services.deepseek_resume`, DeepSeek API
+- **Supporting System:** `resume.domain.extractor`, `resume.domain.deepseek_resume`, DeepSeek API
+- **Implemented by:** `resume.services.import_task`, `resume.tasks.analyze_resume_import`, `resume.domain.deepseek_resume.analyze_resume_text`, `resume.domain.extractor.extract_resume_text`, `resume.domain.importer.run_analysis`
 - **Objective:** Parse document text and invoke LLM to produce structured profile JSON adhering to profile language.
 
 ### Main Success Scenario
 1. Celery worker receives `parse_resume(resume_import_id, task_id)`.
 2. Worker updates `AITask` to `running` with step *"Reading your resume"*.
-3. Worker calls `resume.services.extractor.extract_text(file_path)`:
+3. Worker calls `resume.domain.extractor.extract_text(file_path)`:
    - For PDF: uses `pypdf.PdfReader` to extract pages.
    - For DOCX: uses `docx.Document` to extract paragraph text.
    - For TXT: decodes UTF-8 text with fallback handling.
 4. Worker saves raw text to `ResumeImport.raw_text`.
-5. Worker invokes `resume.services.deepseek_resume.extract_resume_data(raw_text, language=profile.language)`:
+5. Worker invokes `resume.domain.deepseek_resume.extract_resume_data(raw_text, language=profile.language)`:
    - Employs DeepSeek prompt instructing the LLM to format candidate experience, degrees, certificates, skills, and languages into rigid JSON schema conforming to `profile.language`.
 6. DeepSeek returns structured JSON.
 7. Worker validates JSON structure, saves to `ResumeImport.ai_response`, records `ai_model`, and updates `ResumeImport.status = "completed"`.
@@ -73,15 +75,16 @@ The `resume` app enables candidates to upload existing resumes in multiple forma
 
 ### Key Code References
 - Task: [`resume.tasks.parse_resume`](file:///home/sami/PycharmProjects/Github/easy-apply/resume/tasks.py)
-- Extractor: [`resume.services.extractor`](file:///home/sami/PycharmProjects/Github/easy-apply/resume/services/extractor.py)
-- DeepSeek Client: [`resume.services.deepseek_resume`](file:///home/sami/PycharmProjects/Github/easy-apply/resume/services/deepseek_resume.py)
+- Extractor: [`resume.domain.extractor`](file:///home/sami/PycharmProjects/Github/easy-apply/resume/domain/extractor.py)
+- DeepSeek Client: [`resume.domain.deepseek_resume`](file:///home/sami/PycharmProjects/Github/easy-apply/resume/domain/deepseek_resume.py)
 
 ---
 
 ## UC-04.3: Intelligent Collision & Duplicate Detection
 
 - **Primary Actor:** Candidate
-- **Supporting System:** `resume.services.importer.build_review_sections`
+- **Supporting System:** `resume.services.build_review_sections`
+- **Implemented by:** `resume.services.is_reviewable`, `resume.services.review_checklist`, `resume.services.build_review_sections`
 - **Objective:** Compare parsed resume items against existing candidate profile data to highlight duplicates and prevent clutter.
 
 ### Main Success Scenario
@@ -100,7 +103,7 @@ The `resume` app enables candidates to upload existing resumes in multiple forma
 5. UI renders items in a modern review table with status badges (*"New"* vs. *"Already in profile"*).
 
 ### Key Code References
-- Service: [`resume.services.importer.build_review_sections`](file:///home/sami/PycharmProjects/Github/easy-apply/resume/services/importer.py)
+- Service: [`resume.services.build_review_sections`](file:///home/sami/PycharmProjects/Github/easy-apply/resume/services.py)
 - Template: `resume/resume_review.html`
 
 ---
@@ -108,7 +111,8 @@ The `resume` app enables candidates to upload existing resumes in multiple forma
 ## UC-04.4: Interactive Review Checklist & Transactional Selective Import
 
 - **Primary Actor:** Candidate
-- **Supporting System:** `resume.services.importer.apply_selected`
+- **Supporting System:** `resume.services.apply_selected`
+- **Implemented by:** `resume.services.apply_selected`, `resume.services.apply_review`, `resume.services.import_summary`
 - **Objective:** Selectively check or uncheck parsed items and commit them to the profile database atomically.
 
 ### Main Success Scenario
@@ -128,4 +132,4 @@ The `resume` app enables candidates to upload existing resumes in multiple forma
 
 ### Key Code References
 - View: [`resume.views.ResumeReviewView.post`](file:///home/sami/PycharmProjects/Github/easy-apply/resume/views.py#L65-L92)
-- Service: [`resume.services.importer.apply_selected`](file:///home/sami/PycharmProjects/Github/easy-apply/resume/services/importer.py)
+- Service: [`resume.services.apply_selected`](file:///home/sami/PycharmProjects/Github/easy-apply/resume/services.py)

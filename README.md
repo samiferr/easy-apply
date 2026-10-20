@@ -102,10 +102,11 @@ config/         Django project settings, root URLconf
 accounts/       Custom user model, the Profile (workspace) model, profile
                 CRUD/switching, auth & security views
 jobs/           Job post analysis: the fixed section enum (sections.py), the
-                add-to-profile registry (profile_targets.py), prompts,
-                importer, matcher and Celery tasks
+                add-to-profile registry (profile_targets.py), the Celery
+                tasks, and domain/ (AI client, importer, matcher)
 resume/         Resume upload -> AI parsing -> review -> profile auto-fill,
-                plus job-tailored resumes (Markdown draft -> edit -> PDF)
+                plus job-tailored resumes (Markdown draft -> edit -> PDF);
+                domain/ holds the extractor, AI parse, tailored writer, PDF
 skills/         Soft/technical skill categories and per-profile skills
 languages/      Languages and per-profile proficiency
 experience/     Work experience (each role has ExperienceHighlight bullet rows)
@@ -115,12 +116,17 @@ preferences/    Job preferences (salary, location, arrangement) and the
 legal/          Privacy, terms, cookies, legal notice and contact pages
 staffportal/    The operator console at /staff/: plans, subscriptions and
                 usage quotas, feature flags, announcements, runtime settings,
-                impersonation, health checks, the AI queue and the audit log
+                impersonation, health checks, the AI queue and the audit log;
+                domain/ holds its building blocks (access, audit, exports,
+                flags, health, metrics, quotas, ...)
 core/           Landing page, dashboard, Markdown export, scoped profile
-                slices (utils.py), shared AI client (ai.py), the active-profile
-                middleware (middleware.py), the AI language contract
-                (language.py) and the AITask progress model every AI path
-                reports through
+                slices (services.py), shared AI client (ai.py), the prompt
+                loader (prompts.py), the active-profile middleware
+                (middleware.py), the AI language contract (language.py), the
+                exceptions use cases raise (exceptions.py) and the AITask
+                progress model every AI path reports through
+prompts/        Every prompt sent to the AI, one plain-text file per prompt
+                (loaded by core/prompts.py — see prompts/README.md)
 locale/fr/      French message catalogue
 templates/      Shared base layout, partials, and per-app templates
                 (resume_template.md is the tailored-resume skeleton)
@@ -129,6 +135,32 @@ static/dist/    Compiled Tailwind output (generated, but committed so the
                 app runs without a Node toolchain in production)
 static/js/      Bundled Alpine.js, plus ai-progress.js and job-analysis.js
 ```
+
+### How the code is organised
+
+Every app has a `services.py`, and that is where its **use cases** live — the
+things a candidate or an operator actually does: sign up, switch workspace,
+analyse a posting, import a resume, suspend an account. Each service carries a
+`# UC-xx.y — Title (step n)` comment naming the use case it implements in
+[`docs/use-cases/`](docs/use-cases/README.md); the docs point back with an
+*Implemented by* line, and `core.tests.ServiceTraceabilityTests` fails if a
+public service loses its citation or cites a use case that does not exist.
+
+```
+views.py / views/   read the request, call ONE service, choose the redirect,
+                    flash message or JSON — no queries, no business rules
+services.py         the use cases: what may happen, in what order, and what is
+                    refused (raises core.exceptions.Blocked / PreconditionFailed
+                    / Refused, whose text is fit to show the user)
+tasks.py            the Celery pipelines a service starts (jobs, resume, core)
+domain/             the building blocks below: AI clients and their parsing,
+                    the PDF writer, quotas, audit, exports, ...
+models.py, forms.py data and validation
+```
+
+A `services/` *package* would shadow a `services.py` *module* of the same name,
+so what used to be `jobs/services/`, `resume/services/` and
+`staffportal/services/` is now `domain/`.
 
 ## Getting started
 
@@ -266,9 +298,10 @@ profile permanently mixed.
 `core/language.py` is the single place that turns a language code into
 instructions for the model:
 
-- `language_clause(code)` is prepended to the user message of **every** AI call
-  — job extraction, section matching, single-element re-matching, resume
-  parsing and tailored-resume writing.
+- `language_clause(code)` (its wording is `prompts/core/language_clause.txt`) is
+  prepended to the user message of **every** AI call — job extraction, section
+  matching, single-element re-matching, resume parsing and tailored-resume
+  writing.
 - `use_language(code)` is a `translation.override` wrapper used around anything
   the app assembles itself, so the parts we write match the parts the model
   writes: the Markdown recap, the tailored resume's section headings, the
@@ -283,167 +316,54 @@ language to match, so a French workspace is never read through an English UI.
 
 ## Design system
 
-Tokens live in `static/src/input.css` as CSS variables and are exposed to
-Tailwind through `tailwind.config.js`, so a component is declared once and both
-themes follow it — no `bg-white dark:bg-slate-900` pair on every element.
+The interface is built on **Tonal**, a Material Design 3–style system: tonal
+colour roles that pair a fill with the text that sits on it, the Roboto type
+scale, soft corners, and state layers instead of hard hover colours. Its brand
+book and tokens live in [`design/tonal/`](design/tonal/README.md) — read that
+before changing how anything looks.
 
-| Token | Light | Dark | Used for |
-| --- | --- | --- | --- |
-| `canvas` | slate-100 | slate-950 | the app background — the sidebar and the content both sit on it |
-| `surface` | white | slate-900 | cards, menus, inputs |
-| `surface-sunken` | slate-100 | slate-800 | wells, progress tracks, code |
-| `line` | slate-200 | slate-800 | decorative rules and dividers |
-| `line-strong` | `#7f8fa5` | `#59687c` | the boundary that *identifies* a form control |
-
-### The shell has no top bar and no dividing rules
-
-The sidebar and the content are one continuous surface. Structure comes from
-spacing, from the cards the content sits in, and from the active nav row's
-tinted pill.
-
-There is **no top bar**: the sidebar is the app's only chrome. Navigation runs
-down the top of the column, and the account block pinned to its foot carries
-what a bar would have — the workspace switcher
-(`partials/profile_switcher.html`) and the user menu
-(`partials/user_menu.html`: personal info, profiles, theme, the FR/EN language
-switcher, the recap export, admin and log out). Both panels open *upwards*, so
-they stay on screen and keep working when the sidebar is collapsed to icons.
-Nothing spans the width of the screen, so a page begins with its own
-breadcrumb.
-
-Layout is a flex row inside a centred `max-w-shell` container, so the sidebar
-is `sticky` rather than `fixed` and the content column needs no matching
-padding. Under `md` the sidebar leaves the flow, becomes a `surface` drawer
-over a scrim, and rejoins the canvas at `md` and up. The drawer's opener is a
-single floating button in the corner — the only chrome that overlays content —
-and `main` carries matching top padding below `md` so nothing starts beneath
-it.
-
-### Every page wears the same header
-
-Breadcrumb, title, subtitle — in that order, in the same place, on every
-screen. It is rendered **once**, in `templates/base_app.html`, and a page only
-fills blocks:
-
-```django
-{% block breadcrumb %}
-  {% url 'jobs:list' as jobs_list_url %}
-  {% include "partials/_crumb.html" with crumb_label=_("Job posts") crumb_url=jobs_list_url only %}
-  {% include "partials/_crumb.html" with crumb_label=_("Analyze a job post") only %}
-{% endblock %}
-{% block page_title %}{% trans "Analyze a job post" %}{% endblock %}
-{% block page_subtitle %}{% trans "Paste the job description…" %}{% endblock %}
-{% block page_actions %}<a href="…" class="btn-primary">…</a>{% endblock %}
+```
+design/tonal/tokens.json     colour roles (light + dark), type, spacing, shape,
+                             elevation, state opacities — the source of truth
+design/tonal/README.md       content fundamentals and visual foundations
+design/tonal/components/     per-component guidelines (button, card, field, ...)
+design/build_tokens.py       tokens.json -> static/src/tokens.css
+static/src/tokens.css        generated CSS variables (:root = light, .dark = dark)
+tailwind.config.js           exposes every colour role as a utility
+static/src/input.css         the component classes (.btn-*, .card, .badge-*, ...)
 ```
 
-| Block | What goes in it |
+Edit a token, then `python design/build_tokens.py && npm run build:css` (the
+compiled `static/dist/output.css` is committed so production needs no Node).
+
+**Colour.** Use roles, never raw palette colours: `bg-primary text-on-primary`,
+`bg-secondary-container text-on-secondary-container`, `text-on-surface`,
+`text-on-surface-variant`, `border-outline`. Every fill has an `on-*` partner for
+the text on it. Both themes live in the variables, so a component is written once
+and follows `.dark` on `<html>` — there are no `dark:` colour pairs. The five
+source colours (`ocean-blue`, `emerald`, `golden-pollen`, `bubblegum-pink`,
+`dark-teal`) are for illustration only; none reaches 4.5:1 for text.
+
+| Role | Used for |
 | --- | --- |
-| `breadcrumb` | the crumbs after "Dashboard", one `partials/_crumb.html` each |
-| `breadcrumb_root` | override only to make the root crumb the current page (the dashboard does) |
-| `page_title` | the `<h1>`, the one on the page |
-| `page_subtitle` | one line saying what the screen is for |
-| `page_actions` | the screen's primary buttons, right-aligned on the title row |
-| `page_title_badge` / `page_meta` | optional extras beside and under the title (a status badge, a link out) |
-| `content` | everything below the header |
+| `primary` | the one main action per view, links, progress |
+| `secondary-container` | tonal buttons, the current navigation item, "strong match" |
+| `tertiary-container` | "partial match", warnings |
+| `error` / `error-container` | errors, failures, destructive actions (always with words or an icon) |
+| `surface`, `surface-container-*` | the page, then cards and menus up the surface ladder |
+| `outline` | borders that identify a control (3:1); `outline-variant` for dividers |
 
-`partials/_crumb.html` takes `crumb_label` and, for an ancestor, `crumb_url`;
-the last crumb has no URL and renders as `aria-current="page"` text. Pass
-`only` so a previous crumb's URL can't leak into the next one, and resolve
-URLs with `{% url … as … %}` first — `{% include %}` arguments take variables,
-not tags.
+**Components.** `.btn-primary` (filled, one per view), `.btn-secondary` (tonal),
+`.btn-danger` (outlined, `error`), `.btn-ghost` (text); `.card` (elevated, level 1);
+`.badge-*` (role pairs); `.nav-side` / `.tab-strip-item` (pills and underline tabs,
+the current one filled with `secondary-container`); form controls use the outlined
+text field (`core/forms.py`). Hover, focus and press are a `currentColor` veil at
+8% / 10% / 10%, and keyboard focus draws a 3px `secondary` ring offset 2px.
 
-Two rules keep the header from moving:
-
-- **Nothing renders above it.** With no top bar, the breadcrumb is the first
-  thing on the page; flash messages sit *below* the header, and anything above
-  the breadcrumb would shift it every time one appeared.
-- **One container, one width.** Every screen lives in `.page-shell`
-  (`max-w-7xl`), so the title starts on the same pixel whether the page is a
-  wide list or a narrow form. A form caps itself with `max-w-2xl` and **no**
-  `mx-auto`, so it stays left-aligned under its own title instead of drifting
-  to the middle of the column.
-
-This replaced a set of per-page `← Back to …` links that each sat in their own
-spot, and per-page containers that ranged from `max-w-lg` to `max-w-7xl` — so
-the title jumped horizontally as you moved between a list, its add form and
-its delete confirmation. Add, edit and delete screens are pages like any
-other, and now say so.
-
-`partials/profile_base.html` and `accounts/settings_base.html` are thin shells
-on top of this: they add a content column and a tab nav respectively, and fill
-the shared crumb their screens have in common. Legal pages are public, so they
-can't extend `base_app.html`; `legal/_legal_base.html` builds the same header
-from the same `.page-shell` / `.page-header` / `.breadcrumb` classes, taking
-its title from `LegalPageView.page_title` so the `<h1>` and the breadcrumb
-cannot disagree. The marketing landing page and the auth cards (log in,
-register, password reset) have no breadcrumb trail to show and keep their own
-centred layouts.
-
-### Contrast is measured, not estimated
-
-Every pair the app actually renders was computed against WCAG 2.2: 4.5:1 for
-body text (1.4.3) and 3:1 for the boundaries that identify controls (1.4.11).
-That moved several defaults:
-
-- `text-slate-400`, the old muted colour, is **2.56:1 on white** — it was never
-  readable in light mode. Muted text is now slate-600 (7.58:1 on a card,
-  6.92:1 on the canvas), one value that is safe on every app surface.
-- Input borders were slate-300, **1.48:1**. `line-strong` is the lightest grey
-  that still clears 3:1 on both surfaces (3.30:1 on white, 3.14:1 on slate-900).
-- Body copy is slate-700 rather than slate-900: 10.4:1 is far past the floor
-  without the halation of maximum contrast.
-
-After a palette edit, re-check by rendering each screen and asserting that no
-sub-4.5:1 foreground is emitted — the values above are all reproducible from
-the sRGB relative-luminance formula in WCAG 2.2.
-
-### Other readability choices
-
-- Long-form copy (`.measure`, `.page-lead`, `.legal-prose`) is capped at 65
-  characters a line.
-- `text-wrap: balance` on headings, `text-wrap: pretty` on paragraphs.
-- Hover-only row controls stay reachable: they reveal on focus as well as
-  hover, and are always visible below `md`, where there is no hover.
-- Collapsing the sidebar keeps every link's accessible name — the labels become
-  `sr-only` rather than `display: none`, which would have left ten unnamed
-  icon links.
-
-### One heading class per context, everywhere
-
-Every screen's `<h1>` uses one of two shared classes rather than a hand-typed
-`text-2xl font-bold ...` that quietly drifts from page to page:
-
-- **`.page-title`** — the heading rendered by the page header above, so it is
-  every screen that has one: dashboard, lists, detail views, add/edit forms,
-  delete confirmations, legal pages, account settings. `heading-2xl`, stepping
-  up to `heading-3xl` at `sm:`. No page writes this tag itself.
-- **`.card-title`** — the heading inside a narrow single-purpose card that has
-  no page header of its own: log in, register, password reset. One size down
-  (`heading-xl`, no responsive step) because the card's own width sets the
-  scale, not the viewport — a responsive bump here would make a short heading
-  look oversized in a `max-w-md` column.
-
-Both are declared once in `static/src/input.css`; no page defines its own
-heading size. Because the header owns the `<h1>`, a screen also cannot end up
-with two of them — `resume_review.html` previously carried a second `<h1>` in
-each of its short-message states, which is the kind of drift the shared header
-exists to catch.
-
-#### Headings sit 30% above the body scale
-
-Every heading size comes from the `heading-*` scale in `tailwind.config.js`,
-which is Tailwind's own scale multiplied by 1.3 — size and leading together,
-so a heading's type block keeps its proportions and a title that wraps to two
-lines does not crowd itself. `heading-2xl` is `text-2xl` × 1.3, and so on down
-the scale.
-
-The ratio is stated once, there, rather than as `text-[1.95rem]` at each call
-site, so changing it again is one edit. **Never hard-code a heading size** in
-`input.css` or a template: reach for a `heading-*` step, and every heading in
-the app moves together. `<h1>`–`<h3>` are all on it — the shared classes
-above, the `legal-prose h2` rule, and the handful of headings that still carry
-their size inline (the landing page, the security tab, section headings inside
-cards).
+**Type.** Roboto, via the `heading-*` steps in `tailwind.config.js`, which are the
+Tonal type scale (title-medium up to display-large). Headlines and titles are
+regular weight; size, not boldness, ranks them. Copy is sentence case, addresses
+the reader as "you", and has no exclamation marks or emoji.
 
 ## Skills: one tab per category
 
@@ -530,15 +450,16 @@ chord(
 1. **`read_job_text`** takes the pasted description off the `JobPost` and
    hands it to the pipeline. There is no network call in this step — and, with
    no server-side URL fetching anywhere in the app, no SSRF surface to defend.
-2. **`services/deepseek_client.py`** holds three separate prompts, kept apart
-   so each call carries the smallest possible payload: extraction, per-section
-   matching, and single-element matching.
-3. **`services/importer.py`** defensively parses the response. Wrong types,
+2. **`jobs/domain/deepseek_client.py`** makes three separate calls, kept apart
+   so each carries the smallest possible payload: extraction, per-section
+   matching, and single-element matching. Their prompts are plain-text files in
+   `prompts/jobs/`.
+3. **`jobs/domain/importer.py`** defensively parses the response. Wrong types,
    missing keys and invalid choices are coerced to safe defaults, and — the
    important part — **any section key outside the closed enum is discarded**,
    duplicates are merged, and a prose section never keeps rows (nor a row
    section prose).
-4. **`services/matcher.py`** evaluates one section at a time.
+4. **`jobs/domain/matcher.py`** evaluates one section at a time.
 
 Each `match_job_section` task records its own failure on the section and
 returns normally, so **one failing section never poisons the chord** — the
@@ -566,7 +487,7 @@ branches across services, views and templates.
 
 ### Scoped matching
 
-`core.utils.build_profile_slice(profile, section_key)` returns **only** the
+`core.services.build_profile_slice(profile, section_key)` returns **only** the
 mapped part of that profile. A technical-skills check receives your technical skills
 and nothing else — not your salary expectations, not your languages. This is
 both a privacy property and a cost one: payloads are a fraction of the size of
@@ -617,12 +538,12 @@ deterministic — fail immediately rather than burning quota.
 ## Tailored resume & PDF export
 
 On an analyzed job's detail page, **Generate tailored resume**
-(`resume/services/tailored.py`) writes a resume for that specific posting:
+(`resume/domain/tailored.py`) writes a resume for that specific posting:
 
 1. The job — its framing plus every extracted requirement, tagged with the
    `strong`/`partial`/`none` verdict and evidence from "Match to my profile"
    when it has been run — goes to DeepSeek together with a full snapshot of
-   the user's profile (`core.utils.build_resume_snapshot`, which adds contact
+   the user's profile (`core.services.build_resume_snapshot`, which adds contact
    details, locations and dates to the snapshot the matcher uses) and the raw
    `templates/resume_template.md` skeleton.
 2. The model returns only the *content* of each section (summary, grouped
@@ -642,11 +563,17 @@ language clause, the snapshot's display strings are built inside
 the template's own section keys — so a French profile gets *RÉSUMÉ
 PROFESSIONNEL* over French prose, not French prose under English headings.
 
+The resume is written one section at a time, all sections at once (one call
+each, prompts in `prompts/resume/write/`, each given only the slice of the
+profile it needs); `AI_MAX_PARALLEL` (default 6) caps the calls in flight. Job
+matching is parallel too: each section is its own Celery task, so the worker
+pool runs them side by side.
+
 The draft is stored on a `TailoredResume` row (one per job) and opened in a
 Markdown editor. Nothing is auto-sent anywhere: the user edits the text,
 saves, and exports when happy.
 
-**PDF export** (`resume/services/pdf.py`) renders that Markdown with
+**PDF export** (`resume/domain/pdf.py`) renders that Markdown with
 ReportLab — no headless browser or system libraries needed. It covers the
 subset a resume uses (headings, bullets, bold/italic/code, links, rules);
 everything above the first `##` heading becomes the centered header block,
@@ -657,19 +584,24 @@ Set `RESUME_PDF_PAGE_SIZE=a4` in `.env` for A4 instead of US Letter.
 
 Under `/resume/upload/` (also linked from the Profile page and dashboard), a
 user uploads a resume and DeepSeek turns it into the same shape used
-throughout the rest of the app. The pipeline (`resume/services/`):
+throughout the rest of the app. The pipeline (`resume/domain/`, started by
+`resume/services.py`):
 
 1. **`extractor.py`** pulls plain text out of the uploaded PDF (`pypdf`),
    DOCX (`python-docx`), or TXT file — with friendly errors for encrypted
    PDFs, scanned/image-only PDFs, or corrupted files.
-2. **`deepseek_resume.py`** sends that text to DeepSeek (via the same shared
+2. **`deepseek_resume.py`** sends that text to DeepSeek — one call per section
+   (profile, skills, languages, experience, degrees, certificates), all at once,
+   each with its own prompt in `prompts/resume/parse/` — (via the same shared
    `core/ai.py` client the job-analysis feature uses) asking for profile
    info, soft/technical skills, languages, work experience (with highlight
    bullets), degrees and certificates — steered to reuse the site's existing
    skill categories where they fit, and to write everything it produces in the
    profile's language. The uploaded resume itself can be in any language: what
    lands in the profile is normalized into the one that profile works in.
-3. **`importer.py`** does the rest in two steps:
+3. **`importer.py`** runs the steps above in the background and stores the
+   result on the `ResumeImport` row. What happens next is the use-case layer,
+   `resume/services.py`, in two steps:
    - `build_review_sections()` compares every suggested item against what
      the user already has (same skill name + kind, same language, same
      company + title, same school + degree, same certificate name + issuer)

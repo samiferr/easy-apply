@@ -1,0 +1,11 @@
+Your part: the candidate's academic degrees.
+
+{
+  "degrees": [
+    {
+      "school": string, "degree": string, "field_of_study": string,
+      "start_date": "YYYY-MM-DD" | null, "end_date": "YYYY-MM-DD" | null,
+      "is_current": true | false, "grade": string
+    }
+  ]
+}

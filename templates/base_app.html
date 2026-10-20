@@ -20,7 +20,7 @@ Layout is a plain flex row inside a centred, capped container, so the sidebar is
 Below `md` the sidebar leaves the flow and becomes an off-canvas drawer, opened
 by the one floating button below — the only chrome that overlays the content.
 {% endcomment %}
-<body class="min-h-full bg-canvas font-sans" x-data="appShell()">
+<body class="min-h-full bg-surface font-sans" x-data="appShell()">
   {% comment %}
   Impersonation and announcement strips sit above the shell — above the
   sidebar, above the skip link's target — because both are things the page must
@@ -28,7 +28,7 @@ by the one floating button below — the only chrome that overlays the content.
   {% endcomment %}
   {% include "partials/_portal_banners.html" %}
 
-  <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:z-[60] focus:m-3 focus:rounded-lg focus:bg-brand-600 focus:px-4 focus:py-2 focus:font-semibold focus:text-white">{% trans "Skip to content" %}</a>
+  <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:z-[60] focus:m-3 focus:rounded-lg focus:bg-primary/90 focus:px-4 focus:py-2 focus:font-semibold focus:text-on-primary">{% trans "Skip to content" %}</a>
 
   <div class="mx-auto flex w-full max-w-shell">
     {% include "partials/sidebar.html" %}
@@ -39,14 +39,14 @@ by the one floating button below — the only chrome that overlays the content.
     carries matching top padding under `md` so nothing starts beneath it.
     {% endcomment %}
     <button type="button" @click="mobileOpen = true" x-show="!mobileOpen"
-      class="fixed left-3 top-3 z-40 flex h-11 w-11 items-center justify-center rounded-xl bg-surface text-slate-700 shadow-card-hover ring-1 ring-slate-900/5 transition hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 md:hidden dark:text-slate-200 dark:ring-white/10 dark:hover:text-white"
+      class="fixed left-3 top-3 z-40 flex h-11 w-11 items-center justify-center rounded-xl bg-surface-container-low text-on-surface-variant shadow-card-hover ring-1 ring-outline-variant/5 transition hover:text-on-surface md:hidden"
       aria-label="{% trans 'Open navigation' %}" :aria-expanded="mobileOpen" aria-controls="app-sidebar">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" /></svg>
     </button>
 
     <!-- Mobile scrim -->
     <div x-show="mobileOpen" x-cloak x-transition.opacity @click="mobileOpen = false"
-         class="fixed inset-0 z-40 bg-slate-950/60 md:hidden" aria-hidden="true"></div>
+         class="fixed inset-0 z-40 bg-scrim/60 md:hidden" aria-hidden="true"></div>
 
     <div class="flex min-h-svh min-w-0 flex-1 flex-col">
       {% comment %}

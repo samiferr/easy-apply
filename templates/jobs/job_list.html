@@ -12,13 +12,13 @@
   <!-- Search + filter -->
   <form method="get" class="flex flex-col gap-3 sm:flex-row">
     <div class="relative flex-1">
-      <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-600 dark:text-slate-400">
+      <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-on-surface-variant">
         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
       </span>
       <input type="search" name="q" value="{{ q }}" placeholder="{% trans 'Search by title, company or location' %}"
-        class="w-full rounded-lg border-slate-300 pl-10 text-sm shadow-sm focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+        class="w-full rounded-lg border-outline pl-10 text-sm shadow-sm focus:border-primary focus:ring-primary" />
     </div>
-    <select name="status" class="rounded-lg border-slate-300 text-sm shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:w-52 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+    <select name="status" class="rounded-lg border-outline text-sm shadow-sm focus:border-primary focus:ring-primary sm:w-52">
       <option value="">{% trans "Any status" %}</option>
       {% for value, label in status_choices %}
         <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
@@ -33,49 +33,49 @@
     <div class="mt-6 space-y-4">
       {% for job in job_posts %}
         {% with summary=job.element_match_summary %}
-        <article class="card p-5 transition hover:border-brand-300 hover:shadow-md sm:p-6 dark:hover:border-brand-700">
+        <article class="card p-5 transition hover:border-primary-container hover:shadow-md sm:p-6">
           <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div class="min-w-0 flex-1">
               <div class="flex flex-wrap items-center gap-2">
-                <h2 class="text-heading-xl font-bold tracking-tight text-slate-900 sm:text-heading-2xl dark:text-white">
-                  <a href="{{ job.get_absolute_url }}" class="transition hover:text-brand-600 dark:hover:text-brand-400">
+                <h2 class="text-heading-xl font-bold tracking-tight text-on-surface sm:text-heading-2xl">
+                  <a href="{{ job.get_absolute_url }}" class="transition hover:text-primary">
                     {{ job.title|default:_("Untitled role") }}
                   </a>
                 </h2>
                 {% include "jobs/_status_badge.html" with status=job.status %}
               </div>
 
-              <p class="mt-1.5 text-slate-600 dark:text-slate-400">
+              <p class="mt-1.5 text-on-surface-variant">
                 {{ job.company_name|default:"—" }}{% if job.seniority_level %} · {{ job.seniority_level }}{% endif %}
               </p>
 
               <div class="mt-3 flex flex-wrap items-center gap-2 text-sm">
                 {% if job.work_arrangement %}{% include "jobs/_arrangement_badge.html" with arrangement=job.work_arrangement %}{% endif %}
                 {% if job.location %}
-                  <span class="badge bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ job.location }}</span>
+                  <span class="badge bg-surface-container-high text-on-surface-variant">{{ job.location }}</span>
                 {% endif %}
                 {% if job.salary_range_display %}
-                  <span class="badge bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ job.salary_range_display }}</span>
+                  <span class="badge bg-surface-container-high text-on-surface-variant">{{ job.salary_range_display }}</span>
                 {% endif %}
               </div>
 
               {% if summary.total %}
                 <div class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
                   <div class="flex items-center gap-2">
-                    <div class="h-2 w-32 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-                      <div class="h-full rounded-full bg-brand-600" style="width: {{ summary.score_percent }}%"></div>
+                    <div class="h-2 w-32 overflow-hidden rounded-full bg-surface-container-high">
+                      <div class="h-full rounded-full bg-primary" style="width: {{ summary.score_percent }}%"></div>
                     </div>
-                    <span class="text-sm font-bold text-brand-600 dark:text-brand-400">{{ summary.score_percent }}%</span>
+                    <span class="text-sm font-bold text-primary">{{ summary.score_percent }}%</span>
                   </div>
-                  <div class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-600 dark:text-slate-400">
-                    <span class="flex items-center gap-1.5"><span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>{{ summary.strong }} {% trans "strong" %}</span>
-                    <span class="flex items-center gap-1.5"><span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>{{ summary.partial }} {% trans "partial" %}</span>
-                    <span class="flex items-center gap-1.5"><span class="h-1.5 w-1.5 rounded-full bg-slate-300 dark:bg-slate-600"></span>{{ summary.none }} {% trans "not covered" %}</span>
+                  <div class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-on-surface-variant">
+                    <span class="flex items-center gap-1.5"><span class="h-1.5 w-1.5 rounded-full bg-secondary"></span>{{ summary.strong }} {% trans "strong" %}</span>
+                    <span class="flex items-center gap-1.5"><span class="h-1.5 w-1.5 rounded-full bg-tertiary"></span>{{ summary.partial }} {% trans "partial" %}</span>
+                    <span class="flex items-center gap-1.5"><span class="h-1.5 w-1.5 rounded-full bg-outline-variant"></span>{{ summary.none }} {% trans "not covered" %}</span>
                   </div>
                 </div>
               {% endif %}
 
-              <p class="mt-3 text-xs text-slate-600 dark:text-slate-400">
+              <p class="mt-3 text-xs text-on-surface-variant">
                 {% if job.analyzed_at %}
                   {% blocktrans with when=job.analyzed_at|timesince %}Analyzed {{ when }} ago{% endblocktrans %}
                 {% else %}
@@ -106,7 +106,7 @@
         {% if page_obj.has_previous %}
           <a href="?{% if q %}q={{ q }}&{% endif %}{% if status %}status={{ status }}&{% endif %}page={{ page_obj.previous_page_number }}" class="btn-secondary !px-3 !py-1.5 !text-xs">{% trans "Previous" %}</a>
         {% endif %}
-        <span class="text-sm text-slate-600 dark:text-slate-400">
+        <span class="text-sm text-on-surface-variant">
           {% blocktrans with current=page_obj.number total=page_obj.paginator.num_pages %}Page {{ current }} of {{ total }}{% endblocktrans %}
         </span>
         {% if page_obj.has_next %}
@@ -118,11 +118,11 @@
   {% else %}
     <div class="card mt-6 border-dashed py-16 text-center">
       {% if q or status %}
-        <p class="text-slate-600 dark:text-slate-400">{% trans "No job posts match that search." %}</p>
+        <p class="text-on-surface-variant">{% trans "No job posts match that search." %}</p>
         <a href="{% url 'jobs:list' %}" class="btn-secondary mt-4">{% trans "Clear filters" %}</a>
       {% else %}
         <h2 class="section-title">{% trans "No job posts yet" %}</h2>
-        <p class="mx-auto mt-2 max-w-md text-slate-600 dark:text-slate-400">
+        <p class="mx-auto mt-2 max-w-md text-on-surface-variant">
           {% trans "Paste a job description and we'll break it into sections and check each requirement against your profile." %}
         </p>
         <a href="{% url 'jobs:add' %}" class="btn-primary mt-6">{% trans "Analyze your first job post" %}</a>

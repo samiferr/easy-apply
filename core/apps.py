@@ -1,6 +1,8 @@
 from django.apps import AppConfig
+from django.conf import settings
 from django.db.backends.signals import connection_created
 from django.dispatch import receiver
+from django.utils.autoreload import autoreload_started
 
 
 @receiver(connection_created)
@@ -18,6 +20,17 @@ def set_sqlite_pragmas(sender, connection, **kwargs):
         cursor.execute("PRAGMA journal_mode=WAL;")
         cursor.execute("PRAGMA synchronous=NORMAL;")
         cursor.execute("PRAGMA busy_timeout=20000;")
+
+
+@receiver(autoreload_started)
+def watch_prompt_files(sender, **kwargs):
+    """Restart the dev server when a prompt file changes.
+
+    Prompts are read once, by the module that owns them, so without this an
+    edit would be ignored until someone remembered to restart — unlike editing
+    the same text in a .py file, which the reloader has always picked up.
+    """
+    sender.watch_dir(settings.PROMPTS_DIR, "**/*.txt")
 
 
 class CoreConfig(AppConfig):

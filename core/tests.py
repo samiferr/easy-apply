@@ -1,12 +1,42 @@
 """Smoke tests: every route renders under the new layout, in both languages."""
 
+import ast
+import json
+import re
+import shutil
+import tempfile
+from datetime import date, timedelta
+from io import StringIO
+from pathlib import Path
+
+import requests
+from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.core.management import call_command
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone, translation
+from django.utils.translation import gettext_lazy
 
 from accounts.models import Profile
+from core.ai import AIConfigError, AIServiceError, call_deepseek_json
+from core.language import language_clause
+from core.models import AITask
+from core.prompts import PLACEHOLDER, PromptError, load_prompt
+from core.services import (
+    build_profile_slice,
+    build_profile_snapshot,
+    build_resume_snapshot,
+    empty_slice_hint,
+    generate_markdown_recap,
+    profile_slice_is_empty,
+    profile_snapshot_is_empty,
+    recap_filename,
+)
+from core.tasks import is_retryable
+from core.testing import fake_deepseek
+from jobs.domain.importer import apply_analysis
 from jobs.models import JobPost
-from jobs.services.importer import apply_analysis
 from resume.models import TailoredResume
 
 User = get_user_model()
@@ -190,7 +220,7 @@ class ResponsiveContractTests(TestCase):
         overflows on a phone — this is how the preferences textareas broke."""
         from jobs.profile_targets import ADD_TARGETS
         from preferences.forms import BenefitPreferenceForm, JobPreferenceForm
-        from preferences.models import get_or_create_preference
+        from preferences.services import get_or_create_preference
 
         preference = get_or_create_preference(self.profile)
         forms_to_check = [
@@ -250,7 +280,7 @@ class ProfileCompletionVisibilityTests(TestCase):
         from education.models import Degree
         from experience.models import ExperienceHighlight, WorkExperience
         from languages.models import Language, UserLanguage
-        from preferences.models import get_or_create_preference
+        from preferences.services import get_or_create_preference
         from skills.models import SkillCategory, UserSkill
 
         self.profile.headline = "Backend developer"
@@ -437,7 +467,8 @@ class ConfirmDeleteTests(TestCase):
         self.assertFalse(TailoredResume.objects.filter(job=job).exists())
 
     def test_benefit_delete_has_a_confirm_page(self):
-        from preferences.models import BenefitPreference, get_or_create_preference
+        from preferences.models import BenefitPreference
+        from preferences.services import get_or_create_preference
 
         preference = get_or_create_preference(self.profile)
         benefit = BenefitPreference.objects.create(preference=preference, name="Gym membership")
@@ -500,3 +531,933 @@ class ConfirmDeleteTests(TestCase):
         body = self.client.get(reverse("skills:list", args=["technical"])).content.decode()
         self.assertNotIn("onsubmit=\"return confirm(", body)
         self.assertIn(f'href="{reverse("skills:delete", args=[skill.pk])}"', body)
+
+
+# ---------------------------------------------------------------------------
+# Characterization tests
+#
+# Written against the code as it stood *before* the services refactor, and kept
+# afterwards: they pin what each use case does, so moving the code cannot
+# quietly change it.
+# ---------------------------------------------------------------------------
+def make_rich_profile(*, language="en"):
+    """One profile with something in every part of it, for the recap and the
+    profile slices."""
+    from education.models import Certificate, Degree
+    from experience.models import ExperienceHighlight, WorkExperience
+    from languages.models import Language, UserLanguage
+    from preferences.services import get_or_create_preference
+    from skills.models import SkillCategory, UserSkill
+
+    user = User.objects.create_user(
+        email="ada@example.com", password="pw12345678", first_name="Ada", last_name="Lovelace"
+    )
+    profile = Profile.objects.get(user=user)
+    profile.name = "Backend"
+    profile.language = language
+    profile.headline = "Staff engineer"
+    profile.phone = "+1 555 0100"
+    profile.location = "Montreal, QC"
+    profile.bio = " Builds reliable systems. "
+    profile.linkedin_url = "https://linkedin.com/in/ada"
+    profile.portfolio_url = "https://ada.dev"
+    profile.github_url = "https://github.com/ada"
+    profile.save()
+
+    databases = SkillCategory.objects.get_or_create(name="Databases", kind="technical")[0]
+    runtimes = SkillCategory.objects.get_or_create(name="Languages & Runtimes", kind="technical")[0]
+    leadership = SkillCategory.objects.get_or_create(name="Leadership", kind="soft")[0]
+    UserSkill.objects.create(profile=profile, category=databases, name="PostgreSQL", level=4)
+    UserSkill.objects.create(profile=profile, category=runtimes, name="Python", level=3)
+    UserSkill.objects.create(profile=profile, category=leadership, name="Mentoring", level=2)
+
+    UserLanguage.objects.create(
+        profile=profile, language=Language.objects.create(name="French"), proficiency="professional"
+    )
+    UserLanguage.objects.create(
+        profile=profile, language=Language.objects.create(name="English"), proficiency="native"
+    )
+
+    current = WorkExperience.objects.create(
+        profile=profile, job_title="Staff Engineer", company="Acme", location="Remote",
+        employment_type="full_time", start_date=date(2021, 3, 1), is_current=True,
+    )
+    ExperienceHighlight.objects.create(experience=current, text="Cut deploy time by 40%.", order=0)
+    ExperienceHighlight.objects.create(experience=current, text="Mentored 6 engineers.", order=1)
+    WorkExperience.objects.create(
+        profile=profile, job_title="Engineer", company="Globex",
+        start_date=date(2018, 1, 1), end_date=date(2021, 2, 1),
+    )
+
+    Degree.objects.create(
+        profile=profile, school="McGill", degree="BSc", field_of_study="CS",
+        start_date=date(2014, 9, 1), end_date=date(2018, 5, 1), grade="First",
+        description="Honours thesis.",
+    )
+    Degree.objects.create(
+        profile=profile, school="MIT", degree="MSc", is_current=True, start_date=date(2022, 9, 1)
+    )
+    Certificate.objects.create(
+        profile=profile, name="AWS SAA", issuing_organization="Amazon",
+        issue_date=date(2023, 1, 15), expiry_date=date(2026, 1, 15),
+        credential_id="ABC123", credential_url="https://aws.example/abc",
+    )
+    Certificate.objects.create(
+        profile=profile, name="CKA", issuing_organization="CNCF",
+        issue_date=date(2022, 6, 1), does_not_expire=True,
+    )
+
+    with translation.override("en"):  # the seeded benefit names follow the active language
+        preference = get_or_create_preference(profile)
+    preference.desired_salary_min = 100000
+    preference.desired_salary_max = 140000
+    preference.salary_currency = "CAD"
+    preference.remote_ok = True
+    preference.hybrid_ok = True
+    preference.preferred_locations = "Montreal\nRemote (Canada)"
+    preference.timezone_preference = "EST"
+    preference.max_travel_percentage = 10
+    preference.save()
+    dental = preference.benefits.get(name="Dental care")
+    dental.importance = "must_have"
+    dental.save()
+    vision = preference.benefits.get(name="Vision care")
+    vision.importance = "not_important"
+    vision.save()
+    return profile
+
+
+ENGLISH_RECAP = """# Ada Lovelace
+*Staff engineer*
+
+- **Email:** ada@example.com
+- **Phone:** +1 555 0100
+- **Location:** Montreal, QC
+- **LinkedIn:** https://linkedin.com/in/ada
+- **Portfolio:** https://ada.dev
+- **GitHub:** https://github.com/ada
+
+## About
+
+Builds reliable systems.
+
+## Soft Skills
+
+### Leadership
+- **Mentoring** — Intermediate
+
+## Technical Skills
+
+### Databases
+- **PostgreSQL** — Expert
+
+### Languages & Runtimes
+- **Python** — Advanced
+
+## Languages
+
+- **English** — Native / bilingual
+- **French** — Professional working proficiency
+
+## Work Experience
+
+### Staff Engineer — Acme
+*Mar 2021 – Present · Remote · Full-time*
+- Cut deploy time by 40%.
+- Mentored 6 engineers.
+
+### Engineer — Globex
+*Jan 2018 – Feb 2021*
+
+## Education
+
+### MSc — MIT
+*September 2022 – Present*
+
+### BSc — McGill
+*CS · September 2014 – May 2018 · Grade: First*
+
+Honours thesis.
+
+## Certificates
+
+### AWS SAA
+*Amazon · Issued January 2023 · Expires January 2026*
+
+Credential ID: ABC123
+[View credential](https://aws.example/abc)
+
+### CKA
+*CNCF · Issued June 2022 · No expiration*
+"""
+
+
+class MarkdownRecapTests(TestCase):
+    """Every recorded part of a profile shows up in its Markdown recap."""
+
+    def test_the_recap_lists_everything_the_profile_holds(self):
+        profile = make_rich_profile()
+        recap = generate_markdown_recap(profile)
+        body, footer = recap.split("\n---\n")
+        self.assertEqual(body.strip("\n"), ENGLISH_RECAP.strip("\n"))
+        self.assertTrue(footer.strip().startswith("_Generated with Easy Apply on "))
+
+    def test_an_empty_profile_still_gets_a_header_and_a_footer(self):
+        profile = make_profile("bare@example.com")
+        recap = generate_markdown_recap(profile)
+        self.assertTrue(recap.startswith("# bare\n"))
+        self.assertIn("- **Email:** bare@example.com", recap)
+        for heading in ("## About", "## Soft Skills", "## Work Experience", "## Education"):
+            self.assertNotIn(heading, recap)
+        self.assertIn("\n---\n_Generated with Easy Apply on ", recap)
+
+    def test_the_recap_follows_the_profile_language_not_the_interface(self):
+        profile = make_rich_profile(language="fr")
+        with translation.override("en"):
+            recap = generate_markdown_recap(profile)
+        for heading in (
+            "## À propos", "## Compétences comportementales", "## Compétences techniques",
+            "## Langues", "## Expérience professionnelle", "## Formation", "## Certificats",
+        ):
+            self.assertIn(heading, recap)
+        self.assertIn("Aujourd’hui", recap)
+        self.assertNotIn("## Work Experience", recap)
+
+    def test_the_filename_is_a_slug_of_the_person_and_the_profile(self):
+        profile = make_rich_profile()
+        self.assertEqual(recap_filename(profile), "ada-lovelace-backend-easy-apply-recap.md")
+
+    def test_the_filename_falls_back_to_the_email_when_there_is_no_name(self):
+        profile = make_profile("jane.doe@example.com", name="Main")
+        self.assertEqual(recap_filename(profile), "jane.doe-main-easy-apply-recap.md")
+
+    def test_download_is_a_markdown_attachment(self):
+        profile = make_rich_profile()
+        self.client.force_login(profile.user)
+        response = self.client.get(reverse("core:export_markdown"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "text/markdown; charset=utf-8")
+        self.assertEqual(
+            response["Content-Disposition"],
+            'attachment; filename="ada-lovelace-backend-easy-apply-recap.md"',
+        )
+        self.assertTrue(response.content.decode().startswith("# Ada Lovelace\n"))
+
+    def test_preview_shows_the_same_recap(self):
+        profile = make_rich_profile()
+        self.client.force_login(profile.user)
+        response = self.client.get(reverse("core:export_preview"))
+        self.assertEqual(response.status_code, 200)
+        recap = response.context["markdown_content"]
+        self.assertEqual(recap.split("\n---\n")[0], generate_markdown_recap(profile).split("\n---\n")[0])
+
+    def test_anonymous_visitors_cannot_export(self):
+        for name in ("core:export_markdown", "core:export_preview"):
+            with self.subTest(name=name):
+                self.assertEqual(self.client.get(reverse(name)).status_code, 302)
+
+
+class ProfileSliceTests(TestCase):
+    """A match call is sent ONLY the part of the profile its section maps to."""
+
+    def setUp(self):
+        self.profile = make_rich_profile()
+
+    def keys(self, section_key):
+        return set(build_profile_slice(self.profile, section_key))
+
+    def test_each_matched_section_maps_to_its_own_slice(self):
+        self.assertEqual(
+            self.keys("location_arrangement"),
+            {
+                "preferred_locations", "acceptable_work_arrangements",
+                "max_onsite_days_per_week", "willing_to_relocate", "max_travel_percentage",
+                "timezone_preference", "employment_types", "availability_notes",
+            },
+        )
+        self.assertEqual(
+            self.keys("compensation_benefits"),
+            {"desired_salary_min", "desired_salary_max", "salary_currency", "salary_period",
+             "benefits_wanted"},
+        )
+        self.assertEqual(self.keys("responsibilities"), {"experience", "technical_skills"})
+        self.assertEqual(self.keys("required_technical_skills"), {"technical_skills"})
+        self.assertEqual(self.keys("desirable_technical_skills"), {"technical_skills"})
+        self.assertEqual(self.keys("desirable_soft_skills"), {"soft_skills"})
+        self.assertEqual(self.keys("languages"), {"languages"})
+        self.assertEqual(self.keys("education_certifications"), {"degrees", "certificates"})
+
+    def test_sections_that_are_never_matched_have_no_slice(self):
+        for key in ("overview", "company", "how_to_apply", "worth_noting", "red_flags", "nope"):
+            with self.subTest(key=key):
+                self.assertEqual(build_profile_slice(self.profile, key), {})
+
+    def test_a_slice_never_leaks_another_slices_data(self):
+        payload = json.dumps(build_profile_slice(self.profile, "required_technical_skills"))
+        self.assertIn("PostgreSQL", payload)
+        for private in ("Mentoring", "French", "MIT", "100000", "Dental care"):
+            self.assertNotIn(private, payload)
+
+    def test_benefits_the_candidate_does_not_care_about_are_left_out(self):
+        wanted = build_profile_slice(self.profile, "compensation_benefits")["benefits_wanted"]
+        names = {b["name"] for b in wanted}
+        self.assertIn("Dental care", names)
+        self.assertNotIn("Vision care", names)
+        dental = next(b for b in wanted if b["name"] == "Dental care")
+        self.assertEqual(dental["importance"], "Must have")
+
+    def test_the_slice_carries_display_strings_in_the_profile_language(self):
+        french = make_profile("fr-slice@example.com", language="fr")
+        from languages.models import Language, UserLanguage
+
+        UserLanguage.objects.create(
+            profile=french, language=Language.objects.get_or_create(name="English")[0],
+            proficiency="native",
+        )
+        with translation.override("en"):
+            languages = build_profile_slice(french, "languages")["languages"]
+        self.assertEqual(languages, [{"name": "English", "proficiency": "Natif / bilingue"}])
+
+    def test_emptiness(self):
+        for empty in ({}, {"languages": []}, {"a": None, "b": False, "c": "  ", "d": {}, "e": 0}):
+            with self.subTest(empty=empty):
+                self.assertTrue(profile_slice_is_empty(empty))
+        for filled in ({"l": [1]}, {"d": {"a": 1}}, {"s": "x"}, {"n": 5}, {"b": True}):
+            with self.subTest(filled=filled):
+                self.assertFalse(profile_slice_is_empty(filled))
+
+    def test_a_bare_profile_has_only_empty_slices(self):
+        bare = make_profile("bare-slice@example.com")
+        for key in ("required_technical_skills", "desirable_soft_skills", "languages",
+                    "education_certifications", "responsibilities"):
+            with self.subTest(key=key):
+                self.assertTrue(profile_slice_is_empty(build_profile_slice(bare, key)))
+
+    def test_every_matched_section_has_a_specific_hint(self):
+        expected = {
+            "location_arrangement": "No location or work-arrangement preferences recorded yet.",
+            "compensation_benefits": "No salary or benefit preferences recorded yet.",
+            "responsibilities": "No work experience or technical skills recorded yet.",
+            "required_technical_skills": "No technical skills recorded in your profile yet.",
+            "desirable_technical_skills": "No technical skills recorded in your profile yet.",
+            "desirable_soft_skills": "No soft skills recorded in your profile yet.",
+            "languages": "No languages recorded in your profile yet.",
+            "education_certifications": "No degrees or certificates recorded in your profile yet.",
+            "something_else": "Nothing in your profile covers this yet.",
+        }
+        with translation.override("en"):
+            for key, hint in expected.items():
+                with self.subTest(key=key):
+                    self.assertEqual(str(empty_slice_hint(key)), hint)
+
+
+class ProfileSnapshotTests(TestCase):
+    """The tailored-resume path legitimately gets everything."""
+
+    def setUp(self):
+        self.profile = make_rich_profile()
+
+    def test_the_profile_snapshot_gathers_every_recorded_part(self):
+        snapshot = build_profile_snapshot(self.profile)
+        self.assertEqual(
+            set(snapshot),
+            {"headline", "bio", "soft_skills", "technical_skills", "languages",
+             "experience", "degrees", "certificates"},
+        )
+        self.assertEqual(snapshot["headline"], "Staff engineer")
+        self.assertEqual(
+            snapshot["technical_skills"][0],
+            {"name": "PostgreSQL", "category": "Databases", "level": "Expert"},
+        )
+        current = snapshot["experience"][0]
+        self.assertEqual(current["duration"], "Mar 2021 – Present")
+        self.assertEqual(current["highlights"], ["Cut deploy time by 40%.", "Mentored 6 engineers."])
+
+    def test_the_resume_snapshot_adds_contact_details_and_dates(self):
+        snapshot = build_resume_snapshot(self.profile)
+        self.assertEqual(
+            snapshot["contact"],
+            {
+                "full_name": "Ada Lovelace", "first_name": "Ada", "last_name": "Lovelace",
+                "email": "ada@example.com", "phone": "+1 555 0100", "location": "Montreal, QC",
+                "linkedin_url": "https://linkedin.com/in/ada",
+                "portfolio_url": "https://ada.dev", "github_url": "https://github.com/ada",
+            },
+        )
+        role = snapshot["experience"][0]
+        self.assertEqual(role["location"], "Remote")
+        self.assertTrue(role["is_current"])
+        degree = next(d for d in snapshot["degrees"] if d["degree"] == "BSc")
+        self.assertEqual(degree["dates"], "September 2014 – May 2018")
+        self.assertEqual(degree["grade"], "First")
+        certificate = next(c for c in snapshot["certificates"] if c["name"] == "AWS SAA")
+        self.assertEqual(certificate["credential_id"], "ABC123")
+
+    def test_emptiness_of_a_snapshot(self):
+        self.assertFalse(profile_snapshot_is_empty(build_profile_snapshot(self.profile)))
+        bare = make_profile("bare-snap@example.com")
+        self.assertTrue(profile_snapshot_is_empty(build_profile_snapshot(bare)))
+
+
+class DashboardContextTests(TestCase):
+    def setUp(self):
+        self.profile = make_profile("dash@example.com")
+        self.client.force_login(self.profile.user)
+
+    def context(self):
+        return self.client.get(reverse("core:dashboard")).context
+
+    def test_the_checklist_starts_undone_and_follows_the_profile(self):
+        from skills.models import SkillCategory, UserSkill
+
+        checklist = self.context()["checklist"]
+        self.assertEqual(
+            [str(label) for label, _done, _url in checklist],
+            [
+                "Complete your profile", "Set your job preferences", "Add a technical skill",
+                "Add a soft skill", "Add a language", "Add your work experience",
+                "Add your education or a certificate",
+            ],
+        )
+        self.assertFalse(any(done for _label, done, _url in checklist))
+        self.assertEqual(self.context()["completion_percent"], 0)
+
+        category = SkillCategory.objects.filter(kind=SkillCategory.TECHNICAL).first()
+        UserSkill.objects.create(profile=self.profile, category=category, name="Go")
+        context = self.context()
+        done = {str(label): flag for label, flag, _url in context["checklist"]}
+        self.assertTrue(done["Add a technical skill"])
+        self.assertFalse(done["Add a soft skill"])
+        self.assertEqual(context["completion_percent"], 14)
+
+    def test_the_checklist_links_to_the_screen_that_fixes_it(self):
+        urls = [url for _label, _done, url in self.context()["checklist"]]
+        self.assertEqual(
+            urls,
+            [
+                reverse("accounts:profile"), reverse("preferences:detail"),
+                reverse("skills:list", args=["technical"]), reverse("skills:list", args=["soft"]),
+                reverse("languages:list"), reverse("experience:list"), reverse("education:list"),
+            ],
+        )
+
+    def test_recent_jobs_are_this_profiles_five_newest(self):
+        other = make_profile("other-dash@example.com")
+        JobPost.objects.create(profile=other, title="Someone else's")
+        for index in range(7):
+            JobPost.objects.create(profile=self.profile, title=f"Job {index}")
+        context = self.context()
+        titles = [job.title for job in context["recent_jobs"]]
+        self.assertEqual(titles, ["Job 6", "Job 5", "Job 4", "Job 3", "Job 2"])
+        self.assertEqual(context["job_post_count"], 7)
+
+    def test_only_live_tasks_of_this_profile_are_shown_and_at_most_four(self):
+        other = make_profile("other-live@example.com")
+        foreign_job = JobPost.objects.create(profile=other)
+        AITask.start_for(other, AITask.JOB_ANALYSIS, foreign_job)
+        for index in range(5):
+            job = JobPost.objects.create(profile=self.profile, title=f"J{index}")
+            AITask.start_for(self.profile, AITask.JOB_ANALYSIS, job)
+        finished = JobPost.objects.create(profile=self.profile, title="done")
+        AITask.start_for(self.profile, AITask.JOB_ANALYSIS, finished).mark_done()
+
+        running = list(self.context()["running_tasks"])
+        self.assertEqual(len(running), 4)
+        self.assertTrue(all(t.profile_id == self.profile.pk for t in running))
+        self.assertTrue(all(t.state in (AITask.QUEUED, AITask.RUNNING) for t in running))
+
+    def test_a_signed_in_visitor_is_sent_from_the_landing_page_to_the_dashboard(self):
+        self.assertRedirects(self.client.get(reverse("core:home")), reverse("core:dashboard"))
+
+
+class TaskStatusEndpointTests(TestCase):
+    """The polling contract every AI path reports through."""
+
+    def setUp(self):
+        self.profile = make_profile("poll@example.com")
+        self.client.force_login(self.profile.user)
+        self.job = JobPost.objects.create(profile=self.profile)
+
+    def status(self, task):
+        response = self.client.get(reverse("core:task_status", args=[task.pk]))
+        self.assertEqual(response.status_code, 200)
+        return response.json()
+
+    def test_the_payload_shape(self):
+        task = AITask.start_for(self.profile, AITask.JOB_ANALYSIS, self.job, steps_total=4)
+        task.mark_running("Reading the job posting")
+        task.advance("Read the posting")
+        payload = self.status(task)
+        self.assertEqual(
+            payload,
+            {
+                "id": task.pk, "kind": "job_analysis", "state": "running", "percent": 25,
+                "indeterminate": False, "current_step": "Read the posting", "steps_done": 1,
+                "steps_total": 4, "error_message": "", "is_terminal": False, "redirect_url": None,
+            },
+        )
+
+    def test_a_finished_resume_import_points_at_its_review_page(self):
+        from resume.models import ResumeImport
+
+        upload = ResumeImport.objects.create(profile=self.profile, file="resumes/x.txt")
+        task = AITask.start_for(self.profile, AITask.RESUME_IMPORT, upload, steps_total=2)
+        task.mark_done()
+        payload = self.status(task)
+        self.assertTrue(payload["is_terminal"])
+        self.assertEqual(payload["percent"], 100)
+        self.assertEqual(payload["redirect_url"], reverse("resume:review", args=[upload.pk]))
+
+    def test_a_finished_tailored_resume_points_at_its_editor(self):
+        tailored = TailoredResume.objects.create(profile=self.profile, job=self.job, markdown="# CV")
+        task = AITask.start_for(self.profile, AITask.TAILORED_RESUME, tailored)
+        task.mark_done()
+        self.assertEqual(
+            self.status(task)["redirect_url"], reverse("resume:tailored", args=[self.job.pk])
+        )
+
+    def test_other_kinds_and_unfinished_tasks_have_nowhere_to_go(self):
+        analysis = AITask.start_for(self.profile, AITask.JOB_ANALYSIS, self.job)
+        analysis.mark_done()
+        self.assertIsNone(self.status(analysis)["redirect_url"])
+
+        tailored = TailoredResume.objects.create(profile=self.profile, job=self.job, markdown="x")
+        running = AITask.start_for(self.profile, AITask.TAILORED_RESUME, tailored)
+        running.mark_running("Writing")
+        self.assertIsNone(self.status(running)["redirect_url"])
+
+    def test_a_failed_task_reports_its_message_and_is_terminal(self):
+        task = AITask.start_for(self.profile, AITask.JOB_ANALYSIS, self.job)
+        task.mark_failed("The AI analysis took too long and timed out. Please try again.")
+        payload = self.status(task)
+        self.assertEqual(payload["state"], "failed")
+        self.assertTrue(payload["is_terminal"])
+        self.assertIn("timed out", payload["error_message"])
+        self.assertIsNone(payload["redirect_url"])
+
+    def test_someone_elses_task_is_a_404_and_anonymous_is_redirected(self):
+        other = make_profile("intruder@example.com")
+        task = AITask.start_for(self.profile, AITask.JOB_ANALYSIS, self.job)
+        self.client.force_login(other.user)
+        self.assertEqual(self.client.get(reverse("core:task_status", args=[task.pk])).status_code, 404)
+        self.client.logout()
+        self.assertEqual(self.client.get(reverse("core:task_status", args=[task.pk])).status_code, 302)
+
+
+class AITaskLifecycleTests(TestCase):
+    """The state machine every progress bar in the product is drawn from."""
+
+    def setUp(self):
+        self.profile = make_profile("life@example.com")
+        self.job = JobPost.objects.create(profile=self.profile)
+
+    def test_a_new_task_is_queued_and_owned_by_the_profile(self):
+        task = AITask.start_for(self.profile, AITask.JOB_ANALYSIS, self.job, steps_total=3, step="Queued")
+        self.assertEqual(task.state, AITask.QUEUED)
+        self.assertEqual(task.user, self.profile.user)
+        self.assertEqual(task.profile, self.profile)
+        self.assertEqual(task.target, self.job)
+        self.assertEqual(task.current_step, "Queued")
+        self.assertEqual(AITask.latest_for(self.job, AITask.JOB_ANALYSIS), task)
+        self.assertIsNone(AITask.latest_for(self.job, AITask.JOB_MATCH))
+
+    def test_starting_again_cancels_the_live_task_for_the_same_target_and_kind(self):
+        first = AITask.start_for(self.profile, AITask.JOB_ANALYSIS, self.job)
+        other_kind = AITask.start_for(self.profile, AITask.JOB_MATCH, self.job)
+        second = AITask.start_for(self.profile, AITask.JOB_ANALYSIS, self.job)
+        first.refresh_from_db()
+        other_kind.refresh_from_db()
+        self.assertEqual(first.state, AITask.CANCELED)
+        self.assertEqual(other_kind.state, AITask.QUEUED)
+        self.assertEqual(second.state, AITask.QUEUED)
+
+    def test_progress(self):
+        task = AITask.start_for(self.profile, AITask.JOB_ANALYSIS, self.job, steps_total=4)
+        self.assertFalse(task.is_indeterminate)
+        self.assertEqual(task.percent, 0)
+        task.mark_running("Reading", steps_total=5)
+        self.assertEqual((task.state, task.steps_total, task.attempts), (AITask.RUNNING, 5, 1))
+        self.assertIsNotNone(task.started_at)
+        task.advance("Read")
+        task.advance("Extracted")
+        self.assertEqual((task.steps_done, task.percent, task.current_step), (2, 40, "Extracted"))
+        task.set_step("Matching")
+        self.assertEqual(task.current_step, "Matching")
+        task.mark_done("Analysis complete")
+        self.assertEqual((task.state, task.steps_done, task.percent), (AITask.DONE, 5, 100))
+        self.assertTrue(task.is_terminal)
+        self.assertIsNotNone(task.finished_at)
+
+    def test_a_single_step_task_is_indeterminate(self):
+        task = AITask.start_for(self.profile, AITask.TAILORED_RESUME, self.job, steps_total=1)
+        self.assertTrue(task.is_indeterminate)
+        self.assertEqual(task.percent, 0)
+
+    def test_advancing_never_overshoots_the_total(self):
+        task = AITask.start_for(self.profile, AITask.JOB_ANALYSIS, self.job, steps_total=2)
+        for _ in range(5):
+            task.advance("again")
+        self.assertEqual(task.steps_done, 2)
+
+    def test_failure_keeps_a_bounded_message(self):
+        task = AITask.start_for(self.profile, AITask.JOB_ANALYSIS, self.job)
+        task.mark_failed("x" * 5000)
+        self.assertEqual(task.state, AITask.FAILED)
+        self.assertEqual(len(task.error_message), 2000)
+        self.assertTrue(task.is_terminal)
+        self.assertFalse(task.is_running)
+
+
+class RetryPolicyTests(TestCase):
+    """Only transient failures are worth another attempt."""
+
+    def test_transient_provider_failures_are_retryable(self):
+        for message in (
+            "The AI analysis took too long and timed out. Please try again.",
+            "The AI analysis service is rate-limiting us. Please try again shortly.",
+            "Couldn't reach the AI analysis service. Please try again.",
+            "The AI analysis service returned an error (HTTP 503).",
+        ):
+            with self.subTest(message=message):
+                self.assertTrue(is_retryable(AIServiceError(message)))
+
+    def test_deterministic_failures_are_not(self):
+        for exc in (
+            AIConfigError("no key"),
+            AIServiceError("The AI analysis service rejected our API key."),
+            AIServiceError("The AI analysis service returned invalid JSON."),
+            AIServiceError("The AI analysis service returned an error (HTTP 400)."),
+            ValueError("boom"),
+        ):
+            with self.subTest(exc=exc):
+                self.assertFalse(is_retryable(exc))
+
+
+class DeepSeekBoundaryTests(TestCase):
+    """`call_deepseek_json` is the only door to the provider."""
+
+    def test_it_sends_both_messages_and_returns_the_parsed_json_with_the_model(self):
+        with fake_deepseek(lambda request: {"ok": True}) as calls:
+            data = call_deepseek_json("SYSTEM", "USER", temperature=0.5)
+        self.assertEqual(data, {"ok": True, "_model": "deepseek-test"})
+        self.assertEqual((calls[0].system, calls[0].user, calls[0].temperature), ("SYSTEM", "USER", 0.5))
+
+    def test_provider_failures_become_messages_that_are_safe_to_show(self):
+        cases = {
+            401: "rejected our API key",
+            429: "rate-limiting",
+            500: "(HTTP 500)",
+        }
+        for status, fragment in cases.items():
+            with self.subTest(status=status):
+                with fake_deepseek(lambda request, status=status: status):
+                    with self.assertRaises(AIServiceError) as raised:
+                        call_deepseek_json("s", "u")
+                self.assertIn(fragment, str(raised.exception))
+
+    def test_a_timeout_and_an_unreachable_provider_are_told_apart(self):
+        def times_out(request):
+            raise requests.exceptions.Timeout()
+
+        def unreachable(request):
+            raise requests.exceptions.ConnectionError()
+
+        with fake_deepseek(times_out):
+            with self.assertRaisesMessage(AIServiceError, "timed out"):
+                call_deepseek_json("s", "u")
+        with fake_deepseek(unreachable):
+            with self.assertRaisesMessage(AIServiceError, "Couldn't reach"):
+                call_deepseek_json("s", "u")
+
+    def test_a_missing_api_key_is_a_config_error(self):
+        with override_settings(DEEPSEEK_API_KEY=""):
+            with self.assertRaises(AIConfigError):
+                call_deepseek_json("s", "u")
+
+    def test_a_non_object_reply_is_rejected(self):
+        with fake_deepseek(lambda request: ["not", "an", "object"]):
+            with self.assertRaisesMessage(AIServiceError, "unexpected response"):
+                call_deepseek_json("s", "u")
+
+
+class SweepStuckAITasksCommandTests(TestCase):
+    """Run on worker start-up so a killed worker never leaves a permanent spinner."""
+
+    def setUp(self):
+        self.profile = make_profile("sweep@example.com")
+
+    def task(self, kind=AITask.JOB_ANALYSIS, *, idle_for=timedelta(0), state=None):
+        job = JobPost.objects.create(profile=self.profile)
+        task = AITask.start_for(self.profile, kind, job)
+        if state == AITask.RUNNING:
+            task.mark_running("Working")
+        AITask.objects.filter(pk=task.pk).update(updated_at=timezone.now() - idle_for)
+        return task
+
+    def test_stale_queued_and_running_tasks_are_failed_and_fresh_ones_are_left(self):
+        stale_queued = self.task(idle_for=timedelta(hours=2))
+        stale_running = self.task(idle_for=timedelta(hours=2), state=AITask.RUNNING)
+        fresh = self.task(idle_for=timedelta(minutes=5))
+        out = StringIO()
+
+        call_command("sweep_stuck_ai_tasks", seconds=3600, stdout=out)
+
+        for task in (stale_queued, stale_running):
+            task.refresh_from_db()
+            self.assertEqual(task.state, AITask.FAILED)
+            self.assertEqual(task.error_message, "This run was interrupted. Please try again.")
+            self.assertIsNotNone(task.finished_at)
+        fresh.refresh_from_db()
+        self.assertEqual(fresh.state, AITask.QUEUED)
+        self.assertIn("Swept 2 stuck AI task(s).", out.getvalue())
+
+    def test_finished_tasks_are_never_touched(self):
+        done = self.task(idle_for=timedelta(days=3))
+        done.mark_done()
+        AITask.objects.filter(pk=done.pk).update(updated_at=timezone.now() - timedelta(days=3))
+        call_command("sweep_stuck_ai_tasks", seconds=60, stdout=StringIO())
+        done.refresh_from_db()
+        self.assertEqual(done.state, AITask.DONE)
+
+    def test_the_window_defaults_to_the_setting(self):
+        stale = self.task(idle_for=timedelta(seconds=120))
+        with override_settings(AI_TASK_STALE_AFTER=60):
+            call_command("sweep_stuck_ai_tasks", stdout=StringIO())
+        stale.refresh_from_db()
+        self.assertEqual(stale.state, AITask.FAILED)
+
+
+class PruneAITasksCommandTests(TestCase):
+    def setUp(self):
+        self.profile = make_profile("prune@example.com")
+
+    def finished(self, *, days_ago, state=AITask.DONE):
+        job = JobPost.objects.create(profile=self.profile)
+        task = AITask.start_for(self.profile, AITask.JOB_ANALYSIS, job)
+        task.mark_done() if state == AITask.DONE else task.mark_failed("nope")
+        AITask.objects.filter(pk=task.pk).update(finished_at=timezone.now() - timedelta(days=days_ago))
+        return task
+
+    def test_old_finished_tasks_go_and_recent_or_live_ones_stay(self):
+        old_done = self.finished(days_ago=45)
+        old_failed = self.finished(days_ago=45, state=AITask.FAILED)
+        recent = self.finished(days_ago=3)
+        live = AITask.start_for(
+            self.profile, AITask.JOB_ANALYSIS, JobPost.objects.create(profile=self.profile)
+        )
+        out = StringIO()
+
+        call_command("prune_ai_tasks", days=30, stdout=out)
+
+        remaining = set(AITask.objects.values_list("pk", flat=True))
+        self.assertNotIn(old_done.pk, remaining)
+        self.assertNotIn(old_failed.pk, remaining)
+        self.assertIn(recent.pk, remaining)
+        self.assertIn(live.pk, remaining)
+        self.assertIn("Deleted 2 AI task(s).", out.getvalue())
+
+    def test_a_dry_run_only_reports(self):
+        old = self.finished(days_ago=45)
+        out = StringIO()
+        call_command("prune_ai_tasks", days=30, dry_run=True, stdout=out)
+        self.assertTrue(AITask.objects.filter(pk=old.pk).exists())
+        self.assertIn("Would delete 1 AI task(s) finished before ", out.getvalue())
+
+    def test_the_window_defaults_to_the_setting(self):
+        old = self.finished(days_ago=10)
+        with override_settings(AI_TASK_RETENTION_DAYS=5):
+            call_command("prune_ai_tasks", stdout=StringIO())
+        self.assertFalse(AITask.objects.filter(pk=old.pk).exists())
+
+
+class PromptLoaderTests(TestCase):
+    """`load_prompt` fills `{{ placeholders }}` and touches nothing else."""
+
+    def setUp(self):
+        self.directory = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.directory, ignore_errors=True)
+        override = override_settings(PROMPTS_DIR=self.directory)
+        override.enable()
+        self.addCleanup(override.disable)
+
+    def write(self, name, text):
+        path = self.directory / f"{name}.txt"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(text.encode("utf-8"))
+
+    def test_a_prompt_without_placeholders_is_returned_exactly_as_written(self):
+        text = 'Line one — “quoted”.\n\n{"key": {"nested": [1, 2]}} costs $5 \\n and {braces}\n'
+        self.write("plain", text)
+        self.assertEqual(load_prompt("plain"), text)
+
+    def test_placeholders_are_filled_wherever_they_appear_however_they_are_spaced(self):
+        self.write("spaced", "a={{x}} b={{ x }} c={{   x }} d={{ y }}")
+        self.assertEqual(load_prompt("spaced", x="1", y="2"), "a=1 b=1 c=1 d=2")
+
+    def test_only_a_well_formed_placeholder_is_a_placeholder(self):
+        self.write("odd", '{{ }} {{1x}} {{ a b }} {"a": {"b": 1}} {{ ok }}')
+        self.assertEqual(
+            load_prompt("odd", ok="!"), '{{ }} {{1x}} {{ a b }} {"a": {"b": 1}} !'
+        )
+
+    def test_values_are_inserted_verbatim_and_never_reinterpreted(self):
+        self.write("verbatim", "[{{ first }}] [{{ second }}]")
+        result = load_prompt("verbatim", first="{{ second }} \\1 $x", second="B")
+        self.assertEqual(result, "[{{ second }} \\1 $x] [B]")
+
+    def test_values_are_converted_to_text(self):
+        self.write("kinds", "{{ n }} / {{ label }}")
+        with translation.override("en"):
+            self.assertEqual(load_prompt("kinds", n=3, label=gettext_lazy("Overview")), "3 / Overview")
+
+    def test_prompts_can_live_in_subdirectories(self):
+        self.write("jobs/nested", "deep")
+        self.assertEqual(load_prompt("jobs/nested"), "deep")
+
+    def test_a_placeholder_without_a_value_is_an_error(self):
+        self.write("needs", "{{ a }} {{ b }}")
+        with self.assertRaisesMessage(PromptError, "no value for b"):
+            load_prompt("needs", a="1")
+
+    def test_a_value_the_prompt_never_uses_is_an_error(self):
+        self.write("uses", "{{ a }}")
+        with self.assertRaisesMessage(PromptError, "unused variable(s) typo"):
+            load_prompt("uses", a="1", typo="2")
+        self.write("none", "nothing to fill")
+        with self.assertRaisesMessage(PromptError, "unused variable(s) extra"):
+            load_prompt("none", extra="x")
+
+    def test_a_missing_file_is_an_error_naming_the_file(self):
+        with self.assertRaisesMessage(PromptError, "missing.txt"):
+            load_prompt("missing")
+
+
+class ShippedPromptTests(TestCase):
+    """The prompts in `prompts/` follow the conventions the README promises."""
+
+    def files(self):
+        return sorted(Path(settings.PROMPTS_DIR).rglob("*.txt"))
+
+    def name(self, path):
+        return path.relative_to(settings.PROMPTS_DIR).with_suffix("").as_posix()
+
+    def test_there_are_prompts_to_check(self):
+        self.assertGreaterEqual(len(self.files()), 6)
+
+    def test_every_prompt_loads_and_leaves_no_placeholder_unfilled(self):
+        for path in self.files():
+            with self.subTest(prompt=self.name(path)):
+                variables = {name: "x" for name in PLACEHOLDER.findall(path.read_text(encoding="utf-8"))}
+                text = load_prompt(self.name(path), **variables)
+                self.assertTrue(text.strip())
+                self.assertIsNone(PLACEHOLDER.search(text))
+
+    def test_files_are_utf8_with_lf_endings_and_one_final_newline(self):
+        for path in self.files():
+            with self.subTest(prompt=self.name(path)):
+                raw = path.read_bytes()
+                raw.decode("utf-8")
+                self.assertNotIn(b"\r", raw)
+                self.assertTrue(raw.endswith(b"\n"))
+                self.assertFalse(raw.endswith(b"\n\n"))
+
+    def test_every_variable_a_prompt_declares_is_documented_in_the_readme(self):
+        readme = (Path(settings.PROMPTS_DIR) / "README.md").read_text(encoding="utf-8")
+        for path in self.files():
+            with self.subTest(prompt=self.name(path)):
+                self.assertIn(f"`{self.name(path)}.txt`", readme)
+                for variable in PLACEHOLDER.findall(path.read_text(encoding="utf-8")):
+                    self.assertIn(f"`{variable}`", readme)
+
+    def test_the_dev_server_is_told_to_watch_the_prompt_directory(self):
+        from core.apps import watch_prompt_files
+
+        watched = []
+
+        class Reloader:
+            def watch_dir(self, path, glob):
+                watched.append((path, glob))
+
+        watch_prompt_files(Reloader())
+        self.assertEqual(watched, [(settings.PROMPTS_DIR, "**/*.txt")])
+
+
+class LanguageClauseTests(TestCase):
+    def test_it_names_the_profile_language_twice_and_carries_no_stray_whitespace(self):
+        for code, name in (("en", "English"), ("fr", "French")):
+            with self.subTest(code=code):
+                clause = language_clause(code)
+                self.assertEqual(clause.count(f"in {name}"), 2)
+                self.assertEqual(clause, clause.strip())
+                self.assertNotIn("\n", clause)
+
+    def test_anything_unsupported_falls_back_to_english(self):
+        for code in (None, "", "xx", "  "):
+            with self.subTest(code=code):
+                self.assertEqual(language_clause(code), language_clause("en"))
+        self.assertEqual(language_clause("fr-CA"), language_clause("fr"))
+
+
+class ServiceTraceabilityTests(SimpleTestCase):
+    """Each app's `services.py` holds its use cases, and every one of them says
+    which documented use case (`docs/use-cases/UC0x_*.md`) it implements — in a
+    `# UC-xx.y — Title (step n)` comment right above the function."""
+
+    USE_CASE = re.compile(r"UC-\d{2}(?:\.\d+)?")
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        base = Path(settings.BASE_DIR)
+        cls.modules = sorted(
+            base / app.split(".")[0] / "services.py"
+            for app in settings.INSTALLED_APPS
+            if (base / app.split(".")[0]).is_dir()
+        )
+        cls.documented = {
+            heading
+            for doc in (base / "docs" / "use-cases").glob("UC0*.md")
+            for heading in re.findall(r"^## (UC-\d{2}\.\d+):", doc.read_text(), re.M)
+        }
+
+    def cited_above(self, lines, node):
+        """The `UC-xx.y` ids in the comment block directly above a function."""
+        first = min([node.lineno] + [d.lineno for d in node.decorator_list])
+        cited, index = [], first - 2  # `lines` is 0-based, `lineno` 1-based
+        while index >= 0 and lines[index].lstrip().startswith("#"):
+            cited += self.USE_CASE.findall(lines[index])
+            index -= 1
+        return cited
+
+    def test_every_app_has_a_services_module_naming_its_use_case_document(self):
+        self.assertGreaterEqual(len(self.modules), 11)
+        for module in self.modules:
+            with self.subTest(module=module.parent.name):
+                self.assertTrue(module.exists(), f"{module.parent.name} has no services.py")
+                docstring = ast.get_docstring(ast.parse(module.read_text())) or ""
+                self.assertIn("docs/use-cases/UC0", docstring)
+
+    def test_every_public_service_cites_a_use_case_that_is_documented(self):
+        self.assertGreater(len(self.documented), 40)
+        for module in self.modules:
+            source = module.read_text()
+            lines = source.splitlines()
+            for node in ast.parse(source).body:
+                if not isinstance(node, ast.FunctionDef) or node.name.startswith("_"):
+                    continue
+                with self.subTest(service=f"{module.parent.name}.services.{node.name}"):
+                    cited = self.cited_above(lines, node)
+                    self.assertTrue(cited, "no `# UC-xx.y` comment above it")
+                    for use_case in cited:
+                        if "." in use_case:
+                            self.assertIn(use_case, self.documented, "no such use case in docs/use-cases")
+
+    def test_every_documented_use_case_group_is_implemented_by_some_service(self):
+        """The reverse direction, at the level of a document: UC01 to UC09 each
+        have services citing them (UC-01.3 and UC-01.5 — password reset and
+        sign-out — are Django's own views and have none)."""
+        cited = set()
+        for module in self.modules:
+            cited.update(self.USE_CASE.findall(module.read_text()))
+        groups = {use_case.split(".")[0] for use_case in cited}
+        self.assertEqual(groups, {f"UC-0{n}" for n in range(1, 10)})

@@ -7,7 +7,7 @@
 {% block content %}
 <div class="space-y-4">
   {% if subscriber_count %}
-    <div class="card border-l-4 border-amber-500 p-4 text-sm">
+    <div class="card border-l-4 border-tertiary p-4 text-sm">
       <p><strong>{{ subscriber_count }}</strong> account{{ subscriber_count|pluralize }} {{ subscriber_count|pluralize:"is,are" }} on this plan. Changing an allowance takes effect on their next check — changing the price does not re-bill anyone by itself.</p>
     </div>
   {% endif %}

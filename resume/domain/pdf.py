@@ -6,6 +6,8 @@ italic / code / links, horizontal rules — i.e. exactly what
 `templates/resume_template.md` and the generator produce, plus the usual
 things someone hand-edits into a resume. Anything unrecognized falls
 through as plain text instead of raising.
+
+Use case: UC-07.3 in docs/use-cases/UC07_TAILORED_RESUME_GENERATION.md.
 """
 
 import io
@@ -252,6 +254,7 @@ def markdown_to_flowables(markdown_text: str, styles=None) -> list:
     return story
 
 
+# UC-07.3 — ReportLab PDF Compilation with Strict Language Formatting (step 3)
 def render_markdown_pdf(markdown_text: str, *, title: str = "Resume", author: str = "") -> bytes:
     """Render Markdown to PDF bytes, ready to serve as a download."""
 

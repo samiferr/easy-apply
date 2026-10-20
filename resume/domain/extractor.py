@@ -1,4 +1,7 @@
-"""Extracts plain text from an uploaded resume file (PDF, DOCX, or TXT)."""
+"""Extracts plain text from an uploaded resume file (PDF, DOCX, or TXT).
+
+Use case: UC-04.2 (steps 3-4) in docs/use-cases/UC04_RESUME_PARSING_ONBOARDING.md.
+"""
 
 import docx
 from pypdf import PdfReader
@@ -8,6 +11,7 @@ class ResumeExtractError(Exception):
     """Raised for any user-facing failure reading an uploaded resume file."""
 
 
+# UC-04.2 — Background Asynchronous Extraction via DeepSeek LLM (step 3)
 def extract_resume_text(django_file) -> str:
     name = (django_file.name or "").lower()
     django_file.seek(0)

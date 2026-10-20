@@ -81,6 +81,8 @@ urlpatterns = [
     # --- Operations -------------------------------------------------------
     path("operations/", operations.HealthView.as_view(), name="health"),
     path("operations/queue/", operations.TaskListView.as_view(), name="task_list"),
+    path("operations/queue/workers/", operations.WorkerListView.as_view(), name="worker_list"),
+    path("operations/queue/<int:pk>/", operations.TaskDetailView.as_view(), name="task_detail"),
     path("operations/queue/export.csv", operations.TaskExportView.as_view(), name="task_export"),
     path("operations/queue/<int:pk>/retry/", operations.TaskRetryView.as_view(), name="task_retry"),
     path(
