@@ -1,0 +1,6 @@
+{% load lumen %}
+{% comment %}
+One side-navigation row. `active` is a boolean the caller computes; the row
+then gets the selected fill *and* aria-current="page", so the state is never
+carried by colour alone.
+{% endcomment %}<a href="{{ href }}" class="nav-side{% if active %} nav-side-active{% endif %}"{% if active %} aria-current="page"{% endif %}>{% icon icon_name class="shrink-0" %}<span class="min-w-0 truncate">{{ label }}</span></a>

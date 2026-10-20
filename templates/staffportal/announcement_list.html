@@ -1,8 +1,8 @@
 {% extends "staffportal/base.html" %}
-{% load staffportal %}
+{% load staffportal lumen %}
 {% block breadcrumb %}{% include "partials/_crumb.html" with crumb_label="Announcements" only %}{% endblock %}
 {% block page_actions %}
-  {% if "announcements.manage" in portal_capabilities %}<a href="{% url 'staffportal:announcement_create' %}" class="btn-primary">+ New announcement</a>{% endif %}
+  {% if "announcements.manage" in portal_capabilities %}<a href="{% url 'staffportal:announcement_create' %}" class="btn-primary">{% icon "add" size="s" %}New announcement</a>{% endif %}
 {% endblock %}
 {% block content %}
 <div class="space-y-4">
@@ -14,7 +14,7 @@
         {% for announcement in announcements %}
           <tr>
             <td>
-              <span class="font-medium text-on-surface">{{ announcement.title }}</span>
+              <span class="font-medium text-content-default">{{ announcement.title }}</span>
               {% if announcement.body %}<p class="max-w-md truncate text-muted">{{ announcement.body }}</p>{% endif %}
             </td>
             <td><span class="badge {% if announcement.level == 'critical' %}badge-danger{% elif announcement.level == 'warning' %}badge-partial{% elif announcement.level == 'success' %}badge-strong{% else %}badge-pending{% endif %}">{{ announcement.get_level_display }}</span></td>
@@ -23,7 +23,7 @@
             <td>{% if announcement.is_live %}<span class="badge badge-strong">Live</span>{% else %}<span class="badge badge-none">Not showing</span>{% endif %}</td>
             <td class="text-right">
               {% if "announcements.manage" in portal_capabilities %}
-                <a href="{% url 'staffportal:announcement_update' announcement.pk %}" class="text-sm font-semibold text-primary">Edit</a>
+                <a href="{% url 'staffportal:announcement_update' announcement.pk %}" class="text-sm font-semibold text-accent-content">Edit</a>
               {% endif %}
             </td>
           </tr>

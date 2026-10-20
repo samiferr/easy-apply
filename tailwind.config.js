@@ -1,15 +1,43 @@
 /** @type {import('tailwindcss').Config} */
-// The Tonal design system (design/tonal/README.md). Colour roles come from
-// design/tonal/tokens.json via the CSS variables in static/src/tokens.css
-// (python design/build_tokens.py), so `bg-primary`, `text-on-surface`,
-// `bg-surface-container-low` and the rest follow the active theme on their own.
-const tonal = require("./design/tonal/tokens.json");
+// The Lumen design system (design/lumen/README.md). Semantic colours come from
+// design/lumen/tokens.json via the CSS variables in static/src/tokens.css
+// (python design/build_tokens.py), so `bg-background-layer-2`,
+// `text-content-default`, `bg-accent-background` and the rest follow the active
+// theme on their own. Palette steps (`gray-500`, `blue-900`) are left out on
+// purpose: they are for charts and illustration only, through `var(--…)`.
+const lumen = require("./design/lumen/tokens.json");
 
-const roles = Object.fromEntries(
-  tonal.color.tokens
-    .filter((token) => token.name !== "shadow")
-    .map((token) => [token.name, `rgb(var(--${token.name}-rgb) / <alpha-value>)`]),
+const PALETTE = /^(gray|blue|red|orange|yellow|chartreuse|celery|green|seafoam|cyan|indigo|purple|fuchsia|magenta|pink|turquoise|cinnamon|brown|silver)-\d+$/;
+
+const opaque = (value) => /^(#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3}|\{[a-z0-9-]+\})$/.test(value);
+
+const colors = Object.fromEntries(
+  lumen.color.tokens
+    .filter((token) => !PALETTE.test(token.name))
+    .map((token) => {
+      const values = typeof token.value === "string" ? [token.value] : Object.values(token.value);
+      // Tokens that carry their own alpha (row-hover, scrim, ...) are used as is;
+      // the rest go through their -rgb channels so `/10` modifiers work.
+      const value = values.every(opaque)
+        ? `rgb(var(--${token.name}-rgb) / <alpha-value>)`
+        : `var(--${token.name})`;
+      return [token.name, value];
+    }),
 );
+
+// Lumen type styles: [size, {lineHeight, fontWeight}]. Headings are 800 and
+// titles 700, so `text-heading-l` is a whole style, not just a size.
+const fontSize = Object.fromEntries(
+  lumen.type.groups.flatMap((group) =>
+    group.styles.map((style) => [
+      style.name,
+      [style.fontSize, { lineHeight: String(style.lineHeight), fontWeight: String(style.fontWeight) }],
+    ]),
+  ),
+);
+
+const fromTokens = (family) =>
+  Object.fromEntries(lumen[family].tokens.map((token) => [token.name, `var(--${token.name})`]));
 
 module.exports = {
   darkMode: "class",
@@ -19,31 +47,27 @@ module.exports = {
     // Widget classes are assembled in Python, so Tailwind has to scan there too.
     "./*/forms.py",
     "./*/*/forms.py",
+    "./core/templatetags/*.py",
+    "./staffportal/templatetags/*.py",
+    "./static/js/*.js",
   ],
   theme: {
     extend: {
       fontFamily: {
-        sans: ["Roboto", "Helvetica Neue", "Arial", "system-ui", "sans-serif"],
-        mono: ["Roboto Mono", "ui-monospace", "SF Mono", "Menlo", "monospace"],
+        sans: ["\"Source Sans 3\"", "\"Source Sans Pro\"", "system-ui", "-apple-system", "\"Segoe UI\"", "Roboto", "sans-serif"],
+        mono: ["\"Source Code Pro\"", "ui-monospace", "Menlo", "Consolas", "monospace"],
       },
-      fontSize: {
-        // The `heading-*` steps are the Tonal type scale (size, line height),
-        // so a heading moves with the system rather than with a ratio of its
-        // own: nothing between two steps is invented.
-        "heading-sm": ["16px", "24px"], //   title-medium
-        "heading-base": ["22px", "28px"], // title-large
-        "heading-lg": ["22px", "28px"], //   title-large
-        "heading-xl": ["24px", "32px"], //   headline-small
-        "heading-2xl": ["28px", "36px"], //  headline-medium
-        "heading-3xl": ["32px", "40px"], //  headline-large
-        "heading-4xl": ["36px", "44px"], //  display-small
-        "heading-5xl": ["45px", "52px"], //  display-medium
-        "heading-6xl": ["57px", "64px"], //  display-large
-        "heading-7xl": ["57px", "64px"], //  display-large
-        // Tonal label and body steps that Tailwind's scale has no name for.
-        "label-lg": ["14px", { lineHeight: "20px", letterSpacing: "0.1px", fontWeight: "500" }],
-        "label-md": ["12px", { lineHeight: "16px", letterSpacing: "0.5px", fontWeight: "500" }],
-        "label-sm": ["11px", { lineHeight: "16px", letterSpacing: "0.5px", fontWeight: "500" }],
+      fontSize,
+      colors,
+      spacing: fromTokens("spacing"),
+      height: fromTokens("height"),
+      width: fromTokens("height"),
+      minHeight: fromTokens("height"),
+      borderRadius: fromTokens("radius"),
+      boxShadow: {
+        emphasized: "var(--shadow-emphasized)",
+        elevated: "var(--shadow-elevated)",
+        dragged: "var(--shadow-dragged)",
       },
       maxWidth: {
         // Caps the whole app on ultrawide displays: 16rem of sidebar plus an
@@ -52,36 +76,11 @@ module.exports = {
         // ~65 characters, the range long-form text reads most comfortably at.
         measure: "65ch",
       },
-      colors: {
-        ...roles,
-        // Names the app used before Tonal, kept so a stray class still resolves
-        // to the right role instead of vanishing.
-        canvas: roles.surface,
-        "surface-sunken": roles["surface-container-high"],
-        line: roles["outline-variant"],
-        "line-strong": roles.outline,
-      },
-      boxShadow: {
-        // Tonal elevation levels 0-5. Hierarchy is carried first by surface tone
-        // and second by shadow; cards at rest never go past level 1.
-        "elevation-1": "0 1px 2px rgba(0,0,0,0.3), 0 1px 3px 1px rgba(0,0,0,0.15)",
-        "elevation-2": "0 1px 2px rgba(0,0,0,0.3), 0 2px 6px 2px rgba(0,0,0,0.15)",
-        "elevation-3": "0 1px 3px rgba(0,0,0,0.3), 0 4px 8px 3px rgba(0,0,0,0.15)",
-        "elevation-4": "0 2px 3px rgba(0,0,0,0.3), 0 6px 10px 4px rgba(0,0,0,0.15)",
-        "elevation-5": "0 4px 4px rgba(0,0,0,0.3), 0 8px 12px 6px rgba(0,0,0,0.15)",
-        card: "0 1px 2px rgba(0,0,0,0.3), 0 1px 3px 1px rgba(0,0,0,0.15)",
-        "card-hover": "0 1px 2px rgba(0,0,0,0.3), 0 2px 6px 2px rgba(0,0,0,0.15)",
-      },
-      borderRadius: {
-        // Tonal shapes that Tailwind's own names do not already cover. The rest
-        // line up: rounded-lg 8px = radius-sm, rounded-xl 12px = radius-md,
-        // rounded-2xl 16px = radius-lg, rounded-full = radius-full.
-        "tn-xs": "4px",
-        "tn-dialog": "28px",
+      transitionDuration: {
+        // Lumen: hover and press change colour over 130ms.
+        DEFAULT: "130ms",
       },
     },
   },
-  plugins: [
-    require("@tailwindcss/forms"),
-  ],
+  plugins: [require("@tailwindcss/forms")],
 };

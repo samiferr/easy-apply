@@ -7,11 +7,11 @@ no JS charting library (spec §9). Screen readers get the table below.
   <div class="flex flex-wrap items-baseline justify-between gap-2">
     <div>
       <h2 class="section-title">{% trans "Jobs analyzed" %}</h2>
-      <p class="mt-1 text-sm text-on-surface-variant">{{ chart.month_label }}</p>
+      <p class="mt-1 text-sm text-content-subdued">{{ chart.month_label }}</p>
     </div>
-    <p class="text-2xl font-bold text-primary">
+    <p class="text-2xl font-bold text-accent-content">
       {{ chart.total }}
-      <span class="text-sm font-medium text-on-surface-variant">
+      <span class="text-sm font-medium text-content-subdued">
         {% blocktrans count counter=chart.total %}job{% plural %}jobs{% endblocktrans %}
       </span>
     </p>
@@ -23,24 +23,24 @@ no JS charting library (spec §9). Screen readers get the table below.
       {% for bar in chart.bars %}
         <div class="group relative flex h-full flex-1 flex-col justify-end">
           <div class="w-full rounded-t transition-all
-                      {% if bar.count %}bg-primary group-hover:bg-primary/90
-                      {% elif bar.is_future %}bg-surface-container-low
-                      {% else %}bg-surface-container-high{% endif %}
-                      {% if bar.is_today %}ring-1 ring-primary{% endif %}"
+                      {% if bar.count %}bg-accent-background group-hover:bg-accent-background/90
+                      {% elif bar.is_future %}bg-background-layer-2
+                      {% else %}bg-fill-neutral-hover{% endif %}
+                      {% if bar.is_today %}ring-1 ring-accent-background{% endif %}"
                style="height: {% if bar.count %}{{ bar.percent }}%{% else %}3px{% endif %}"></div>
-          <span class="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-inverse-surface px-2 py-1 text-xs text-on-primary group-hover:block">
+          <span class="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-neutral-background px-2 py-1 text-xs text-on-accent group-hover:block">
             {{ bar.day|date:"j M" }} · {{ bar.count }}
           </span>
         </div>
       {% endfor %}
     </div>
-    <div class="mt-2 flex justify-between text-xs text-on-surface-variant">
+    <div class="mt-2 flex justify-between text-xs text-content-subdued">
       <span>1</span>
       <span>{{ chart.bars|length }}</span>
     </div>
   {% else %}
-    <div class="mt-6 flex h-40 flex-col items-center justify-center rounded-lg border border-dashed border-outline-variant">
-      <p class="text-sm text-on-surface-variant">{% trans "No job posts analyzed this month yet." %}</p>
+    <div class="mt-6 flex h-40 flex-col items-center justify-center rounded-lg border border-dashed border-border-subtle">
+      <p class="text-sm text-content-subdued">{% trans "No job posts analyzed this month yet." %}</p>
       <a href="{% url 'jobs:add' %}" class="btn-primary mt-3 !py-1.5 !text-xs">{% trans "Analyze a job post" %}</a>
     </div>
   {% endif %}

@@ -1,11 +1,14 @@
-/* Easy Apply on the Tonal design system (design/tonal/README.md).
+/* Easy Apply on the Lumen design system (design/lumen/README.md).
 
-   Colour roles, spacing, shape, elevation and state opacities are CSS custom
-   properties generated from design/tonal/tokens.json (python design/build_tokens.py
-   -> tokens.css); tailwind.config.js exposes the colour roles as utilities
-   (`bg-primary`, `text-on-surface`, ...). Both themes live in the variables, so
-   a component is declared once and follows `.dark` on its own — there are no
-   `dark:` colour pairs. */
+   Colour, type, spacing, radius, heights and shadows are CSS custom properties
+   generated from design/lumen/tokens.json (python design/build_tokens.py ->
+   tokens.css); tailwind.config.js exposes the semantic colours as utilities
+   (`bg-background-layer-2`, `text-content-default`, `bg-accent-background`...).
+   Both themes live in the variables, so a component is declared once and
+   follows `.dark` on its own — there are no `dark:` colour pairs.
+
+   Where Easy Apply departs from Lumen, it is for WCAG 2.2 AA and says so here
+   and in design/lumen/README.md ("Easy Apply's deviations"). */
 @import "./tokens.css";
 @tailwind base;
 @tailwind components;
@@ -14,290 +17,457 @@
 @layer base {
   html {
     @apply scroll-smooth;
+    -webkit-text-size-adjust: 100%;
   }
   body {
-    @apply bg-surface font-sans text-on-surface antialiased;
+    @apply bg-background-base font-sans text-body-m text-content-default antialiased;
   }
   h1, h2, h3, h4 {
-    @apply text-on-surface;
+    @apply text-content-heading;
     text-wrap: balance;
   }
   p {
     text-wrap: pretty;
   }
+  a {
+    text-underline-offset: 0.15em;
+  }
   [x-cloak] {
     display: none !important;
   }
-  /* Keyboard focus is never removed, only restyled: Tonal's 3px `secondary` ring
-     offset 2px, which holds at least 3:1 on every surface tone in both themes.
-     Text inputs thicken their own border instead (see TEXT_INPUT_CLASSES). */
-  :where(a, button, summary, [role="button"], [tabindex]):focus-visible {
-    outline: 3px solid rgb(var(--secondary-rgb));
+  /* Keyboard focus is never removed, only styled: Lumen's 2px `focus-ring`,
+     offset 2px, which holds at least 3:1 on every surface in both themes. The
+     offset matters: on an accent fill the ring would vanish (1.2:1), so it
+     always sits on the page around the control. Text inputs darken their own
+     border instead (see TEXT_INPUT_CLASSES in core/forms.py). */
+  :where(a, button, summary, select, [role="button"], [role="tab"], [tabindex]):focus-visible {
+    outline: 2px solid var(--focus-ring);
     outline-offset: 2px;
+  }
+  ::selection {
+    background: var(--selected-subtle-hover);
   }
   @media (prefers-reduced-motion: reduce) {
     *, ::before, ::after {
       scroll-behavior: auto !important;
       transition-duration: 0.01ms !important;
       animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+    }
+  }
+  /* Windows High Contrast / forced colours: keep a visible boundary on the
+     controls whose only edge is a fill. */
+  @media (forced-colors: active) {
+    .btn, .badge, .card, .alert, .nav-side-active, .tab-strip-item-active {
+      border: 1px solid CanvasText;
     }
   }
 }
 
 @layer components {
   .focus-ring {
-    @apply focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2
-      focus-visible:outline-secondary;
+    @apply focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2
+      focus-visible:outline-focus-ring;
   }
 
   /* --- Buttons ---------------------------------------------------------- */
-  /* Pill-shaped, 40px tall, 24px side padding. Hover, focus and press are a
-     `currentColor` veil at the state opacities (an inset shadow, so it paints
-     under the label), not a different fill. */
+  /* Lumen buttons: pills, bold 14px label, 2px border slot so filled and
+     outline variants line up. Easy Apply uses the 40px (`l`) height as its
+     default rather than Lumen's 32px: it is the app's touch scale (Lumen asks
+     for ~20% more on touch) and clears WCAG 2.5.8's 24px target with room to
+     spare. `.btn-sm` is the 32px desktop size for dense rows. */
   .btn {
-    @apply relative inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap
-      rounded-full px-6 text-label-lg transition disabled:cursor-not-allowed disabled:opacity-[0.38];
+    @apply relative inline-flex h-component-height-200 min-w-[5.5rem] items-center justify-center gap-[7px]
+      whitespace-nowrap rounded-corner-radius-full border-2 border-transparent px-5 text-[15px] font-bold
+      leading-none transition-colors duration-[130ms] disabled:cursor-not-allowed;
   }
-  .btn:hover:not(:disabled),
-  .btn:focus-visible {
-    box-shadow: inset 0 0 0 999px color-mix(in srgb, currentColor calc(var(--state-hover) * 100%), transparent);
+  .btn:disabled,
+  .btn[aria-disabled="true"] {
+    @apply border-transparent bg-fill-neutral-hover text-content-disabled;
   }
-  .btn:active:not(:disabled) {
-    box-shadow: inset 0 0 0 999px color-mix(in srgb, currentColor calc(var(--state-pressed) * 100%), transparent);
+  .btn-sm {
+    @apply h-component-height-100 min-w-[4.5rem] gap-1.5 px-4 text-detail-m font-bold;
   }
-  /* Filled: one per view, the primary action. */
+  .btn-lg {
+    @apply h-component-height-300 gap-2 px-6 text-title-l;
+  }
+  /* Accent: one per view, the single main action. */
   .btn-primary {
-    @apply btn bg-primary text-on-primary;
+    @apply btn bg-accent-background text-on-accent hover:bg-accent-background-hover active:bg-accent-background-down;
   }
-  .btn-primary:hover:not(:disabled) {
-    box-shadow: var(--elevation-1),
-      inset 0 0 0 999px color-mix(in srgb, currentColor calc(var(--state-hover) * 100%), transparent);
-  }
-  /* Tonal: the important-but-secondary action. */
+  /* Secondary outline: everything else that matters. */
   .btn-secondary {
-    @apply btn bg-secondary-container text-on-secondary-container;
+    @apply btn border-border-default bg-transparent text-content-default hover:bg-fill-neutral-hover
+      active:bg-fill-neutral-down;
   }
-  /* Outlined in `error`: destructive, always with words as well as colour. */
+  /* Neutral fill: the strong-but-not-main action (Lumen "primary"). */
+  .btn-neutral {
+    @apply btn bg-neutral-background text-on-neutral hover:bg-content-heading;
+  }
+  /* Negative outline: destructive, always confirmed, always with words. */
   .btn-danger {
-    @apply btn border border-error bg-transparent text-error;
+    @apply btn border-negative-content bg-transparent text-negative-content hover:bg-fill-neutral-hover;
   }
-  /* Text: low emphasis. */
+  .btn-danger-fill {
+    @apply btn bg-negative-background text-on-accent hover:brightness-[.92];
+  }
+  /* Quiet: low emphasis, no border (Lumen ActionButton, quiet). */
   .btn-ghost {
-    @apply btn bg-transparent px-3 text-primary;
+    @apply btn min-w-0 bg-transparent px-3 text-content-default hover:bg-fill-neutral-hover
+      active:bg-fill-neutral-down;
+  }
+  /* A square, icon-only quiet button. Always carries an aria-label. */
+  .btn-icon {
+    @apply inline-flex h-component-height-200 w-component-height-200 shrink-0 items-center justify-center
+      rounded-corner-radius-full text-content-default transition-colors duration-[130ms]
+      hover:bg-fill-neutral-hover active:bg-fill-neutral-down;
+  }
+  .link {
+    @apply font-semibold text-accent-content underline decoration-1 underline-offset-2 hover:decoration-2;
   }
 
   /* --- Surfaces --------------------------------------------------------- */
-  /* An elevated card: level 1 on `surface-container-low`. Cards at rest never
-     go past level 1; hierarchy is carried by tone first and shadow second. */
+  /* Lumen cards: `background-layer-2`, a 1px `border-subtle` outline, 8px
+     corners and no shadow — inside the page a card is a layer step, not a
+     floating thing. Interactive cards gain the darker border and the
+     elevated shadow on hover. */
   .card {
-    @apply rounded-xl bg-surface-container-low text-on-surface shadow-elevation-1;
+    @apply rounded-corner-radius-500 border border-border-subtle bg-background-layer-2 text-content-default;
   }
   .card-interactive {
-    @apply card cursor-pointer transition-shadow duration-200 hover:shadow-elevation-2;
+    @apply card cursor-pointer transition-[border-color,box-shadow] duration-[130ms]
+      hover:border-border-hover hover:shadow-elevated;
   }
-  /* Chip-sized status, in the role pairs: a fill and the text that sits on it. */
+  /* A sunken well inside a card: code, previews, recap text. */
+  .well {
+    @apply rounded-corner-radius-500 bg-background-layer-1;
+  }
+
+  /* --- Badges ----------------------------------------------------------- */
+  /* Lumen badges: filled pills, 12px bold, 24px tall, with a status glyph for
+     every non-neutral variant so the state is never carried by hue alone. The
+     glyph is a mask in `currentColor`, so it follows the text on the fill. */
   .badge {
-    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-label-md;
+    @apply inline-flex h-component-height-75 shrink-0 items-center gap-spacing-75 whitespace-nowrap
+      rounded-corner-radius-full px-spacing-100 text-[12px] font-bold leading-none;
   }
-  .badge-strong {
-    @apply badge bg-secondary-container text-on-secondary-container;
+  .badge-positive::before, .badge-strong::before,
+  .badge-notice::before, .badge-partial::before,
+  .badge-negative::before, .badge-danger::before,
+  .badge-informative::before, .badge-pending::before {
+    content: "";
+    @apply h-3.5 w-3.5 shrink-0 bg-current;
+    mask: var(--badge-glyph) center / contain no-repeat;
+    -webkit-mask: var(--badge-glyph) center / contain no-repeat;
   }
-  .badge-partial {
-    @apply badge bg-tertiary-container text-on-tertiary-container;
+  .badge-neutral, .badge-none {
+    @apply badge bg-neutral-background text-on-neutral;
   }
-  .badge-none {
-    @apply badge bg-surface-container-highest text-on-surface-variant;
+  .badge-positive, .badge-strong {
+    @apply badge bg-positive-background text-on-accent;
+    --badge-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cmask id='m'%3E%3Crect width='24' height='24' fill='%23fff'/%3E%3Cpath d='m8 12 3 3 5-6' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/mask%3E%3Ccircle cx='12' cy='12' r='10' mask='url(%23m)'/%3E%3C/svg%3E");
   }
-  .badge-pending {
-    @apply badge bg-primary-container text-on-primary-container;
+  .badge-notice, .badge-partial {
+    @apply badge bg-notice-background text-on-notice;
+    --badge-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cmask id='m'%3E%3Crect width='24' height='24' fill='%23fff'/%3E%3Cpath d='M12 9v4M12 17h.01' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round'/%3E%3C/mask%3E%3Cpath d='m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z' mask='url(%23m)'/%3E%3C/svg%3E");
   }
-  /* The fourth verdict: something is wrong (failed jobs, failing checks,
-     suspended accounts). */
-  .badge-danger {
-    @apply badge bg-error-container text-on-error-container;
+  .badge-negative, .badge-danger {
+    @apply badge bg-negative-background text-on-accent;
+    --badge-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cmask id='m'%3E%3Crect width='24' height='24' fill='%23fff'/%3E%3Cpath d='M12 7v6M12 17h.01' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round'/%3E%3C/mask%3E%3Ccircle cx='12' cy='12' r='10' mask='url(%23m)'/%3E%3C/svg%3E");
+  }
+  .badge-informative, .badge-pending {
+    @apply badge bg-informative-background text-on-accent;
+    --badge-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cmask id='m'%3E%3Crect width='24' height='24' fill='%23fff'/%3E%3Cpath d='M12 16v-5M12 8h.01' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round'/%3E%3C/mask%3E%3Ccircle cx='12' cy='12' r='10' mask='url(%23m)'/%3E%3C/svg%3E");
+  }
+  /* A category rather than a state (work arrangement, "not evaluated"): a
+     quiet outlined pill, told apart by its word alone. */
+  .tag {
+    @apply inline-flex h-component-height-75 shrink-0 items-center gap-spacing-75 whitespace-nowrap
+      rounded-corner-radius-full border border-border-default px-spacing-100 text-[12px] font-bold leading-none
+      text-content-default;
+  }
+  /* A badge that already shows its own spinner skips the glyph. */
+  .badge-busy::before {
+    content: none;
+  }
+
+  /* --- Status light ----------------------------------------------------- */
+  /* Lumen StatusLight: a 10px dot and a word. The word carries the state. */
+  .status-light {
+    @apply inline-flex items-center gap-[6px] text-detail-m font-normal text-content-default;
+  }
+  .status-light::before {
+    content: "";
+    @apply h-2.5 w-2.5 shrink-0 rounded-corner-radius-full bg-[var(--gray-600)];
+  }
+  .status-positive::before { @apply bg-positive-background; }
+  .status-notice::before { @apply bg-notice-background; }
+  .status-negative::before { @apply bg-negative-background; }
+  .status-informative::before { @apply bg-informative-background; }
+
+  /* --- Inline alerts ---------------------------------------------------- */
+  /* Lumen InlineAlert: a 2px border and a soft tint in the variant's family,
+     an icon, a bold title. Text stays `content-heading` / `content-default`
+     on every tint (the coloured content tokens fall under 4.5:1 there). */
+  .alert {
+    @apply grid grid-cols-[auto_1fr] gap-spacing-200 rounded-corner-radius-500 border-2 border-content-default
+      bg-neutral-subtle p-spacing-300 text-body-s text-content-default;
+  }
+  .alert > svg:first-child { @apply mt-px; }
+  .alert-title {
+    @apply text-title-s text-content-heading;
+  }
+  .alert-informative { @apply border-informative-content bg-informative-subtle; }
+  .alert-informative > svg:first-child { @apply text-informative-content; }
+  .alert-positive { @apply border-positive-content bg-positive-subtle; }
+  .alert-positive > svg:first-child { @apply text-positive-content; }
+  .alert-notice { @apply border-notice-content bg-notice-subtle; }
+  .alert-notice > svg:first-child { @apply text-notice-content; }
+  .alert-negative { @apply border-negative-content bg-negative-subtle; }
+  .alert-negative > svg:first-child { @apply text-negative-content; }
+
+  /* --- Progress --------------------------------------------------------- */
+  .progress-track {
+    @apply h-[6px] w-full overflow-hidden rounded-corner-radius-full bg-[var(--gray-300)];
+  }
+  .progress-fill {
+    @apply h-full rounded-corner-radius-full bg-accent-background transition-[width] duration-200;
+  }
+
+  /* --- Empty state ------------------------------------------------------ */
+  .empty-state {
+    @apply mx-auto flex max-w-md flex-col items-center gap-spacing-100 px-spacing-300 py-spacing-500 text-center;
+  }
+  .empty-state-title {
+    @apply text-heading-m text-content-heading;
+  }
+  .empty-state-desc {
+    @apply text-body-s text-content-subdued;
   }
 
   /* --- Fields ----------------------------------------------------------- */
+  /* Lumen's text field (design/lumen/components/TextField.md):
+     `background-layer-2` fill, 8px corners, a 2px border that darkens to
+     `border-focus` on focus, and `negative-border` when Django marks the field
+     `aria-invalid`. Used for inputs, selects and textareas alike.
+
+     One deliberate departure: the resting border is `border-default` (3:1),
+     not Lumen's `border-field` (#dadada, 1.4:1) — WCAG 2.2 SC 1.4.11 asks 3:1
+     of the boundary that identifies a control. Selects keep the same border
+     rather than Lumen's borderless picker fill (1.2:1) for the same reason.
+     Fields are 40px tall (the touch scale) and set at 16px so iOS never zooms. */
+  .field-input {
+    @apply block min-h-component-height-200 w-full rounded-corner-radius-500 border-2 border-border-default
+      bg-background-layer-2 px-spacing-200 py-[6px] text-body-m text-content-default transition-colors
+      placeholder:text-content-subdued hover:border-border-hover focus:border-border-focus focus:outline-none
+      focus:ring-0;
+  }
+  .field-input[aria-invalid="true"] {
+    @apply border-negative-border hover:border-negative-border-hover focus:border-negative-border-hover;
+  }
+  .field-input:disabled {
+    @apply cursor-not-allowed border-border-disabled bg-fill-disabled text-content-disabled;
+  }
+  select.field-input {
+    @apply pe-10;
+  }
+  /* Lumen's checkbox: 2px `border-default`, 4px corners, `accent-background`
+     when checked, the 2px focus ring offset 2px. Drawn at 20px rather than 16
+     so the box is a comfortable target; its label is clickable too. */
+  .field-checkbox {
+    @apply h-5 w-5 shrink-0 cursor-pointer rounded-corner-radius-100 border-2 border-border-default
+      bg-background-layer-2 text-accent-background transition-colors hover:border-border-hover
+      focus:ring-2 focus:ring-focus-ring focus:ring-offset-2 focus:ring-offset-background-base;
+  }
+  .field-file {
+    @apply block w-full text-body-s text-content-subdued
+      file:mr-spacing-200 file:h-component-height-200 file:cursor-pointer file:rounded-corner-radius-full
+      file:border-2 file:border-solid file:border-border-default file:bg-transparent file:px-5
+      file:text-[15px] file:font-bold file:text-content-default hover:file:bg-fill-neutral-hover;
+  }
   .field-label {
-    @apply mb-1.5 block text-label-lg text-on-surface-variant;
+    @apply mb-spacing-75 block text-detail-m font-semibold text-content-default;
   }
   .field-error {
-    @apply mt-1.5 text-label-md text-error;
+    @apply mt-spacing-75 flex items-start gap-spacing-75 text-body-xs text-negative-content;
   }
   .field-help {
-    @apply mt-1.5 text-label-md text-on-surface-variant;
+    @apply mt-spacing-75 text-body-xs text-content-subdued;
   }
-  /* Secondary and meta copy: `on-surface-variant`, 4.5:1 on every surface tone. */
+  /* Secondary and meta copy: `content-subdued`, 4.5:1 on every layer. */
   .text-muted {
-    @apply text-on-surface-variant;
+    @apply text-content-subdued;
   }
   .measure {
     @apply max-w-measure;
   }
 
   /* --- Navigation ------------------------------------------------------- */
-  /* Items are full-radius pills; the current one fills with `secondary-container`
-     and its label gains weight. Hover is the state veil. */
+  /* Side navigation rows: 40px, 8px corners, quiet. The current row takes the
+     neutral-down fill and bold weight *and* aria-current="page", so the state
+     is never colour alone. */
   .nav-link {
-    @apply rounded-full px-4 py-2 text-label-lg text-on-surface-variant transition
-      hover:bg-on-surface/[0.08] hover:text-on-surface;
+    @apply rounded-corner-radius-500 px-3 py-2 text-detail-m font-semibold text-content-subdued transition-colors
+      hover:bg-fill-neutral-hover hover:text-content-heading;
   }
   .nav-link-active {
-    @apply bg-secondary-container text-on-secondary-container hover:bg-secondary-container
-      hover:text-on-secondary-container;
+    @apply bg-fill-neutral-down text-content-heading;
   }
   .nav-side {
-    @apply flex min-h-[48px] items-center gap-3 rounded-full px-4 py-2 text-label-lg
-      text-on-surface-variant transition hover:bg-on-surface/[0.08] hover:text-on-surface;
+    @apply flex min-h-component-height-200 items-center gap-spacing-200 rounded-corner-radius-500 px-spacing-200
+      text-body-s font-semibold text-content-subdued transition-colors hover:bg-fill-neutral-hover
+      hover:text-content-heading;
   }
   .nav-side-active {
-    @apply bg-secondary-container font-bold text-on-secondary-container
-      hover:bg-secondary-container hover:text-on-secondary-container;
+    @apply bg-fill-neutral-down font-bold text-content-heading hover:bg-fill-neutral-down;
+  }
+  .nav-group-label {
+    @apply px-spacing-200 pb-spacing-75 pt-spacing-300 text-detail-s font-bold text-content-subdued;
   }
   .menu-item {
-    @apply block px-4 py-3 text-left text-base text-on-surface transition
-      hover:bg-on-surface/[0.08] focus-visible:bg-on-surface/[0.1];
+    @apply flex min-h-component-height-200 w-full items-center gap-spacing-200 px-spacing-200 text-left
+      text-body-s text-content-default transition-colors hover:bg-row-hover focus-visible:bg-row-hover;
   }
-  /* A floating panel: menus, popovers, the profile switcher — level 2 on
-     `surface-container`. */
+  /* A floating panel: menus, popovers, the profile switcher. No border in
+     light (the shadow separates it), `border-popover` in dark. */
   .surface-menu {
-    @apply rounded-lg bg-surface-container shadow-elevation-2;
+    @apply rounded-corner-radius-500 border border-border-popover bg-background-elevated p-spacing-100 shadow-elevated;
   }
   .footer-link {
-    @apply text-on-surface-variant transition hover:text-on-surface;
+    @apply text-content-subdued underline-offset-2 transition-colors hover:text-content-heading hover:underline;
   }
 
   /* --- Data tables ------------------------------------------------------ */
+  /* Lumen Table: 12px bold header in `content-subdued`, 40px rows, 1px
+     `border-subtle` dividers, 7% row hover. */
   .data-table {
-    @apply w-full border-collapse text-left text-sm;
+    @apply w-full border-collapse text-left text-body-s text-content-default;
   }
   .data-table thead th {
-    @apply border-b border-outline-variant pb-2 text-label-md uppercase text-on-surface-variant;
+    @apply h-component-height-100 whitespace-nowrap border-b border-border-subtle px-spacing-200 align-middle
+      text-[12px] font-bold text-content-subdued first:ps-0 last:pe-0;
   }
   .data-table tbody td {
-    @apply border-b border-outline-variant/70 py-3 align-top text-on-surface;
+    @apply border-b border-border-subtle px-spacing-200 py-[10px] align-top first:ps-0 last:pe-0;
   }
-  /* The staff portal's tables run to six columns. Without a gutter a
-     right-aligned number sits flush against the next column's text and the two
-     read as one value. */
+  .data-table tbody tr {
+    @apply transition-colors hover:bg-row-hover;
+  }
   .data-table-wide thead th,
   .data-table-wide tbody td {
     @apply pe-6 last:pe-0;
   }
 
   /* --- Tabs ------------------------------------------------------------- */
-  /* Tonal tabs: `primary` label and a 3px indicator under the current one. The
-     strip scrolls sideways instead of wrapping, so the panel below it never
-     shifts down as categories come and go. */
+  /* Lumen Tabs: 48px tall, 24px apart, a 2px `content-heading` indicator under
+     the current one — weight and the bar, not hue, mark it. The strip scrolls
+     sideways instead of wrapping. */
   .tab-strip {
-    @apply flex overflow-x-auto border-b border-outline-variant;
+    @apply flex gap-spacing-400 overflow-x-auto border-b-2 border-border-subtle;
   }
   .tab-strip-item {
-    @apply relative flex shrink-0 items-center gap-2 px-4 py-3 text-label-lg
-      text-on-surface-variant transition hover:bg-on-surface/[0.08] hover:text-on-surface;
+    @apply relative -mb-[2px] flex h-component-height-300 shrink-0 items-center gap-spacing-100 border-b-2
+      border-transparent text-body-s font-semibold text-content-subdued transition-colors hover:text-content-heading;
   }
   .tab-strip-item-active {
-    @apply font-bold text-primary hover:text-primary;
-    box-shadow: inset 0 -3px 0 0 rgb(var(--primary-rgb));
+    @apply border-content-heading font-bold text-content-heading;
   }
-  /* The vertical rail of sections beside a job post: the same pills as the
-     sidebar. (Its CSS was dropped with the profile tab rail while job_detail.html
-     kept using it, which left the rail unstyled.) */
+  /* The vertical rail of sections beside a job post: side-navigation rows. */
   .tab-rail-item {
-    @apply flex w-full items-center justify-between gap-2 rounded-full px-4 py-2.5 text-left
-      text-label-lg text-on-surface-variant transition hover:bg-on-surface/[0.08] hover:text-on-surface;
+    @apply flex min-h-component-height-200 w-full items-center justify-between gap-spacing-100 rounded-corner-radius-500
+      px-spacing-200 text-left text-body-s font-semibold text-content-subdued transition-colors
+      hover:bg-fill-neutral-hover hover:text-content-heading;
   }
   .tab-rail-item-active {
-    @apply bg-secondary-container font-bold text-on-secondary-container
-      hover:bg-secondary-container hover:text-on-secondary-container;
+    @apply bg-fill-neutral-down font-bold text-content-heading hover:bg-fill-neutral-down;
   }
   /* How many rows are behind a tab. */
   .tab-count {
-    @apply rounded-full bg-on-surface/10 px-1.5 text-label-sm tabular-nums text-on-surface-variant;
+    @apply rounded-corner-radius-full bg-fill-neutral-hover px-1.5 text-[12px] font-bold tabular-nums text-content-subdued;
   }
 
   /* --- Page shell ------------------------------------------------------- */
   /* Every application screen renders inside this one container, so the
      breadcrumb, the title and the subtitle land in exactly the same place on
-     every page. `base_app.html` owns the markup; a page only fills the blocks.
-     Content columns below the header are capped but *not* centred. */
+     every page. `base_app.html` owns the markup; a page only fills the blocks. */
   .page-shell {
-    @apply mx-auto w-full max-w-7xl px-4 pb-12 sm:px-6 lg:px-8;
+    @apply mx-auto w-full max-w-7xl px-4 pb-spacing-700 sm:px-6 lg:px-spacing-600;
   }
   .page-header {
-    @apply pb-6 pt-6;
+    @apply pb-spacing-400 pt-spacing-400;
   }
   .page-header-row {
-    @apply mt-3 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between;
+    @apply mt-spacing-200 flex flex-col gap-spacing-300 sm:flex-row sm:items-start sm:justify-between;
   }
   .page-actions {
-    @apply flex shrink-0 flex-wrap items-center gap-2 empty:hidden;
+    @apply flex shrink-0 flex-wrap items-center gap-spacing-100 empty:hidden;
   }
 
   /* --- Breadcrumb ------------------------------------------------------- */
   .breadcrumb {
-    @apply flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm;
+    @apply flex flex-wrap items-center gap-x-1.5 gap-y-1 text-body-s;
   }
   .breadcrumb-item {
     @apply flex min-w-0 items-center gap-1.5;
   }
   .breadcrumb-link {
-    @apply rounded text-on-surface-variant transition hover:text-on-surface;
+    @apply rounded-corner-radius-100 text-content-subdued underline-offset-2 transition-colors
+      hover:text-content-heading hover:underline;
   }
   /* The last crumb is the page itself: never a link, truncated rather than
      wrapped when the title is a long job post name. */
   .breadcrumb-current {
-    @apply max-w-[12rem] truncate font-medium text-on-surface sm:max-w-sm;
+    @apply max-w-[12rem] truncate font-semibold text-content-default sm:max-w-sm;
   }
   /* Decorative and `aria-hidden`; the crumb order carries the meaning. */
   .breadcrumb-sep {
-    @apply h-3.5 w-3.5 shrink-0 text-outline;
+    @apply h-3.5 w-3.5 shrink-0 text-content-subdued;
   }
 
   /* --- Headings --------------------------------------------------------- */
-  /* Sizes are the Tonal type steps via the `heading-*` scale in
-     `tailwind.config.js`; Tonal headlines and titles are regular weight, so a
-     heading is told apart by size, not by boldness. */
+  /* Lumen headings are extra-bold (800) Source Sans 3; titles are bold. */
   .page-title {
-    @apply text-heading-2xl font-normal text-on-surface sm:text-heading-3xl;
+    @apply text-heading-m text-content-heading sm:text-heading-l;
   }
   .section-title {
-    @apply text-heading-lg font-normal text-on-surface;
+    @apply text-heading-s text-content-heading;
   }
   .page-lead {
-    @apply measure mt-2 text-on-surface-variant;
+    @apply measure mt-spacing-100 text-body-m text-content-subdued;
   }
   .card-title {
-    @apply text-heading-xl font-normal text-on-surface;
+    @apply text-heading-xs text-content-heading;
+  }
+  .eyebrow {
+    @apply text-detail-m font-bold text-accent-content;
   }
 
   /* --- Legal pages ------------------------------------------------------ */
   .legal-prose {
-    /* ~65 characters a line, with generous leading. */
-    @apply measure text-on-surface;
+    @apply measure text-body-m text-content-default;
   }
   .legal-prose h2 {
-    @apply mt-10 text-heading-xl font-normal text-on-surface;
+    @apply mt-spacing-600 text-heading-s text-content-heading;
   }
   .legal-prose p {
-    @apply mt-4 leading-relaxed;
+    @apply mt-spacing-300 leading-relaxed;
   }
   .legal-prose ul {
-    @apply mt-4 list-disc space-y-2 pl-6;
+    @apply mt-spacing-300 list-disc space-y-2 pl-6;
   }
   .legal-prose a {
-    @apply font-medium text-primary underline underline-offset-2;
+    @apply link;
   }
   .legal-prose code {
-    @apply rounded bg-surface-container-high px-1.5 py-0.5 text-sm;
+    @apply rounded-corner-radius-100 bg-fill-neutral-hover px-1.5 py-0.5 font-mono text-code-s;
   }
   .legal-prose table {
-    @apply mt-4 w-full border-collapse text-left text-sm;
+    @apply mt-spacing-300 w-full border-collapse text-left text-body-s;
   }
   .legal-prose th {
-    @apply border-b border-outline-variant py-2 pr-4 align-top font-medium text-on-surface;
+    @apply border-b border-border-subtle py-2 pr-4 align-top font-bold text-content-heading;
   }
   .legal-prose td {
-    @apply border-b border-outline-variant/70 py-2 pr-4 align-top;
+    @apply border-b border-border-subtle py-2 pr-4 align-top;
   }
 }

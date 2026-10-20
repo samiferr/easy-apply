@@ -1,4 +1,4 @@
-{% load static staffportal %}<!DOCTYPE html>
+{% load static staffportal lumen %}<!DOCTYPE html>
 <html lang="en" class="h-full">
 {% comment %}
 The operator console's own shell.
@@ -9,9 +9,10 @@ Two deliberate departures from the customer-facing app:
   internal tool with one operator language; translating it would double the
   review surface of every screen for nobody's benefit. Everything a *customer*
   ever reads is still fully translated.
-* **It looks different on purpose.** The slate chrome and the "Operator
-  console" strip exist so nobody spends thirty seconds wondering whether the
-  account they are about to suspend is their own test account or a real one.
+* **It looks different on purpose.** The shield mark, the "Operator console"
+  name and the role panel exist so nobody spends thirty seconds wondering
+  whether the account they are about to suspend is their own test account or a
+  real one.
 
 Everything else — tokens, cards, badges, tables, the page header — is the same
 design system as the product, so there is one set of components to maintain.
@@ -21,33 +22,25 @@ design system as the product, so there is one set of components to maintain.
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="noindex, nofollow" />
   <title>{% block title %}{{ page_title|default:"Operator console" }} · {{ SITE_NAME }} staff{% endblock %}</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="{% static 'dist/output.css' %}" />
-  <script>
-    if (localStorage.theme === "dark" || (!("theme" in localStorage) && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
-      document.documentElement.classList.add("dark");
-    }
-  </script>
+  {% include "partials/_assets.html" %}
   {% block extra_head %}{% endblock %}
 </head>
-<body class="min-h-full bg-surface font-sans" x-data="portalShell()">
-  <a href="#portal-main" class="sr-only focus:not-sr-only focus:absolute focus:z-[60] focus:m-3 focus:rounded-lg focus:bg-primary/90 focus:px-4 focus:py-2 focus:font-semibold focus:text-on-primary">Skip to content</a>
+<body class="min-h-full bg-background-base font-sans" x-data="portalShell()" @keydown.escape.window="mobileOpen = false">
+  <a href="#portal-main" class="sr-only focus:not-sr-only focus:fixed focus:left-spacing-200 focus:top-spacing-200 focus:z-[60] focus:rounded-corner-radius-full focus:bg-neutral-background focus:px-spacing-300 focus:py-spacing-100 focus:font-bold focus:text-on-neutral">Skip to content</a>
 
   <div class="mx-auto flex w-full max-w-shell">
     {% include "staffportal/partials/_sidebar.html" %}
 
-    <button type="button" @click="mobileOpen = true" x-show="!mobileOpen"
-      class="fixed left-3 top-3 z-40 flex h-11 w-11 items-center justify-center rounded-xl bg-surface-container-low text-on-surface-variant shadow-card-hover ring-1 ring-outline-variant/5 md:hidden"
+    <button type="button" @click="mobileOpen = true; $nextTick(() => document.querySelector('#portal-sidebar nav a')?.focus())" x-show="!mobileOpen"
+      class="btn-icon fixed left-spacing-200 top-spacing-200 z-40 border border-border-subtle bg-background-elevated shadow-elevated md:hidden"
       aria-label="Open navigation" :aria-expanded="mobileOpen" aria-controls="portal-sidebar">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" /></svg>
+      {% icon "menu" %}
     </button>
     <div x-show="mobileOpen" x-cloak x-transition.opacity @click="mobileOpen = false"
-         class="fixed inset-0 z-40 bg-scrim/60 md:hidden" aria-hidden="true"></div>
+         class="fixed inset-0 z-40 bg-scrim md:hidden" aria-hidden="true"></div>
 
     <div class="flex min-h-svh min-w-0 flex-1 flex-col">
-      <main id="portal-main" class="flex-1 pt-12 md:pt-0">
+      <main id="portal-main" class="flex-1 pt-14 md:pt-0" tabindex="-1">
         <div class="page-shell">
           <header class="page-header">
             <nav aria-label="Breadcrumb">
@@ -66,6 +59,14 @@ design system as the product, so there is one set of components to maintain.
               </div>
               <div class="page-actions">{% block page_actions %}{% endblock %}</div>
             </div>
+            {% portal_nav as nav %}
+            {% if nav.tabs %}
+              <nav class="tab-strip mt-spacing-400" aria-label="Pages in this section">
+                {% for tab in nav.tabs %}
+                  <a href="{{ tab.href }}" class="tab-strip-item{% if tab.active %} tab-strip-item-active{% endif %}"{% if tab.active %} aria-current="page"{% endif %}>{{ tab.label }}</a>
+                {% endfor %}
+              </nav>
+            {% endif %}
           </header>
 
           {% if messages %}<div class="mb-6">{% include "partials/messages.html" %}</div>{% endif %}
@@ -78,7 +79,7 @@ design system as the product, so there is one set of components to maintain.
         <p>
           Operator console · signed in as {{ request.user.email }} ({{ portal_role }}) ·
           every change on these screens is written to the
-          <a href="{% url 'staffportal:audit_list' %}" class="underline underline-offset-2">audit log</a>.
+          <a href="{% url 'staffportal:audit_list' %}" class="link">audit log</a>.
         </p>
       </footer>
     </div>
@@ -88,15 +89,9 @@ design system as the product, so there is one set of components to maintain.
   <script>
     function portalShell() {
       return {
-        collapsed: localStorage.portalSidebarCollapsed === "1",
         mobileOpen: false,
-        toggleCollapsed() {
-          this.collapsed = !this.collapsed;
-          localStorage.portalSidebarCollapsed = this.collapsed ? "1" : "0";
-        },
         toggleTheme() {
-          document.documentElement.classList.toggle("dark");
-          localStorage.theme = document.documentElement.classList.contains("dark") ? "dark" : "light";
+          toggleThemePreference();
         },
       };
     }

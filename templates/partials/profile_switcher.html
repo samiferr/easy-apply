@@ -1,4 +1,4 @@
-{% load i18n %}
+{% load i18n lumen %}
 {% comment %}
 The workspace switcher, in the sidebar's account block. A profile owns every
 job post, skill and resume in the app, so this control changes what the whole
@@ -6,25 +6,24 @@ interface is showing — it sits with the navigation, directly above the user
 menu, not buried in settings.
 
 The panel opens upwards (`bottom-full`) because the row is at the bottom of the
-column, and stays a fixed 17rem wide so it reads the same whether the sidebar
-is expanded or collapsed to icons.
+column, and stays a fixed 17rem wide.
 {% endcomment %}
 {% if active_profile %}
 <div class="relative" x-data="{ open: false }" @keydown.escape="open = false" @click.outside="open = false">
   <button type="button" @click="open = !open" class="nav-side w-full"
-    aria-haspopup="true" :aria-expanded="open" title="{% trans 'Switch profile' %}">
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M3 12h18M3 17h18"/></svg>
-    <span class="min-w-0 flex-1 text-left" :class="collapsed && 'sr-only'">
+    :aria-expanded="open" title="{% trans 'Switch profile' %}">
+    {% icon "folder" class="shrink-0" %}
+    <span class="min-w-0 flex-1 text-left">
       <span class="block truncate leading-tight">{{ active_profile.name }}</span>
-      <span class="block truncate text-[0.7rem] font-semibold uppercase leading-tight tracking-wide text-on-surface-variant">{% trans "Workspace" %} · {{ active_profile.language }}</span>
+      <span class="block truncate text-detail-s font-normal leading-tight text-content-subdued">{% trans "Workspace" %} · {{ active_profile.language }}</span>
     </span>
-    <svg x-show="!collapsed" x-cloak xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 text-on-surface-variant transition-transform" :class="open && 'rotate-180'" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+    {% icon "chevron-up" size="s" class="shrink-0 text-content-subdued transition-transform" bind_class="open ? '' : 'rotate-180'" %}
   </button>
 
   <div x-show="open" x-transition x-cloak
-    class="surface-menu absolute bottom-full left-0 z-50 mb-2 w-[17rem] origin-bottom-left divide-y divide-outline-variant py-1">
-    <div class="px-3 py-2">
-      <p class="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">{% trans "Profiles" %}</p>
+    class="surface-menu absolute bottom-full left-0 z-50 mb-2 w-[17rem] origin-bottom-left divide-y divide-border-subtle ">
+    <div class="px-spacing-200 py-spacing-100">
+      <p class="text-title-s text-content-heading">{% trans "Profiles" %}</p>
       <p class="mt-1 text-xs text-muted">{% trans "Each profile keeps its own jobs, skills and resumes." %}</p>
     </div>
     <div class="max-h-72 overflow-y-auto py-1">
@@ -33,10 +32,11 @@ is expanded or collapsed to icons.
           {% csrf_token %}
           <input type="hidden" name="next" value="{{ request.get_full_path }}" />
           <button type="submit"
-            class="menu-item flex w-full items-center justify-between gap-2 {% if profile.pk == active_profile.pk %}font-semibold text-primary{% endif %}"
+            class="menu-item flex w-full items-center justify-between gap-2 {% if profile.pk == active_profile.pk %}font-bold text-content-heading{% endif %}"
             {% if profile.pk == active_profile.pk %}aria-current="true"{% endif %}>
-            <span class="min-w-0 truncate">{{ profile.name }}</span>
-            <span class="shrink-0 rounded bg-surface-container-high px-1.5 py-0.5 text-[0.7rem] font-semibold uppercase text-on-surface-variant">{{ profile.language }}</span>
+            <span class="min-w-0 flex-1 truncate">{{ profile.name }}</span>
+            {% if profile.pk == active_profile.pk %}{% icon "check" size="s" class="shrink-0 text-accent-content" %}{% endif %}
+            <span class="shrink-0 rounded-corner-radius-100 bg-fill-neutral-hover px-1.5 py-0.5 text-detail-xs font-bold uppercase text-content-subdued">{{ profile.language }}</span>
           </button>
         </form>
       {% endfor %}

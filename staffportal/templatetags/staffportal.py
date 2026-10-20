@@ -73,3 +73,69 @@ def status_tone(value: str) -> str:
         "fail": "badge-danger",
     }
     return tones.get(str(value).lower(), "badge-none")
+
+
+#: The portal's navigation: seven sections, each with the pages it holds. A
+#: section with more than one page shows them as tabs under the page title, so
+#: the sidebar stays one short list instead of five groups of twelve rows.
+#: Each page is (url name, label, capability, url-name prefixes it owns).
+PORTAL_NAV = [
+    ("dashboard", "Overview", "home", [
+        ("staffportal:dashboard", "Overview", access_service.VIEW_PORTAL, ("dashboard",)),
+    ]),
+    ("users", "Accounts", "users", [
+        ("staffportal:user_list", "Accounts", access_service.VIEW_USERS, ("user_", "impersonate_")),
+        ("staffportal:impersonation_log", "Impersonation log", access_service.VIEW_AUDIT, ("impersonation_log",)),
+    ]),
+    ("billing", "Billing", "credit-card", [
+        ("staffportal:billing", "Plans & revenue", access_service.VIEW_BILLING, ("billing", "plan_")),
+        ("staffportal:subscription_list", "Subscriptions", access_service.VIEW_BILLING, ("subscription_",)),
+    ]),
+    ("product", "Product", "flag", [
+        ("staffportal:flag_list", "Feature flags", access_service.VIEW_PORTAL, ("flag_",)),
+        ("staffportal:announcement_list", "Announcements", access_service.VIEW_PORTAL, ("announcement_",)),
+    ]),
+    ("operations", "Operations", "activity", [
+        ("staffportal:health", "System health", access_service.VIEW_OPERATIONS, ("health",)),
+        ("staffportal:task_list", "AI queue", access_service.VIEW_OPERATIONS, ("task_", "worker_")),
+        ("staffportal:settings", "Runtime settings", access_service.MANAGE_OPERATIONS, ("settings",)),
+    ]),
+    ("audit", "Audit log", "file-text", [
+        ("staffportal:audit_list", "Audit log", access_service.VIEW_AUDIT, ("audit_",)),
+    ]),
+    ("team", "Portal access", "lock", [
+        ("staffportal:team_list", "Portal access", access_service.MANAGE_TEAM, ("team_",)),
+    ]),
+]
+
+#: Views report the section they belong to; flags and announcements share one.
+SECTION_ALIASES = {"flags": "product", "announcements": "product"}
+
+
+@register.simple_tag(takes_context=True)
+def portal_nav(context):
+    """The sidebar rows and the current section's tabs, filtered by capability.
+
+    Returns ``{"rows": [...], "tabs": [...]}``; ``tabs`` is empty when the
+    current section has a single page.
+    """
+    from django.urls import reverse
+
+    request = context.get("request")
+    user = getattr(request, "user", None)
+    match = getattr(request, "resolver_match", None)
+    url_name = getattr(match, "url_name", "") or ""
+    current = SECTION_ALIASES.get(context.get("section", ""), context.get("section", ""))
+    rows, tabs = [], []
+    for key, label, icon, pages in PORTAL_NAV:
+        allowed = [page for page in pages if access_service.has_capability(user, page[2])]
+        if not allowed:
+            continue
+        active = key == current
+        rows.append({"label": label, "icon": icon, "href": reverse(allowed[0][0]), "active": active})
+        if active and len(allowed) > 1:
+            tabs = [
+                {"label": page_label, "href": reverse(name), "active": url_name.startswith(prefixes)}
+                for name, page_label, _, prefixes in allowed
+            ]
+    return {"rows": rows, "tabs": tabs}

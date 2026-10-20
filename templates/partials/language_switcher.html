@@ -1,15 +1,20 @@
 {% load i18n %}
 {% get_current_language as CURRENT_LANGUAGE %}
 {% get_available_languages as AVAILABLE_LANGUAGES %}
-<form action="{% url 'set_language' %}" method="post" class="flex items-center rounded-lg bg-on-surface/5 p-0.5">
+{% comment %}
+Interface language: a two-segment control. Each segment is named by the
+language in its own words (`lang` + `aria-label`), and the current one is
+marked with aria-current as well as the neutral fill.
+{% endcomment %}
+<form action="{% url 'set_language' %}" method="post" class="inline-flex items-center rounded-corner-radius-full border-2 border-border-default p-0.5">
   {% csrf_token %}
   <input type="hidden" name="next" value="{{ request.get_full_path }}" />
   {% for code, name in AVAILABLE_LANGUAGES %}
+    {% get_language_info for code as info %}
     <button type="submit" name="language" value="{{ code }}"
-      class="rounded-md px-2 py-1 text-xs font-semibold uppercase transition
-        {% if code == CURRENT_LANGUAGE %}bg-surface-container-low text-primary shadow-sm
-        {% else %}text-on-surface-variant hover:text-on-surface{% endif %}"
+      class="min-h-[28px] min-w-[2.5rem] rounded-corner-radius-full px-spacing-100 text-detail-s font-bold uppercase transition-colors
+        {% if code == CURRENT_LANGUAGE %}bg-neutral-background text-on-neutral{% else %}text-content-default hover:bg-fill-neutral-hover{% endif %}"
       {% if code == CURRENT_LANGUAGE %}aria-current="true"{% endif %}
-      lang="{{ code }}" title="{{ name }}">{{ code }}</button>
+      lang="{{ code }}" aria-label="{{ info.name_local|capfirst }}">{{ code }}</button>
   {% endfor %}
 </form>

@@ -2317,3 +2317,34 @@ def impersonation_key():
     from .domain import impersonation
 
     return impersonation.SESSION_ACTOR_KEY
+
+
+class PortalNavigationTests(PortalTestCase):
+    """Seven sidebar sections; pages inside a section are tabs."""
+
+    def setUp(self):
+        super().setUp()
+        self.viewer = make_staff("viewer@example.com", StaffRole.VIEWER)
+        self.root = make_user("root@example.com", is_staff=True, is_superuser=True)
+
+    def sidebar(self, body):
+        return body.split('id="portal-sidebar"', 1)[1].split("</aside>", 1)[0]
+
+    def test_the_sidebar_is_one_short_list(self):
+        self.client.force_login(self.root)
+        sidebar = self.sidebar(self.client.get(reverse("staffportal:dashboard")).content.decode())
+        self.assertEqual(sidebar.count('class="nav-side'), 7 + 2)  # sections + back + theme
+        self.assertEqual(sidebar.count('aria-current="page"'), 1)
+
+    def test_sub_pages_are_tabs_with_the_current_one_marked(self):
+        self.client.force_login(self.root)
+        body = self.client.get(reverse("staffportal:subscription_list")).content.decode()
+        tabs = body.split('aria-label="Pages in this section"', 1)[1].split("</nav>", 1)[0]
+        self.assertIn(reverse("staffportal:billing"), tabs)
+        self.assertIn(f'href="{reverse("staffportal:subscription_list")}" class="tab-strip-item tab-strip-item-active" aria-current="page"', tabs)
+
+    def test_a_viewer_never_sees_rows_or_tabs_they_cannot_open(self):
+        self.client.force_login(self.viewer)
+        body = self.client.get(reverse("staffportal:health")).content.decode()
+        self.assertNotIn(reverse("staffportal:team_list"), self.sidebar(body))
+        self.assertNotIn(reverse("staffportal:settings"), body)

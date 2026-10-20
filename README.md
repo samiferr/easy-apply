@@ -72,11 +72,12 @@ call made inside it.
   reset & recovery, profile editing (with avatar upload), a security page
   (change password, delete account), all built on Django's auth framework
   with a custom email-based user model.
-- **Responsive, accessible UI** built with Tailwind CSS and Alpine.js
-  (light/dark mode, mobile navigation, accessible forms, toast messages).
-  The shell is borderless and has no top bar — the sidebar is the app's only
-  chrome and shares one canvas with the content — capped at 96rem and centred, and every foreground/background pair in it is
-  measured against WCAG 2.2 rather than eyeballed. See **Design system** below.
+- **Responsive, accessible UI** on the Lumen design system, built with
+  Tailwind CSS and Alpine.js: light and dark themes, a side navigation that
+  becomes a modal drawer on phones, labelled 40px fields and buttons, inline
+  alerts that stay until dismissed, and every foreground/background pair
+  measured against WCAG 2.2 AA rather than eyeballed. The operator console
+  keeps to seven sections, with sub-pages as tabs. See **Design system** below.
 - **An operator console at `/staff/`** for running this as a service: plans,
   subscriptions and monthly usage quotas; feature flags with percentage
   rollouts; in-product announcements; runtime kill switches (maintenance mode,
@@ -316,54 +317,52 @@ language to match, so a French workspace is never read through an English UI.
 
 ## Design system
 
-The interface is built on **Tonal**, a Material Design 3–style system: tonal
-colour roles that pair a fill with the text that sits on it, the Roboto type
-scale, soft corners, and state layers instead of hard hover colours. Its brand
-book and tokens live in [`design/tonal/`](design/tonal/README.md) — read that
-before changing how anything looks.
+The interface is built on **Lumen**, a calm, neutral-first system modelled on
+Adobe Spectrum: semantic colour tokens over a small palette, Source Sans 3,
+pill buttons, 8px fields and cards, a 2px blue focus ring, and Lucide outline
+icons. Its brand book, tokens and component guidelines live in
+[`design/lumen/`](design/lumen/README.md) — read that before changing how
+anything looks, including **Easy Apply's deviations** at its end (the few
+places the app is stricter than Lumen to meet WCAG 2.2 AA).
 
 ```
-design/tonal/tokens.json     colour roles (light + dark), type, spacing, shape,
-                             elevation, state opacities — the source of truth
-design/tonal/README.md       content fundamentals and visual foundations
-design/tonal/components/     per-component guidelines (button, card, field, ...)
-design/build_tokens.py       tokens.json -> static/src/tokens.css
-static/src/tokens.css        generated CSS variables (:root = light, .dark = dark)
-tailwind.config.js           exposes every colour role as a utility
-static/src/input.css         the component classes (.btn-*, .card, .badge-*, ...)
+design/lumen/tokens.json       colour (light + dark), type, spacing, radius,
+                               heights, borders, shadows — the source of truth
+design/lumen/README.md         brand book, plus Easy Apply's deviations
+design/lumen/components/       per-component guidelines (Button, TextField, ...)
+design/build_tokens.py         tokens.json -> static/src/tokens.css
+static/src/tokens.css          generated CSS variables (:root = light, .dark = dark)
+tailwind.config.js             semantic colours and type styles as utilities
+static/src/input.css           the component classes (.btn-*, .card, .badge-*, ...)
+core/templatetags/lumen.py     {% icon %} and {% nav_item %}
 ```
 
 Edit a token, then `python design/build_tokens.py && npm run build:css` (the
 compiled `static/dist/output.css` is committed so production needs no Node).
 
-**Colour.** Use roles, never raw palette colours: `bg-primary text-on-primary`,
-`bg-secondary-container text-on-secondary-container`, `text-on-surface`,
-`text-on-surface-variant`, `border-outline`. Every fill has an `on-*` partner for
-the text on it. Both themes live in the variables, so a component is written once
-and follows `.dark` on `<html>` — there are no `dark:` colour pairs. The five
-source colours (`ocean-blue`, `emerald`, `golden-pollen`, `bubblegum-pink`,
-`dark-teal`) are for illustration only; none reaches 4.5:1 for text.
+**Colour.** Use semantic tokens, never palette steps: `bg-background-base`
+(page), `bg-background-layer-1` (side navigation, bands), `bg-background-layer-2`
+(cards, fields), `text-content-heading` / `text-content-default` /
+`text-content-subdued`, `border-border-subtle` (decorative dividers only) and
+`border-border-default` (anything that identifies a control). The one accent is
+blue: `bg-accent-background text-on-accent` for the single main action,
+`text-accent-content` for links. Status uses `informative`, `positive`,
+`notice` and `negative`, always with a word and an icon. Both themes live in the
+variables, so there are no `dark:` colour pairs.
 
-| Role | Used for |
-| --- | --- |
-| `primary` | the one main action per view, links, progress |
-| `secondary-container` | tonal buttons, the current navigation item, "strong match" |
-| `tertiary-container` | "partial match", warnings |
-| `error` / `error-container` | errors, failures, destructive actions (always with words or an icon) |
-| `surface`, `surface-container-*` | the page, then cards and menus up the surface ladder |
-| `outline` | borders that identify a control (3:1); `outline-variant` for dividers |
+**Components.** `.btn-primary` (accent, one per view), `.btn-secondary`
+(outline), `.btn-neutral`, `.btn-danger` (negative outline), `.btn-ghost`,
+`.btn-icon`; sizes `.btn-sm` / `.btn-lg`. `.card` (layer 2, 1px subtle border,
+no shadow), `.alert alert-{informative,positive,notice,negative}` (InlineAlert),
+`.badge-{positive,notice,negative,informative,neutral}` (filled, with a status
+glyph), `.tag` (a category, not a state), `.status-light`, `.progress-track`,
+`.field-input` / `.field-checkbox` / `.field-file` (used by `core/forms.py`),
+`.nav-side`, `.tab-strip-item`, `.data-table`.
 
-**Components.** `.btn-primary` (filled, one per view), `.btn-secondary` (tonal),
-`.btn-danger` (outlined, `error`), `.btn-ghost` (text); `.card` (elevated, level 1);
-`.badge-*` (role pairs); `.nav-side` / `.tab-strip-item` (pills and underline tabs,
-the current one filled with `secondary-container`); form controls use the outlined
-text field (`core/forms.py`). Hover, focus and press are a `currentColor` veil at
-8% / 10% / 10%, and keyboard focus draws a 3px `secondary` ring offset 2px.
-
-**Type.** Roboto, via the `heading-*` steps in `tailwind.config.js`, which are the
-Tonal type scale (title-medium up to display-large). Headlines and titles are
-regular weight; size, not boldness, ranks them. Copy is sentence case, addresses
-the reader as "you", and has no exclamation marks or emoji.
+**Type.** Source Sans 3 through the Lumen styles in `tailwind.config.js`:
+`text-heading-{xs..xxxl}` (800), `text-title-*` (700), `text-body-*`,
+`text-detail-*`, `text-code-*`. Copy is sentence case, addresses the reader as
+"you", and has no exclamation marks or emoji.
 
 ## Skills: one tab per category
 

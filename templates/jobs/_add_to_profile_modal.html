@@ -2,17 +2,17 @@
 <div class="surface-menu w-full max-w-lg p-6">
   <div class="flex items-start justify-between gap-4">
     <div>
-      <h2 class="text-heading-lg font-bold text-on-surface">{{ target.title }}</h2>
+      <h2 class="text-heading-s text-content-heading">{{ target.title }}</h2>
       {% if target.help_text %}
-        <p class="mt-1 text-sm text-on-surface-variant">{{ target.help_text }}</p>
+        <p class="mt-1 text-sm text-content-subdued">{{ target.help_text }}</p>
       {% endif %}
     </div>
-    <button type="button" @click="closeAdd()" class="rounded-lg p-1 text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface-variant" aria-label="{% trans 'Close' %}">
+    <button type="button" @click="closeAdd()" class="rounded-lg p-1 text-content-subdued transition hover:bg-fill-neutral-hover hover:text-content-subdued" aria-label="{% trans 'Close' %}">
       <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
     </button>
   </div>
 
-  <blockquote class="mt-4 rounded-lg border-l-4 border-primary-container bg-primary-container px-3 py-2 text-sm text-on-surface-variant">
+  <blockquote class="mt-4 rounded-lg border-l-4 border-informative-content bg-informative-subtle px-3 py-2 text-sm text-content-subdued">
     {{ element.text }}
   </blockquote>
 
@@ -22,7 +22,7 @@
         class="mt-5 space-y-4">
     {% csrf_token %}
     {% if form.non_field_errors %}
-      <div class="rounded-lg border border-error/30 bg-error-container px-3 py-2 text-sm text-on-error-container">
+      <div class="alert alert-negative block" role="alert">
         {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
       </div>
     {% endif %}

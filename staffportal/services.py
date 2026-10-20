@@ -195,14 +195,6 @@ def dashboard(user, days: int) -> dict:
     # Only the problems here — the full list has its own screen.
     ctx["health_problems"] = [c for c in checks if c.status != health.OK][:4]
 
-    ctx["recent_signups"] = (
-        User.objects.select_related("subscription__plan").order_by("-date_joined")[:8]
-    )
-    ctx["recent_failures"] = (
-        AITask.objects.filter(state=AITask.FAILED)
-        .select_related("user")
-        .order_by("-finished_at")[:5]
-    )
     if access.has_capability(user, access.IMPERSONATE):
         ctx["open_impersonations"] = ImpersonationSession.objects.filter(
             ended_at__isnull=True
