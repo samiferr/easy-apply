@@ -1461,3 +1461,55 @@ class ServiceTraceabilityTests(SimpleTestCase):
             cited.update(self.USE_CASE.findall(module.read_text()))
         groups = {use_case.split(".")[0] for use_case in cited}
         self.assertEqual(groups, {f"UC-0{n}" for n in range(1, 10)})
+
+
+class LumenTemplateTagTests(SimpleTestCase):
+    def render(self, source):
+        from django.template import Context, Template
+
+        return Template("{% load lumen %}" + source).render(Context())
+
+    def test_an_icon_is_decorative_unless_labelled(self):
+        html = self.render('{% icon "add" %}')
+        self.assertIn('aria-hidden="true"', html)
+        self.assertIn('width="20"', html)
+        labelled = self.render('{% icon "close" size="s" label="Close" %}')
+        self.assertIn('role="img" aria-label="Close"', labelled)
+        self.assertIn('width="16"', labelled)
+
+    def test_icon_attributes_map_to_html_and_alpine(self):
+        html = self.render('{% icon "chevron-up" class="a" bind_class="open" x_show="x" %}')
+        self.assertIn('class="a" :class="open" x-show="x"', html)
+
+    def test_an_unknown_icon_fails_loudly(self):
+        from django.template import TemplateSyntaxError
+
+        with self.assertRaises(TemplateSyntaxError):
+            self.render('{% icon "nope" %}')
+
+
+class AccessibleShellTests(TestCase):
+    def setUp(self):
+        self.profile = make_profile("a11y@example.com")
+        self.client.force_login(self.profile.user)
+
+    def test_the_closed_drawer_is_out_of_the_tab_order(self):
+        """Off-canvas links must not be focusable while the drawer is shut."""
+        body = self.client.get(reverse("core:dashboard")).content.decode()
+        aside = body.split('<aside id="app-sidebar"', 1)[1].split(">", 1)[0]
+        self.assertIn("max-md:invisible", aside)
+
+    def test_flash_messages_do_not_time_out(self):
+        """WCAG 2.2.1: a message that vanishes on a timer can go unread.
+        Errors are announced assertively, the rest politely."""
+        from django.contrib.messages.storage.base import Message
+        from django.template.loader import render_to_string
+
+        html = render_to_string(
+            "partials/messages.html",
+            {"messages": [Message(40, "Boom", "sticky"), Message(25, "Saved")]},
+        )
+        self.assertNotIn("setTimeout", html)
+        self.assertIn('class="alert alert-negative', html)
+        self.assertIn('role="alert"', html)
+        self.assertIn('role="status"', html)

@@ -1,19 +1,11 @@
 {% extends "base_public.html" %}
 {% block content %}
-<div class="flex min-h-[calc(100vh-8rem)] items-center justify-center px-4 py-12">
+<div class="flex min-h-[calc(100svh-8rem)] items-start justify-center bg-background-layer-1 px-4 py-spacing-700 sm:items-center">
   <div class="w-full max-w-md">
-    <div class="mb-8 text-center">
-      <a href="{% url 'core:home' %}" class="inline-flex items-center gap-2 text-xl font-extrabold text-on-surface">
-        <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-on-primary">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" /></svg>
-        </span>
-        {{ SITE_NAME }}
-      </a>
-    </div>
-    <div class="card p-8">
+    <div class="card p-spacing-500">
       {% block auth_content %}{% endblock %}
     </div>
-    <p class="mt-6 text-center text-sm text-on-surface-variant">
+    <p class="mt-spacing-400 text-center text-body-s text-content-subdued">
       {% block auth_footer %}{% endblock %}
     </p>
   </div>

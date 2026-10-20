@@ -1,9 +1,8 @@
 {% extends "staffportal/base.html" %}
-{% load staffportal %}
+{% load staffportal lumen %}
 {% block breadcrumb %}{% include "partials/_crumb.html" with crumb_label="Plans &amp; revenue" only %}{% endblock %}
 {% block page_actions %}
-  {% if "billing.manage" in portal_capabilities %}<a href="{% url 'staffportal:plan_create' %}" class="btn-primary">+ New plan</a>{% endif %}
-  <a href="{% url 'staffportal:subscription_list' %}" class="btn-secondary">Subscriptions</a>
+  {% if "billing.manage" in portal_capabilities %}<a href="{% url 'staffportal:plan_create' %}" class="btn-primary">{% icon "add" size="s" %}New plan</a>{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -25,7 +24,7 @@
         {% for plan in plans %}
           <tr>
             <td>
-              <span class="font-medium text-on-surface">{{ plan.name }}</span>
+              <span class="font-medium text-content-default">{{ plan.name }}</span>
               {% if plan.tagline %}<p class="text-muted">{{ plan.tagline }}</p>{% endif %}
             </td>
             <td class="tabular-nums">{{ plan.price_display }}{% if plan.trial_days %}<p class="text-muted">{{ plan.trial_days }}-day trial</p>{% endif %}</td>
@@ -42,12 +41,12 @@
             </td>
             <td class="text-right">
               {% if "billing.manage" in portal_capabilities %}
-                <a href="{% url 'staffportal:plan_update' plan.pk %}" class="text-sm font-semibold text-primary">Edit</a>
+                <a href="{% url 'staffportal:plan_update' plan.pk %}" class="text-sm font-semibold text-accent-content">Edit</a>
               {% endif %}
             </td>
           </tr>
         {% empty %}
-          <tr><td colspan="6" class="py-8 text-center text-muted">No plans yet. Run <code class="rounded bg-surface-container-high px-1.5 py-0.5">manage.py seed_saas</code> or add one.</td></tr>
+          <tr><td colspan="6" class="py-8 text-center text-muted">No plans yet. Run <code class="rounded bg-fill-neutral-hover px-1.5 py-0.5">manage.py seed_saas</code> or add one.</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -60,10 +59,10 @@
       {% for row in breakdown %}
         <li>
           <div class="flex items-baseline justify-between text-sm">
-            <span class="font-medium text-on-surface">{{ row.name }}</span>
+            <span class="font-medium text-content-default">{{ row.name }}</span>
             <span class="tabular-nums text-muted">{{ row.count }} subscriber{{ row.count|pluralize }} · {{ row.mrr_display }}/mo</span>
           </div>
-          <div class="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-surface-container-high"><div class="h-full rounded-full bg-primary" style="width: {{ row.percent }}%"></div></div>
+          <div class="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-fill-neutral-hover"><div class="h-full rounded-full bg-accent-background" style="width: {{ row.percent }}%"></div></div>
         </li>
       {% endfor %}
     </ul>

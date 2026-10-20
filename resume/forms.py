@@ -51,6 +51,6 @@ class TailoredResumeForm(StyledModelForm):
             {
                 "rows": 28,
                 "spellcheck": "true",
-                "class": TEXT_INPUT_CLASSES + " font-mono text-xs leading-relaxed",
+                "class": TEXT_INPUT_CLASSES + " font-mono text-code-s",
             }
         )

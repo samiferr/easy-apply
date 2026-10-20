@@ -5,16 +5,14 @@ One number, with the label under it and an optional delta.
 
 `tabular-nums` so a column of these does not jitter as the digits change.
 {% endcomment %}
-<div class="card p-5">
-  <p class="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">{{ label }}</p>
-  <p class="mt-2 flex items-baseline gap-1.5">
-    <span class="text-heading-2xl font-bold tabular-nums tracking-tight text-on-surface">{{ value }}</span>
-    {% if unit %}<span class="text-sm font-medium text-muted">{{ unit }}</span>{% endif %}
+<div class="card p-spacing-300">
+  <p class="text-detail-m font-semibold text-content-subdued">{{ label }}</p>
+  <p class="mt-spacing-100 flex items-baseline gap-1.5">
+    <span class="text-heading-l tabular-nums text-content-heading">{{ value }}</span>
+    {% if unit %}<span class="text-body-s text-content-subdued">{{ unit }}</span>{% endif %}
   </p>
   {% if delta is not None and delta != "" %}
-    <p class="mt-1 text-sm font-medium {% if delta >= 0 %}text-on-secondary-container{% else %}text-on-error-container{% endif %}">
-      {% if delta >= 0 %}+{% endif %}{{ delta }}% vs the previous 30 days
-    </p>
+    <p class="mt-spacing-75 text-body-s text-content-default">{% if delta >= 0 %}+{% endif %}{{ delta }}% vs the previous 30 days</p>
   {% endif %}
-  {% if hint %}<p class="mt-1 text-sm text-muted">{{ hint }}</p>{% endif %}
+  {% if hint %}<p class="mt-spacing-75 text-body-s text-content-subdued">{{ hint }}</p>{% endif %}
 </div>

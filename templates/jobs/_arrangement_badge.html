@@ -1,10 +1,11 @@
 {% load i18n %}
+{% comment %}A category, not a state: a neutral tag, told apart by its word.{% endcomment %}
 {% if arrangement == "remote" %}
-  <span class="badge bg-secondary-container text-on-secondary-container">{% trans "Remote" %}</span>
+  <span class="tag">{% trans "Remote" %}</span>
 {% elif arrangement == "hybrid" %}
-  <span class="badge bg-tertiary-container text-on-tertiary-container">{% trans "Hybrid" %}</span>
+  <span class="tag">{% trans "Hybrid" %}</span>
 {% elif arrangement == "onsite" %}
-  <span class="badge bg-surface-container-high text-on-surface-variant">{% trans "On-site" %}</span>
+  <span class="tag">{% trans "On-site" %}</span>
 {% else %}
-  <span class="badge bg-surface-container-highest text-on-surface-variant">{% trans "Arrangement not specified" %}</span>
+  <span class="tag text-content-subdued">{% trans "Arrangement not specified" %}</span>
 {% endif %}

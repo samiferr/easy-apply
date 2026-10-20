@@ -1,10 +1,10 @@
 {% load i18n %}
 {% if status == "completed" %}
-  <span class="badge shrink-0 bg-secondary-container text-on-secondary-container">{% trans "Completed" %}</span>
+  <span class="badge-positive">{% trans "Completed" %}</span>
 {% elif status == "failed" %}
-  <span class="badge shrink-0 bg-error-container text-on-error-container">{% trans "Failed" %}</span>
+  <span class="badge-negative">{% trans "Failed" %}</span>
 {% elif status == "processing" %}
-  <span class="badge shrink-0 bg-tertiary-container text-on-tertiary-container">{% trans "Analyzing…" %}</span>
+  <span class="badge-informative">{% trans "Analyzing…" %}</span>
 {% else %}
-  <span class="badge shrink-0 bg-surface-container-high text-on-surface-variant">{% trans "Pending" %}</span>
+  <span class="badge-neutral">{% trans "Pending" %}</span>
 {% endif %}

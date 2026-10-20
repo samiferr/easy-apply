@@ -3,12 +3,12 @@
 {% block title %}Create your account · {{ SITE_NAME }}{% endblock %}
 {% block auth_content %}
   <h1 class="card-title">{% trans "Create your account" %}</h1>
-  <p class="mt-1 text-sm text-on-surface-variant">{% trans "Start building your skills recap in minutes." %}</p>
+  <p class="mt-1 text-sm text-content-subdued">{% trans "Start building your skills recap in minutes." %}</p>
 
   <form method="post" novalidate class="mt-6 space-y-5">
     {% csrf_token %}
     {% if form.non_field_errors %}
-      <div class="rounded-lg border border-error/30 bg-error-container px-4 py-3 text-sm text-on-error-container">
+      <div class="alert alert-negative block" role="alert">
         {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
       </div>
     {% endif %}
@@ -25,5 +25,5 @@
   </form>
 {% endblock %}
 {% block auth_footer %}
-  Already have an account? <a href="{% url 'accounts:login' %}" class="font-semibold text-primary hover:text-primary">{% trans "Log in" %}</a>
+  Already have an account? <a href="{% url 'accounts:login' %}" class="font-semibold text-accent-content hover:text-accent-content">{% trans "Log in" %}</a>
 {% endblock %}
