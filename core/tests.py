@@ -1513,3 +1513,39 @@ class AccessibleShellTests(TestCase):
         self.assertIn('class="alert alert-negative', html)
         self.assertIn('role="alert"', html)
         self.assertIn('role="status"', html)
+
+
+class DataTableTests(TestCase):
+    """Every data page is a real table with live search; tabs and the profile
+    switcher sit where the layout promises."""
+
+    def setUp(self):
+        from education.models import Degree
+
+        self.profile = make_profile("tables@example.com")
+        self.client.force_login(self.profile.user)
+        Degree.objects.create(profile=self.profile, degree="BSc", school="McGill")
+
+    def test_data_pages_render_searchable_tables(self):
+        pages = [
+            reverse("education:list"),
+            reverse("accounts:profile_list"),
+        ]
+        for url in pages:
+            with self.subTest(url=url):
+                body = self.client.get(url).content.decode()
+                self.assertIn("<table", body)
+                self.assertIn("data-table-search", body)
+                self.assertIn('aria-sort="none"', body)
+                self.assertIn("js/data-table.js", body)
+
+    def test_the_job_list_is_a_table_searched_on_the_server(self):
+        JobPost.objects.create(profile=self.profile, title="Platform engineer")
+        body = self.client.get(reverse("jobs:list")).content.decode()
+        self.assertIn('<table class="data-table">', body)
+        self.assertIn('name="q"', body)
+
+    def test_the_profile_switcher_comes_before_the_navigation(self):
+        body = self.client.get(reverse("core:dashboard")).content.decode()
+        sidebar = body.split('id="app-sidebar"', 1)[1]
+        self.assertLess(sidebar.index('id="profile-switcher-panel"'), sidebar.index('aria-label="Main navigation"'))

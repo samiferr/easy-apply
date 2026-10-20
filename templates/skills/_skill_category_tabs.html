@@ -1,4 +1,4 @@
-{% load i18n %}
+{% load i18n lumen %}
 {% comment %}
 One tab per skill category, over a single panel — the categories that this
 profile actually has skills in, which is the same set the page showed as a grid
@@ -13,9 +13,13 @@ so restoring it on load cannot scroll the page.
 
 Keyboard behaviour follows the WAI-ARIA tabs pattern: one tab stop for the
 whole strip, arrow keys move between tabs, Home/End jump to the ends.
+
+Each panel is a data table. The one search box above the strip filters every
+category at once (you rarely know which one a skill was filed under), and each
+tab's count follows the matches — see static/js/data-table.js.
 {% endcomment %}
 {% if grouped %}
-  <div
+  <div data-table
     x-data="{
       tabs: [{% for category, skills in grouped %}'category-{{ category.pk }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
       active: null,
@@ -42,6 +46,7 @@ whole strip, arrow keys move between tabs, Home/End jump to the ends.
       },
     }"
   >
+    {% include "partials/_table_search.html" with label=_("Search skills") controls="skill-panels" %}
     <div class="tab-strip" role="tablist" aria-label="{% trans 'Skill categories' %}"
          @keydown.right.prevent="move(1)" @keydown.left.prevent="move(-1)"
          @keydown.home.prevent="select(tabs[0], true)"
@@ -57,50 +62,51 @@ whole strip, arrow keys move between tabs, Home/End jump to the ends.
           :tabindex="active === 'category-{{ category.pk }}' ? 0 : -1"
           @click="select('category-{{ category.pk }}')">
           <span class="truncate">{% if category.icon %}{{ category.icon }} {% endif %}{{ category.name }}</span>
-          <span class="tab-count">{{ skills|length }}</span>
+          <span class="tab-count" data-count-for="panel-category-{{ category.pk }}">{{ skills|length }}</span>
         </button>
       {% endfor %}
     </div>
 
+    <div id="skill-panels">
     {% for category, skills in grouped %}
       <div role="tabpanel"
         id="panel-category-{{ category.pk }}"
         aria-labelledby="tab-category-{{ category.pk }}"
         x-show="active === 'category-{{ category.pk }}'" x-cloak
-        class="card mt-5 divide-y divide-border-subtle">
-        {% for skill in skills %}
-          <div class="group p-5">
-            <div class="flex items-center justify-between gap-3">
-              {% comment %}
-              The panel is the full content column now that the category name
-              has moved into the tab, so the level rides with the name rather
-              than being pushed to the far right of a very wide row; only the
-              row controls sit on the right edge.
-              {% endcomment %}
-              <div class="flex min-w-0 items-baseline gap-3">
-                <span class="truncate text-sm font-medium text-content-subdued">{{ skill.name }}</span>
-                <span class="shrink-0 text-xs text-content-subdued">{{ skill.get_level_display }}</span>
-              </div>
-              <div class="flex shrink-0 items-center gap-2">
-                <a href="{% url 'skills:edit' kind=kind pk=skill.pk %}" class="rounded p-1 text-content-subdued opacity-0 transition hover:bg-content-default/5 hover:text-content-default group-hover:opacity-100 focus-visible:opacity-100 max-md:opacity-100" aria-label="{% blocktrans with name=skill.name %}Edit {{ name }}{% endblocktrans %}">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /></svg>
-                </a>
-                <a href="{% url 'skills:delete' skill.pk %}" class="rounded p-1 text-content-subdued opacity-0 transition hover:bg-negative-background/10 hover:text-content-default group-hover:opacity-100 focus-visible:opacity-100 max-md:opacity-100" aria-label="{% blocktrans with name=skill.name %}Delete {{ name }}{% endblocktrans %}">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg>
-                </a>
-              </div>
-            </div>
-            <div class="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-fill-neutral-hover">
-              <div class="h-full rounded-full bg-accent-background" style="width: {{ skill.level_percent }}%"></div>
-            </div>
-          </div>
-        {% endfor %}
+        class="table-card mt-spacing-300">
+        <table class="data-table">
+          <thead>
+            <tr>
+              {% include "partials/_th_sort.html" with label=_("Skill") %}
+              {% include "partials/_th_sort.html" with label=_("Level") %}
+              <th scope="col"><span class="sr-only">{% trans "Actions" %}</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for skill in skills %}
+              <tr data-row data-search="{{ category.name }}">
+                <th scope="row" class="py-[10px] text-left font-normal">
+                  <a href="{% url 'skills:edit' kind=kind pk=skill.pk %}" class="font-bold text-content-heading hover:underline">{{ skill.name }}</a>
+                </th>
+                <td data-sort-value="{{ skill.level_percent }}">
+                  <div class="flex items-center gap-spacing-200">
+                    <span class="w-24 shrink-0">{{ skill.get_level_display }}</span>
+                    <div class="progress-track hidden max-w-[10rem] sm:block" aria-hidden="true"><div class="progress-fill" style="width: {{ skill.level_percent }}%"></div></div>
+                  </div>
+                </td>
+                <td>{% url 'skills:edit' kind=kind pk=skill.pk as edit_url %}{% url 'skills:delete' skill.pk as delete_url %}{% include "partials/_row_actions.html" with name=skill.name edit_url=edit_url delete_url=delete_url only %}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% include "partials/_table_empty.html" %}
       </div>
     {% endfor %}
+    </div>
   </div>
 {% else %}
-  <div class="card flex flex-col items-center gap-3 p-10 text-center">
-    <p class="text-sm text-content-subdued">{{ empty_message }}</p>
-    <a href="{% url 'skills:add' kind=kind %}" class="btn-primary">{% trans "Add your first skill" %}</a>
+  <div class="card empty-state max-w-none">
+    <p class="empty-state-desc">{{ empty_message }}</p>
+    <a href="{% url 'skills:add' kind=kind %}" class="btn-primary mt-spacing-100">{% trans "Add your first skill" %}</a>
   </div>
 {% endif %}

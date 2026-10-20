@@ -1,0 +1,14 @@
+{% load i18n lumen %}{% comment %}
+The search toolbar of a data table (static/js/data-table.js). Hidden until the
+script runs, so a reader without JavaScript never meets a box that does
+nothing. `label` names what is searched; `controls` is the id of the table (or
+tab panels) it filters.
+
+  {% include "partials/_table_search.html" with label=_("Search degrees") controls="degrees-table" %}
+{% endcomment %}<div class="mb-spacing-300 flex flex-col gap-spacing-100 sm:flex-row sm:items-center sm:justify-between" data-table-toolbar hidden>
+  <div class="relative w-full sm:max-w-sm">
+    <span class="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-spacing-200 text-content-subdued">{% icon "search" size="s" %}</span>
+    <input type="search" data-table-search class="field-input ps-10" aria-label="{{ label }}" placeholder="{{ label }}" aria-controls="{{ controls }}" autocomplete="off" />
+  </div>
+  <p class="text-body-s text-content-subdued" data-table-status aria-live="polite" data-template="{% trans 'Showing {shown} of {total}' %}"></p>
+</div>

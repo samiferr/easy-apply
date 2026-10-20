@@ -1,9 +1,9 @@
 {% load i18n lumen %}
 {% comment %}
 Application sidebar — the app's only chrome (Lumen side navigation on
-`background-layer-1`). There is no top bar: the account controls (workspace
-switcher, user menu with theme and language) sit in the account block pinned to
-the bottom of this column.
+`background-layer-1`). There is no top bar: the profile switcher sits under
+the logo, ahead of the navigation it scopes, and the user menu (theme,
+language, log out) is pinned to the bottom of this column.
 
 Three groups, nine rows. Labels are always visible: there is no icon-only
 collapsed mode, because an icon alone is not a label (design/lumen/README.md,
@@ -26,6 +26,10 @@ close it.
     <button type="button" @click="mobileOpen = false" class="btn-icon ms-auto md:hidden" aria-label="{% trans 'Close navigation' %}">
       {% icon "close" %}
     </button>
+  </div>
+
+  <div class="shrink-0 px-spacing-200 pb-spacing-200">
+    {% include "partials/profile_switcher.html" %}
   </div>
 
   <nav class="flex-1 overflow-y-auto px-spacing-200 pb-spacing-300" aria-label="{% trans 'Main navigation' %}">
@@ -52,12 +56,10 @@ close it.
   </nav>
 
   {% comment %}
-  The account block: which workspace you are in, and who you are signed in as.
-  Both menus open upwards from their row, so they stay on screen at the bottom
-  of the column.
+  The account block: who you are signed in as. The menu opens upwards from its
+  row, so it stays on screen at the bottom of the column.
   {% endcomment %}
   <div class="shrink-0 space-y-spacing-50 border-t border-border-subtle px-spacing-200 py-spacing-200">
-    {% include "partials/profile_switcher.html" %}
     {% include "partials/user_menu.html" %}
   </div>
 </aside>

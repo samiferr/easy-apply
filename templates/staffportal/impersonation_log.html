@@ -1,12 +1,13 @@
 {% extends "staffportal/base.html" %}
 {% block breadcrumb %}{% include "partials/_crumb.html" with crumb_label="Impersonation log" only %}{% endblock %}
 {% block content %}
-<div class="card overflow-x-auto p-5">
-  <table class="data-table data-table-wide">
+<div data-table class="card overflow-x-auto p-5">
+  {% include "partials/_table_search.html" with label="Search sessions" controls="impersonation-log-table" %}
+  <table class="data-table data-table-wide" id="impersonation-log-table">
     <thead><tr><th>Operator</th><th>Account</th><th>Reason</th><th>Started</th><th>Ended</th><th>IP</th></tr></thead>
     <tbody>
       {% for session in sessions %}
-        <tr>
+        <tr data-row>
           <td class="font-medium text-content-default">{{ session.actor_email }}</td>
           <td>{% if session.target_id %}<a href="{% url 'staffportal:user_detail' session.target_id %}" class="text-accent-content hover:underline">{{ session.target_email }}</a>{% else %}{{ session.target_email }}{% endif %}</td>
           <td class="max-w-xs">{{ session.reason }}</td>
@@ -22,6 +23,7 @@
       {% endfor %}
     </tbody>
   </table>
+  {% include "partials/_table_empty.html" %}
 </div>
 {% include "staffportal/partials/_pagination.html" %}
 {% endblock %}

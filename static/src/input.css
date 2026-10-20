@@ -32,7 +32,10 @@
   a {
     text-underline-offset: 0.15em;
   }
-  [x-cloak] {
+  [x-cloak],
+  [hidden] {
+    /* `hidden` must beat a display utility on the same element (the table
+       search toolbar is `flex` *and* hidden until its script runs). */
     display: none !important;
   }
   /* Keyboard focus is never removed, only styled: Lumen's 2px `focus-ring`,
@@ -347,11 +350,48 @@
     @apply h-component-height-100 whitespace-nowrap border-b border-border-subtle px-spacing-200 align-middle
       text-[12px] font-bold text-content-subdued first:ps-0 last:pe-0;
   }
-  .data-table tbody td {
+  .data-table tbody td,
+  .data-table tbody th {
     @apply border-b border-border-subtle px-spacing-200 py-[10px] align-top first:ps-0 last:pe-0;
   }
   .data-table tbody tr {
     @apply transition-colors hover:bg-row-hover;
+  }
+  /* A table inside a card: Lumen's 16px edge padding on the outer columns,
+     and sideways scrolling rather than a squeezed layout on phones. */
+  .table-card {
+    @apply card overflow-x-auto;
+  }
+  .table-card .data-table thead th {
+    @apply h-component-height-200 bg-background-layer-1;
+  }
+  .table-card .data-table thead th:first-child,
+  .table-card .data-table tbody > tr > :first-child {
+    @apply ps-spacing-300;
+  }
+  .table-card .data-table thead th:last-child,
+  .table-card .data-table tbody > tr > :last-child {
+    @apply pe-spacing-300;
+  }
+  .table-card .data-table tbody tr:last-child > * {
+    @apply border-b-0;
+  }
+  .data-table tbody td,
+  .data-table tbody th {
+    @apply align-middle;
+  }
+  /* A sortable header: the whole label is the button. aria-sort on the <th>
+     says which way; the arrow icon is decoration. */
+  .th-sort {
+    @apply -mx-1 inline-flex items-center gap-spacing-75 rounded-corner-radius-100 px-1 py-0.5 font-bold
+      text-content-subdued transition-colors hover:text-content-heading;
+  }
+  th[aria-sort="ascending"] .th-sort,
+  th[aria-sort="descending"] .th-sort {
+    @apply text-content-heading;
+  }
+  th[aria-sort="descending"] .th-sort svg {
+    @apply rotate-180;
   }
   .data-table-wide thead th,
   .data-table-wide tbody td {
@@ -359,18 +399,21 @@
   }
 
   /* --- Tabs ------------------------------------------------------------- */
-  /* Lumen Tabs: 48px tall, 24px apart, a 2px `content-heading` indicator under
-     the current one — weight and the bar, not hue, mark it. The strip scrolls
-     sideways instead of wrapping. */
+  /* Lumen Tabs: 48px tall, 24px apart. The current tab carries a 3px
+     `accent-background` bar (4.8:1 on white, above the 3:1 a visual indicator
+     needs), bold `content-heading` text and aria-selected / aria-current, so
+     the state never rests on colour alone. The strip scrolls sideways instead
+     of wrapping. */
   .tab-strip {
     @apply flex gap-spacing-400 overflow-x-auto border-b-2 border-border-subtle;
   }
   .tab-strip-item {
-    @apply relative -mb-[2px] flex h-component-height-300 shrink-0 items-center gap-spacing-100 border-b-2
-      border-transparent text-body-s font-semibold text-content-subdued transition-colors hover:text-content-heading;
+    @apply relative -mb-[2px] flex h-component-height-300 shrink-0 items-center gap-spacing-100 border-b-[3px]
+      border-transparent text-body-s font-semibold text-content-subdued transition-colors
+      hover:border-border-default hover:text-content-heading;
   }
   .tab-strip-item-active {
-    @apply border-content-heading font-bold text-content-heading;
+    @apply border-accent-background font-bold text-content-heading hover:border-accent-background;
   }
   /* The vertical rail of sections beside a job post: side-navigation rows. */
   .tab-rail-item {

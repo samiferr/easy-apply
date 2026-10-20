@@ -3373,3 +3373,108 @@ msgstr "CV"
 
 msgid "Paste a job post. Easy Apply checks it against your profile, requirement by requirement, and writes a resume tailored to it."
 msgstr "Collez une offre d’emploi. Easy Apply la compare à votre profil, exigence par exigence, et rédige un CV adapté."
+
+msgid "Actions"
+msgstr "Actions"
+
+msgid "Search profiles"
+msgstr "Rechercher des profils"
+
+msgid "Add degree"
+msgstr "Ajouter un diplôme"
+
+msgid "Grade"
+msgstr "Mention"
+
+msgid "Add certificate"
+msgstr "Ajouter un certificat"
+
+msgid "View credential"
+msgstr "Voir le certificat"
+
+msgid "(opens in a new tab)"
+msgstr "(s’ouvre dans un nouvel onglet)"
+
+msgid "Expired"
+msgstr "Expiré"
+
+msgid "Valid until"
+msgstr "Valide jusqu’en"
+
+msgid "Search degrees"
+msgstr "Rechercher des diplômes"
+
+msgid "School"
+msgstr "Établissement"
+
+msgid "Dates"
+msgstr "Dates"
+
+msgid "Search certificates"
+msgstr "Rechercher des certificats"
+
+msgid "Issuer"
+msgstr "Émetteur"
+
+msgid "Issued"
+msgstr "Délivré"
+
+msgid "Status"
+msgstr "Statut"
+
+msgid "Current"
+msgstr "En cours"
+
+msgid "Search experience"
+msgstr "Rechercher une expérience"
+
+msgid "Role"
+msgstr "Poste"
+
+msgid "Type"
+msgstr "Type"
+
+msgid "filtered"
+msgstr "filtré"
+
+msgid "Analyzed"
+msgstr "Analysé"
+
+msgid "%(strong)s strong · %(partial)s partial"
+msgstr "%(strong)s fortes · %(partial)s partielles"
+
+msgid "Tailored resume for %(name)s"
+msgstr "CV adapté pour %(name)s"
+
+msgid "Add language"
+msgstr "Ajouter une langue"
+
+msgid "Search languages"
+msgstr "Rechercher des langues"
+
+msgid "Profile: %(name)s. Switch profile"
+msgstr "Profil : %(name)s. Changer de profil"
+
+msgid "Navigation"
+msgstr "Navigation"
+
+msgid "Search benefits"
+msgstr "Rechercher des avantages"
+
+msgid "Ready"
+msgstr "Prêt"
+
+msgid "Search resumes"
+msgstr "Rechercher des CV"
+
+msgid "Generated"
+msgstr "Généré"
+
+msgid "Search skills"
+msgstr "Rechercher des compétences"
+
+msgid "Nothing matches your search."
+msgstr "Aucun résultat pour cette recherche."
+
+msgid "Showing {shown} of {total}"
+msgstr "{shown} sur {total} affichés"

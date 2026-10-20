@@ -1,27 +1,28 @@
 {% load i18n lumen %}
 {% comment %}
-The workspace switcher, in the sidebar's account block. A profile owns every
-job post, skill and resume in the app, so this control changes what the whole
-interface is showing — it sits with the navigation, directly above the user
-menu, not buried in settings.
+The workspace switcher, at the top of the sidebar directly under the logo. A
+profile owns every job post, skill and resume in the app, so this control
+changes what the whole interface is showing: it comes before the navigation it
+scopes. Drawn as a select-style control (2px `border-default`, chevron) so it
+reads as "pick one", and labelled "Profile" for screen readers.
 
-The panel opens upwards (`bottom-full`) because the row is at the bottom of the
-column, and stays a fixed 17rem wide.
+The panel opens downwards and spans the column.
 {% endcomment %}
 {% if active_profile %}
 <div class="relative" x-data="{ open: false }" @keydown.escape="open = false" @click.outside="open = false">
-  <button type="button" @click="open = !open" class="nav-side w-full"
-    :aria-expanded="open" title="{% trans 'Switch profile' %}">
-    {% icon "folder" class="shrink-0" %}
-    <span class="min-w-0 flex-1 text-left">
-      <span class="block truncate leading-tight">{{ active_profile.name }}</span>
-      <span class="block truncate text-detail-s font-normal leading-tight text-content-subdued">{% trans "Workspace" %} · {{ active_profile.language }}</span>
+  <button type="button" @click="open = !open"
+    class="flex min-h-component-height-300 w-full items-center gap-spacing-200 rounded-corner-radius-500 border-2 border-border-default bg-background-layer-2 px-spacing-200 text-left transition-colors hover:border-border-hover"
+    :aria-expanded="open" aria-controls="profile-switcher-panel" aria-label="{% blocktrans with name=active_profile.name %}Profile: {{ name }}. Switch profile{% endblocktrans %}">
+    {% icon "folder" class="shrink-0 text-content-subdued" %}
+    <span class="min-w-0 flex-1">
+      <span class="block truncate text-body-s font-bold leading-tight text-content-heading">{{ active_profile.name }}</span>
+      <span class="block truncate text-detail-s leading-tight text-content-subdued">{% trans "Profile" %} · {{ active_profile.get_language_display }}</span>
     </span>
-    {% icon "chevron-up" size="s" class="shrink-0 text-content-subdued transition-transform" bind_class="open ? '' : 'rotate-180'" %}
+    {% icon "chevron-down" size="s" class="shrink-0 text-content-subdued transition-transform" bind_class="open ? 'rotate-180' : ''" %}
   </button>
 
   <div x-show="open" x-transition x-cloak
-    class="surface-menu absolute bottom-full left-0 z-50 mb-2 w-[17rem] origin-bottom-left divide-y divide-border-subtle ">
+    id="profile-switcher-panel" class="surface-menu absolute left-0 right-0 top-full z-50 mt-spacing-100 origin-top divide-y divide-border-subtle">
     <div class="px-spacing-200 py-spacing-100">
       <p class="text-title-s text-content-heading">{% trans "Profiles" %}</p>
       <p class="mt-1 text-xs text-muted">{% trans "Each profile keeps its own jobs, skills and resumes." %}</p>

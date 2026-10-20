@@ -7,48 +7,59 @@
 {% block page_actions %}<a href="{% url 'accounts:profile_create' %}" class="btn-primary">{% trans "New profile" %}</a>{% endblock %}
 
 {% block settings_content %}
-  <div class="card p-6 sm:p-8">
-    <p class="text-sm text-content-subdued">
-      {% blocktrans trimmed %}
-        A profile's language is fixed when you create it, and every AI analysis and
-        document in it is written in that language.
-      {% endblocktrans %}
-    </p>
-
-    <ul class="mt-6 divide-y divide-border-subtle">
-      {% for profile in profiles %}
-        <li class="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <div class="min-w-0">
-            <div class="flex flex-wrap items-center gap-2">
-              <p class="truncate font-semibold text-content-default">{{ profile.name }}</p>
-              <span class="rounded bg-fill-neutral-down px-1.5 py-0.5 text-[0.7rem] font-semibold uppercase text-content-subdued">{{ profile.get_language_display }}</span>
-              {% if profile.pk == active_profile.pk %}
-                <span class="badge-informative">{% trans "Active" %}</span>
-              {% endif %}
-            </div>
-            <p class="mt-1 text-sm text-content-subdued">
-              {% if profile.headline %}{{ profile.headline }} · {% endif %}
-              {% blocktrans trimmed with jobs=profile.job_posts.count skills=profile.skills.count %}
-                {{ jobs }} job posts · {{ skills }} skills
-              {% endblocktrans %}
-            </p>
-          </div>
-
-          <div class="flex shrink-0 flex-wrap items-center gap-2">
-            {% if profile.pk != active_profile.pk %}
-              <form method="post" action="{% url 'accounts:profile_switch' profile.pk %}">
-                {% csrf_token %}
-                <input type="hidden" name="next" value="{% url 'accounts:profile_list' %}" />
-                <button type="submit" class="btn-secondary">{% trans "Switch to" %}</button>
-              </form>
-            {% endif %}
-            <a href="{% url 'accounts:profile_rename' profile.pk %}" class="btn-secondary">{% trans "Rename" %}</a>
-            {% if profiles|length > 1 %}
-              <a href="{% url 'accounts:profile_delete' profile.pk %}" class="btn-danger">{% trans "Delete" %}</a>
-            {% endif %}
-          </div>
-        </li>
-      {% endfor %}
-    </ul>
+  <p class="mb-spacing-300 max-w-measure text-body-s text-content-subdued">
+    {% blocktrans trimmed %}
+      A profile's language is fixed when you create it, and every AI analysis and
+      document in it is written in that language.
+    {% endblocktrans %}
+  </p>
+  <div data-table>
+    {% include "partials/_table_search.html" with label=_("Search profiles") controls="profiles-table" %}
+    <div class="table-card">
+      <table class="data-table" id="profiles-table">
+        <caption class="sr-only">{% trans "Profiles" %}</caption>
+        <thead>
+          <tr>
+            {% include "partials/_th_sort.html" with label=_("Profile") %}
+            {% include "partials/_th_sort.html" with label=_("Language") %}
+            {% include "partials/_th_sort.html" with label=_("Job posts") align="right" %}
+            {% include "partials/_th_sort.html" with label=_("Skills") align="right" %}
+            <th scope="col"><span class="sr-only">{% trans "Actions" %}</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for profile in profiles %}
+            {% with jobs=profile.job_posts.count skills=profile.skills.count %}
+            <tr data-row>
+              <th scope="row" class="py-[10px] text-left font-normal">
+                <span class="font-bold text-content-heading">{{ profile.name }}</span>
+                {% if profile.pk == active_profile.pk %}<span class="badge-informative ms-spacing-100 align-middle">{% trans "Active" %}</span>{% endif %}
+                {% if profile.headline %}<span class="block text-body-xs text-content-subdued">{{ profile.headline }}</span>{% endif %}
+              </th>
+              <td>{{ profile.get_language_display }}</td>
+              <td class="text-right tabular-nums" data-sort-value="{{ jobs }}">{{ jobs }}</td>
+              <td class="text-right tabular-nums" data-sort-value="{{ skills }}">{{ skills }}</td>
+              <td>
+                <div class="flex flex-wrap justify-end gap-spacing-100">
+                  {% if profile.pk != active_profile.pk %}
+                    <form method="post" action="{% url 'accounts:profile_switch' profile.pk %}">
+                      {% csrf_token %}
+                      <input type="hidden" name="next" value="{% url 'accounts:profile_list' %}" />
+                      <button type="submit" class="btn-secondary btn-sm">{% trans "Switch to" %}<span class="sr-only"> {{ profile.name }}</span></button>
+                    </form>
+                  {% endif %}
+                  <a href="{% url 'accounts:profile_rename' profile.pk %}" class="btn-ghost btn-sm">{% trans "Rename" %}<span class="sr-only"> {{ profile.name }}</span></a>
+                  {% if profiles|length > 1 %}
+                    <a href="{% url 'accounts:profile_delete' profile.pk %}" class="btn-ghost btn-sm text-negative-content">{% trans "Delete" %}<span class="sr-only"> {{ profile.name }}</span></a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endwith %}
+          {% endfor %}
+        </tbody>
+      </table>
+      {% include "partials/_table_empty.html" %}
+    </div>
   </div>
 {% endblock %}

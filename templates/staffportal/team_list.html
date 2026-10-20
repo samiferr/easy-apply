@@ -3,13 +3,14 @@
 {% block content %}
 <div class="grid gap-6 lg:grid-cols-3">
   <div class="space-y-6 lg:col-span-2">
-    <div class="card overflow-x-auto p-5">
+    <div data-table class="card overflow-x-auto p-5">
       <h2 class="section-title">Who has access</h2>
-      <table class="data-table data-table-wide mt-4">
+      {% include "partials/_table_search.html" with label="Search portal members" controls="team-list-table" %}
+      <table class="data-table data-table-wide mt-4" id="team-list-table">
         <thead><tr><th>Account</th><th>Role</th><th>Why</th><th>Granted</th><th></th></tr></thead>
         <tbody>
           {% for member in members %}
-            <tr>
+            <tr data-row>
               <td><a href="{% url 'staffportal:user_detail' member.user_id %}" class="font-medium text-accent-content hover:underline">{{ member.user.email }}</a>{% if member.user.is_superuser %} <span class="badge badge-pending">Superuser</span>{% endif %}</td>
               <td>{{ member.get_role_display }}</td>
               <td class="text-muted">{{ member.note|default:"—" }}</td>
@@ -29,6 +30,7 @@
           {% endfor %}
         </tbody>
       </table>
+      {% include "partials/_table_empty.html" %}
     </div>
 
     {% if unmanaged %}
