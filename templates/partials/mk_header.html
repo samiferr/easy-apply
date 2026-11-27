@@ -1,0 +1,27 @@
+{% load i18n lumen %}
+<header class="site-header">
+  <div class="container site-header__inner">
+    <a class="wordmark" href="{% url 'core:home' %}">
+      <span class="wordmark__mark" aria-hidden="true">{% icon "check" size="m" %}</span>
+      <span class="wordmark__text">{{ SITE_NAME }}</span>
+    </a>
+
+    <nav id="primary-nav" class="site-nav" aria-label="{% trans 'Main navigation' %}">
+      <ul>
+        <li><a href="{% url 'core:home' %}#how">{% trans "How it works" %}</a></li>
+        {% if user.is_authenticated %}
+          <li><a class="btn btn--primary btn--small" href="{% url 'core:dashboard' %}">{% trans "Go to dashboard" %}</a></li>
+        {% else %}
+          <li><a href="{% url 'accounts:login' %}">{% trans "Log in" %}</a></li>
+          <li><a class="btn btn--primary btn--small" href="{% url 'accounts:register' %}">{% trans "Create account" %}</a></li>
+        {% endif %}
+        <li>{% include "partials/mk_language.html" %}</li>
+      </ul>
+    </nav>
+
+    <button type="button" class="nav-toggle" aria-expanded="false" aria-controls="primary-nav" data-nav-toggle>
+      <span class="visually-hidden">{% trans "Menu" %}</span>
+      <span class="nav-toggle__bars" aria-hidden="true"></span>
+    </button>
+  </div>
+</header>

@@ -341,6 +341,14 @@ core/templatetags/lumen.py     {% icon %} and {% nav_item %}
 Edit a token, then `python design/build_tokens.py && npm run build:css` (the
 compiled `static/dist/output.css` is committed so production needs no Node).
 
+**Marketing page.** The landing page (`templates/core/home.html`) is the one
+exception to Lumen: it is styled after SamFolio (`samiferr/sam-folio`) with its
+own shell (`templates/base_marketing.html`, `partials/mk_*.html`), a
+self-contained stylesheet (`static/css/marketing.css`, which keeps SamFolio's
+token and component names so changes carry over) and self-hosted Sora and Inter
+fonts (`static/vendor/fonts/`, SIL OFL). It is light only and does not load
+`dist/output.css`. The sign-in, legal and signed-in pages stay on Lumen.
+
 **Colour.** Use semantic tokens, never palette steps: `bg-background-base`
 (page), `bg-background-layer-1` (side navigation, bands), `bg-background-layer-2`
 (cards, fields), `text-content-heading` / `text-content-default` /

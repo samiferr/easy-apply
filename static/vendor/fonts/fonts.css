@@ -1,0 +1,10 @@
+/*
+ * Self-hosted variable web fonts for the marketing page (SIL Open Font
+ * License; see LICENSE-*.txt), latin subset, from Fontsource: Sora (headings,
+ * buttons) and Inter (body). One variable file per face covers every weight.
+ * French needs only the latin subset (accents are in it).
+ */
+@font-face { font-family: "Sora"; font-style: normal; font-weight: 100 800; font-display: swap;
+  src: url("sora-latin-wght-normal.woff2") format("woff2"); }
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 100 900; font-display: swap;
+  src: url("inter-latin-wght-normal.woff2") format("woff2"); }

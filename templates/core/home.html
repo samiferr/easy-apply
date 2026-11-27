@@ -1,125 +1,143 @@
-{% extends "base_public.html" %}
+{% extends "base_marketing.html" %}
 {% load i18n lumen %}
 {% block title %}{{ SITE_NAME }} — {% trans "It's OK to be lazy" %}{% endblock %}
 {% block meta_description %}{% trans "Paste a job post. Easy Apply checks it against your profile, requirement by requirement, and writes a resume tailored to it." %}{% endblock %}
 
 {% block content %}
 {% comment %}
-The landing page, in four parts: what it does, how it works, what you stop
-doing, and one closing call to action. One accent button per section, real
-headings in order, no testimonials we cannot attribute, no illustrations that
-say less than the sentence next to them. Copy follows design/lumen/README.md:
+The landing page, in four parts: what it does (with a sample of the output),
+how it works, what you stop doing, and one closing call to action. Styled after
+SamFolio (static/css/marketing.css). One primary button per section, real
+headings in order, no testimonials we cannot attribute. The sample card is
+labelled "Example" because it is one. Copy follows design/lumen/README.md:
 sentence case, "you", no exclamation marks or emoji.
 {% endcomment %}
 
-<section class="border-b border-border-subtle bg-background-layer-1" aria-labelledby="hero-title">
-  <div class="mx-auto max-w-5xl px-4 py-spacing-800 sm:px-6 sm:py-spacing-1000 lg:px-8">
-    <h1 id="hero-title" class="max-w-3xl text-heading-xl text-content-heading sm:text-heading-xxl lg:text-heading-xxxl">
-      {% trans "It's OK to be" %} <span class="text-accent-content">{% trans "lazy" %}</span>.
-    </h1>
-    <p class="mt-spacing-400 max-w-2xl text-body-l text-content-default sm:text-body-xl">
-      {% trans "Paste a job post. Easy Apply checks it against your profile, requirement by requirement, and writes a resume tailored to it." %}
-    </p>
-    <div class="mt-spacing-500 flex flex-col gap-spacing-200 sm:flex-row sm:items-center">
-      {% if user.is_authenticated %}
-        <a href="{% url 'core:dashboard' %}" class="btn-primary btn-lg">{% trans "Go to dashboard" %}</a>
-      {% else %}
-        <a href="{% url 'accounts:register' %}" class="btn-primary btn-lg">{% trans "Create your free account" %}</a>
-        <a href="{% url 'accounts:login' %}" class="btn-secondary btn-lg">{% trans "Log in" %}</a>
-      {% endif %}
+<section class="hero" aria-labelledby="hero-title">
+  <div class="container hero__grid">
+    <div class="hero__copy">
+      <p class="eyebrow">{% trans "The Law of Least Mental Effort" %}</p>
+      <h1 id="hero-title" class="hero__title">{% trans "It's OK to be" %} <em>{% trans "lazy" %}</em>.</h1>
+      <p class="hero__subtitle">{% trans "Paste a job post. Easy Apply checks it against your profile, requirement by requirement, and writes a resume tailored to it." %}</p>
+      <div class="hero__actions">
+        {% if user.is_authenticated %}
+          <a href="{% url 'core:dashboard' %}" class="btn btn--primary btn--large">{% trans "Go to dashboard" %}</a>
+        {% else %}
+          <a href="{% url 'accounts:register' %}" class="btn btn--primary btn--large">{% trans "Create your free account" %}</a>
+          <a href="{% url 'accounts:login' %}" class="btn btn--secondary btn--large">{% trans "Log in" %}</a>
+        {% endif %}
+      </div>
+      <ul class="hero__checks">
+        <li>{% icon "check" size="s" %}{% trans "Free to start" %}</li>
+        <li>{% icon "check" size="s" %}{% trans "No credit card needed" %}</li>
+        <li>{% icon "check" size="s" %}{% trans "Your data stays 100% yours" %}</li>
+      </ul>
     </div>
-    <ul class="mt-spacing-400 flex flex-wrap gap-x-spacing-400 gap-y-spacing-100 text-body-s text-content-subdued">
-      <li class="inline-flex items-center gap-spacing-75">{% icon "check" size="s" class="text-positive-content" %}{% trans "Free to start" %}</li>
-      <li class="inline-flex items-center gap-spacing-75">{% icon "check" size="s" class="text-positive-content" %}{% trans "No credit card needed" %}</li>
-      <li class="inline-flex items-center gap-spacing-75">{% icon "check" size="s" class="text-positive-content" %}{% trans "Your data stays 100% yours" %}</li>
+
+    <figure class="match" role="group" aria-labelledby="match-title">
+      <div class="match__card">
+        <div class="match__head">
+          <h2 id="match-title" class="match__title">{% trans "Backend engineer" %}</h2>
+          <span class="match__tag">{% trans "Example" %}</span>
+        </div>
+        <ul class="match__rows">
+          <li>{% trans "5+ years of Python" %}<span class="match__verdict match__verdict--strong">{% icon "check" size="xs" %}{% trans "Strong match" %}</span></li>
+          <li>{% trans "PostgreSQL in production" %}<span class="match__verdict match__verdict--strong">{% icon "check" size="xs" %}{% trans "Strong match" %}</span></li>
+          <li>{% trans "Kubernetes experience" %}<span class="match__verdict match__verdict--partial">{% icon "remove" size="xs" %}{% trans "Partial match" %}</span></li>
+          <li>{% trans "Team leadership" %}<span class="match__verdict match__verdict--none">{% icon "close" size="xs" %}{% trans "Not covered" %}</span></li>
+        </ul>
+        <p class="match__foot">{% icon "file-text" %}{% trans "Tailored resume ready to download" %}</p>
+      </div>
+    </figure>
+  </div>
+</section>
+
+<section id="how" class="section" aria-labelledby="how-title">
+  <div class="container">
+    <div class="section__head">
+      <p class="eyebrow">{% trans "How it works" %}</p>
+      <h2 id="how-title" class="section__title">{% trans "The lazy path to a tailored resume" %}</h2>
+      <p class="section__lead">{% trans "Three painless steps. Zero rewriting from scratch. Zero keyword guessing." %}</p>
+    </div>
+
+    <ol class="card-grid card-grid--3">
+      <li class="card">
+        <span class="card__num" aria-hidden="true">1</span>
+        <h3 class="card__title">{% trans "Drop in your resume" %}</h3>
+        <p class="card__text">{% trans "Upload a PDF or DOCX once. AI parses your skills, experience, education and languages into clean profile blocks. You review every item with full control." %}</p>
+      </li>
+      <li class="card">
+        <span class="card__num" aria-hidden="true">2</span>
+        <h3 class="card__title">{% trans "Paste any job post" %}</h3>
+        <p class="card__text">{% trans "Paste raw text from LinkedIn, Indeed, or career sites. We break it into 13 standardized sections and evaluate every requirement against your profile." %}</p>
+      </li>
+      <li class="card">
+        <span class="card__num" aria-hidden="true">3</span>
+        <h3 class="card__title">{% trans "Download & relax" %}</h3>
+        <p class="card__text">{% trans "Your experience rewritten in the employer's specific vocabulary. Edit the Markdown or export a clean, print-ready PDF in one click." %}</p>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<section id="stop" class="section" aria-labelledby="stop-title">
+  <div class="container">
+    <div class="section__head">
+      <p class="eyebrow">{% trans "Less busywork" %}</p>
+      <h2 id="stop-title" class="section__title">{% trans "What you'll stop doing forever" %}</h2>
+    </div>
+
+    <ul class="card-grid card-grid--features">
+      <li class="card">
+        <span class="card__icon">{% icon "file-text" %}</span>
+        <h3 class="card__title">{% trans "Stop reading job posts twice" %}</h3>
+        <p class="card__text">{% trans "Paste once. We split the post into 13 clean sections — requirements, compensation, culture and red flags — so you only read what matters." %}</p>
+      </li>
+      <li class="card">
+        <span class="card__icon">{% icon "target" %}</span>
+        <h3 class="card__title">{% trans "Stop guessing if you fit" %}</h3>
+        <p class="card__text">{% trans "Every requirement gets an individual strong/partial/none verdict and a one-sentence proof citing the specific skill or role behind it." %}</p>
+      </li>
+      <li class="card">
+        <span class="card__icon">{% icon "edit" %}</span>
+        <h3 class="card__title">{% trans "Stop rewriting bullet points" %}</h3>
+        <p class="card__text">{% trans "DeepSeek rewrites your real accomplishments using the posting's own target vocabulary without ever hallucinating credentials." %}</p>
+      </li>
+      <li class="card">
+        <span class="card__icon">{% icon "add" %}</span>
+        <h3 class="card__title">{% trans "Stop retyping profile info" %}</h3>
+        <p class="card__text">{% trans "Found a requirement you meet but forgot to list? Click 'Add to Profile', and only that single row re-evaluates in real time." %}</p>
+      </li>
+      <li class="card">
+        <span class="card__icon">{% icon "alert" %}</span>
+        <h3 class="card__title">{% trans "Stop wasting nights on bad jobs" %}</h3>
+        <p class="card__text">{% trans "Unrealistic demands, missing compensation, or toxic red flags are identified up-front before you spend 3 hours applying." %}</p>
+      </li>
+      <li class="card">
+        <span class="card__icon">{% icon "lock" %}</span>
+        <h3 class="card__title">{% trans "Stop worrying about privacy" %}</h3>
+        <p class="card__text">{% trans "Export your entire career database as Markdown anytime. One click deletes your account and data permanently. No lock-in." %}</p>
+      </li>
     </ul>
   </div>
 </section>
 
-<section id="how" class="mx-auto max-w-5xl px-4 py-spacing-800 sm:px-6 lg:px-8" aria-labelledby="how-title">
-  <h2 id="how-title" class="text-heading-l text-content-heading">{% trans "The lazy path to a tailored resume" %}</h2>
-  <p class="mt-spacing-100 max-w-2xl text-body-m text-content-subdued">{% trans "Three painless steps. Zero rewriting from scratch. Zero keyword guessing." %}</p>
-
-  <ol class="mt-spacing-500 grid gap-spacing-300 md:grid-cols-3">
-    <li class="card p-spacing-400">
-      <span class="flex h-8 w-8 items-center justify-center rounded-corner-radius-full bg-accent-background text-title-s text-on-accent" aria-hidden="true">1</span>
-      <h3 class="mt-spacing-300 text-heading-xs text-content-heading">{% trans "Drop in your resume" %}</h3>
-      <p class="mt-spacing-100 text-body-s text-content-subdued">{% trans "Upload a PDF or DOCX once. AI parses your skills, experience, education and languages into clean profile blocks. You review every item with full control." %}</p>
-    </li>
-    <li class="card p-spacing-400">
-      <span class="flex h-8 w-8 items-center justify-center rounded-corner-radius-full bg-accent-background text-title-s text-on-accent" aria-hidden="true">2</span>
-      <h3 class="mt-spacing-300 text-heading-xs text-content-heading">{% trans "Paste any job post" %}</h3>
-      <p class="mt-spacing-100 text-body-s text-content-subdued">{% trans "Paste raw text from LinkedIn, Indeed, or career sites. We break it into 13 standardized sections and evaluate every requirement against your profile." %}</p>
-    </li>
-    <li class="card p-spacing-400">
-      <span class="flex h-8 w-8 items-center justify-center rounded-corner-radius-full bg-accent-background text-title-s text-on-accent" aria-hidden="true">3</span>
-      <h3 class="mt-spacing-300 text-heading-xs text-content-heading">{% trans "Download & relax" %}</h3>
-      <p class="mt-spacing-100 text-body-s text-content-subdued">{% trans "Your experience rewritten in the employer's specific vocabulary. Edit the Markdown or export a clean, print-ready PDF in one click." %}</p>
-    </li>
-  </ol>
-</section>
-
-<section class="border-y border-border-subtle bg-background-layer-1" aria-labelledby="stop-title">
-  <div class="mx-auto max-w-5xl px-4 py-spacing-800 sm:px-6 lg:px-8">
-    <h2 id="stop-title" class="text-heading-l text-content-heading">{% trans "What you'll stop doing forever" %}</h2>
-    <ul class="mt-spacing-500 grid gap-x-spacing-500 gap-y-spacing-400 sm:grid-cols-2 lg:grid-cols-3">
-      <li class="flex gap-spacing-200">
-        {% icon "file-text" class="mt-0.5 shrink-0 text-accent-content" %}
-        <div>
-          <h3 class="text-title-m text-content-heading">{% trans "Stop reading job posts twice" %}</h3>
-          <p class="mt-spacing-75 text-body-s text-content-subdued">{% trans "Paste once. We split the post into 13 clean sections — requirements, compensation, culture and red flags — so you only read what matters." %}</p>
-        </div>
-      </li>
-      <li class="flex gap-spacing-200">
-        {% icon "target" class="mt-0.5 shrink-0 text-accent-content" %}
-        <div>
-          <h3 class="text-title-m text-content-heading">{% trans "Stop guessing if you fit" %}</h3>
-          <p class="mt-spacing-75 text-body-s text-content-subdued">{% trans "Every requirement gets an individual strong/partial/none verdict and a one-sentence proof citing the specific skill or role behind it." %}</p>
-        </div>
-      </li>
-      <li class="flex gap-spacing-200">
-        {% icon "edit" class="mt-0.5 shrink-0 text-accent-content" %}
-        <div>
-          <h3 class="text-title-m text-content-heading">{% trans "Stop rewriting bullet points" %}</h3>
-          <p class="mt-spacing-75 text-body-s text-content-subdued">{% trans "DeepSeek rewrites your real accomplishments using the posting's own target vocabulary without ever hallucinating credentials." %}</p>
-        </div>
-      </li>
-      <li class="flex gap-spacing-200">
-        {% icon "add" class="mt-0.5 shrink-0 text-accent-content" %}
-        <div>
-          <h3 class="text-title-m text-content-heading">{% trans "Stop retyping profile info" %}</h3>
-          <p class="mt-spacing-75 text-body-s text-content-subdued">{% trans "Found a requirement you meet but forgot to list? Click 'Add to Profile', and only that single row re-evaluates in real time." %}</p>
-        </div>
-      </li>
-      <li class="flex gap-spacing-200">
-        {% icon "alert" class="mt-0.5 shrink-0 text-accent-content" %}
-        <div>
-          <h3 class="text-title-m text-content-heading">{% trans "Stop wasting nights on bad jobs" %}</h3>
-          <p class="mt-spacing-75 text-body-s text-content-subdued">{% trans "Unrealistic demands, missing compensation, or toxic red flags are identified up-front before you spend 3 hours applying." %}</p>
-        </div>
-      </li>
-      <li class="flex gap-spacing-200">
-        {% icon "lock" class="mt-0.5 shrink-0 text-accent-content" %}
-        <div>
-          <h3 class="text-title-m text-content-heading">{% trans "Stop worrying about privacy" %}</h3>
-          <p class="mt-spacing-75 text-body-s text-content-subdued">{% trans "Export your entire career database as Markdown anytime. One click deletes your account and data permanently. No lock-in." %}</p>
-        </div>
-      </li>
-    </ul>
-  </div>
-</section>
-
-<section class="mx-auto max-w-5xl px-4 py-spacing-800 sm:px-6 lg:px-8" aria-labelledby="cta-title">
-  <div class="card flex flex-col gap-spacing-400 p-spacing-500 sm:flex-row sm:items-center sm:justify-between">
-    <div>
-      <h2 id="cta-title" class="text-heading-l text-content-heading">{% trans "Do less. Land more." %}</h2>
-      <p class="mt-spacing-100 max-w-xl text-body-m text-content-subdued">{% trans "The instinct that wanted to skip clerical work is the exact same instinct that invented automation. Put it to work for your career today." %}</p>
+<section class="cta" aria-labelledby="cta-title">
+  <div class="container">
+    <div class="cta__panel">
+      <div>
+        <p class="eyebrow eyebrow--light">{% trans "Get started" %}</p>
+        <h2 id="cta-title" class="cta__title">{% trans "Do less. Land more." %}</h2>
+        <p class="cta__lead">{% trans "The instinct that wanted to skip clerical work is the exact same instinct that invented automation. Put it to work for your career today." %}</p>
+      </div>
+      <div class="cta__actions">
+        {% if user.is_authenticated %}
+          <a href="{% url 'core:dashboard' %}" class="btn btn--accent btn--large">{% trans "Go to dashboard" %}</a>
+        {% else %}
+          <a href="{% url 'accounts:register' %}" class="btn btn--accent btn--large">{% trans "Create your free account" %}</a>
+        {% endif %}
+      </div>
     </div>
-    {% if user.is_authenticated %}
-      <a href="{% url 'core:dashboard' %}" class="btn-primary btn-lg shrink-0">{% trans "Go to dashboard" %}</a>
-    {% else %}
-      <a href="{% url 'accounts:register' %}" class="btn-primary btn-lg shrink-0">{% trans "Create your free account" %}</a>
-    {% endif %}
   </div>
 </section>
 {% endblock %}

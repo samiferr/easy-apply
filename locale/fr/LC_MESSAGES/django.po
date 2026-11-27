@@ -3547,3 +3547,106 @@ msgstr "Cette connexion n’a pas pu être vérifiée. Veuillez réessayer."
 
 msgid "Google did not return an account id."
 msgstr "Google n’a renvoyé aucun identifiant de compte."
+
+#: templates/core/home.html templates/partials/mk_header.html templates/partials/mk_footer.html
+msgid "How it works"
+msgstr "Comment ça marche"
+
+msgid "Menu"
+msgstr "Menu"
+
+msgid "Free to start"
+msgstr "Gratuit pour commencer"
+
+msgid "No credit card needed"
+msgstr "Aucune carte bancaire requise"
+
+msgid "Your data stays 100% yours"
+msgstr "Vos données restent 100 % à vous"
+
+msgid "Example"
+msgstr "Exemple"
+
+msgid "5+ years of Python"
+msgstr "Plus de 5 ans de Python"
+
+msgid "PostgreSQL in production"
+msgstr "PostgreSQL en production"
+
+msgid "Kubernetes experience"
+msgstr "Expérience avec Kubernetes"
+
+msgid "Team leadership"
+msgstr "Gestion d’équipe"
+
+msgid "Tailored resume ready to download"
+msgstr "CV adapté, prêt à télécharger"
+
+msgid "Three painless steps. Zero rewriting from scratch. Zero keyword guessing."
+msgstr "Trois étapes sans effort. Rien à réécrire de zéro. Aucun mot-clé à deviner."
+
+msgid "Drop in your resume"
+msgstr "Déposez votre CV"
+
+msgid "Upload a PDF or DOCX once. AI parses your skills, experience, education and languages into clean profile blocks. You review every item with full control."
+msgstr "Importez un PDF ou un DOCX une seule fois. L’IA transforme vos compétences, votre expérience, votre formation et vos langues en blocs de profil bien rangés. Vous relisez chaque élément et gardez le contrôle."
+
+msgid "Paste any job post"
+msgstr "Collez n’importe quelle offre"
+
+msgid "Paste raw text from LinkedIn, Indeed, or career sites. We break it into 13 standardized sections and evaluate every requirement against your profile."
+msgstr "Collez le texte brut de LinkedIn, d’Indeed ou d’un site carrières. Nous le découpons en 13 sections standardisées et comparons chaque exigence à votre profil."
+
+msgid "Download & relax"
+msgstr "Téléchargez et détendez-vous"
+
+msgid "Your experience rewritten in the employer's specific vocabulary. Edit the Markdown or export a clean, print-ready PDF in one click."
+msgstr "Votre expérience réécrite avec le vocabulaire de l’employeur. Modifiez le Markdown ou exportez un PDF propre, prêt à imprimer, en un clic."
+
+msgid "Less busywork"
+msgstr "Moins de corvées"
+
+msgid "What you'll stop doing forever"
+msgstr "Ce que vous ne ferez plus jamais"
+
+msgid "Stop reading job posts twice"
+msgstr "Ne relisez plus les offres deux fois"
+
+msgid "Paste once. We split the post into 13 clean sections — requirements, compensation, culture and red flags — so you only read what matters."
+msgstr "Collez une fois. Nous découpons l’offre en 13 sections claires — exigences, rémunération, culture et signaux d’alerte — pour que vous ne lisiez que l’essentiel."
+
+msgid "Stop guessing if you fit"
+msgstr "Ne devinez plus si vous correspondez"
+
+msgid "Every requirement gets an individual strong/partial/none verdict and a one-sentence proof citing the specific skill or role behind it."
+msgstr "Chaque exigence reçoit son propre verdict (forte, partielle ou aucune) et une justification en une phrase qui cite la compétence ou le poste concerné."
+
+msgid "Stop rewriting bullet points"
+msgstr "Ne réécrivez plus vos puces"
+
+msgid "DeepSeek rewrites your real accomplishments using the posting's own target vocabulary without ever hallucinating credentials."
+msgstr "DeepSeek reformule vos vraies réalisations avec le vocabulaire de l’offre, sans jamais inventer de qualifications."
+
+msgid "Stop retyping profile info"
+msgstr "Ne ressaisissez plus votre profil"
+
+msgid "Found a requirement you meet but forgot to list? Click 'Add to Profile', and only that single row re-evaluates in real time."
+msgstr "Une exigence que vous remplissez, mais que vous aviez oublié d’indiquer ? Cliquez sur « Ajouter au profil » : seule cette ligne est réévaluée, en temps réel."
+
+msgid "Stop wasting nights on bad jobs"
+msgstr "Ne perdez plus vos soirées sur de mauvaises offres"
+
+msgid "Unrealistic demands, missing compensation, or toxic red flags are identified up-front before you spend 3 hours applying."
+msgstr "Exigences irréalistes, rémunération absente ou signaux d’alerte toxiques sont repérés d’emblée, avant que vous passiez 3 heures à postuler."
+
+msgid "Stop worrying about privacy"
+msgstr "Ne vous inquiétez plus pour votre vie privée"
+
+msgid "Export your entire career database as Markdown anytime. One click deletes your account and data permanently. No lock-in."
+msgstr "Exportez toute votre base de carrière en Markdown quand vous le voulez. Un clic supprime définitivement votre compte et vos données. Aucun verrouillage."
+
+msgid "Get started"
+msgstr "Commencer"
+
+msgid "The instinct that wanted to skip clerical work is the exact same instinct that invented automation. Put it to work for your career today."
+msgstr "L’instinct qui voulait éviter les tâches administratives est le même qui a inventé l’automatisation. Mettez-le au service de votre carrière dès aujourd’hui."
