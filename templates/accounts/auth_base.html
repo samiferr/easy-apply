@@ -1,13 +1,18 @@
-{% extends "base_public.html" %}
+{% extends "base_marketing.html" %}
+{% comment %}
+Sign-in, registration, password reset and log-out share one centred card on the
+marketing shell (static/css/marketing.css), so they look like the landing page
+they are reached from. Fields come from partials/mk_field.html.
+{% endcomment %}
 {% block content %}
-<div class="flex min-h-[calc(100svh-8rem)] items-start justify-center bg-background-layer-1 px-4 py-spacing-700 sm:items-center">
-  <div class="w-full max-w-md">
-    <div class="card p-spacing-500">
+<section class="auth">
+  <div class="container">
+    <div class="auth__card{% block auth_card_class %}{% endblock %}">
       {% block auth_content %}{% endblock %}
     </div>
-    <p class="mt-spacing-400 text-center text-body-s text-content-subdued">
+    <p class="auth__foot">
       {% block auth_footer %}{% endblock %}
     </p>
   </div>
-</div>
+</section>
 {% endblock %}

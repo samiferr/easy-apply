@@ -2,30 +2,32 @@
 {% load i18n %}
 {% block title %}Log in · {{ SITE_NAME }}{% endblock %}
 {% block auth_content %}
-  <h1 class="card-title">{% trans "Welcome back" %}</h1>
-  <p class="mt-1 text-sm text-content-subdued">{% trans "Log in to keep building your recap." %}</p>
+  <h1 class="auth__title">{% trans "Welcome back" %}</h1>
+  <p class="auth__lead">{% trans "Log in to keep building your recap." %}</p>
 
-  <div class="mt-6">{% include "accounts/_google_button.html" %}</div>
-  <form method="post" novalidate class="space-y-5{% if not GOOGLE_SIGN_IN %} mt-6{% endif %}">
-    {% csrf_token %}
-    {% if form.non_field_errors %}
-      <div class="alert alert-negative block" role="alert">
-        {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+  <div class="auth__body">
+    {% include "accounts/_google_button.html" %}
+    <form method="post" novalidate class="form">
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+        <div class="notice notice--error" role="alert">
+          {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+        </div>
+      {% endif %}
+      {% include "partials/mk_field.html" with field=form.username %}
+      {% include "partials/mk_field.html" with field=form.password %}
+      <div class="form__aside">
+        <label class="check">
+          {{ form.remember_me }}
+          <span>Remember me</span>
+        </label>
+        <a href="{% url 'accounts:password_reset' %}" class="link">{% trans "Forgot password?" %}</a>
       </div>
-    {% endif %}
-    {% include "partials/field.html" with field=form.username %}
-    {% include "partials/field.html" with field=form.password %}
-    <div class="flex items-center justify-between">
-      <label class="flex items-center gap-2 text-sm text-content-subdued">
-        {{ form.remember_me }}
-        Remember me
-      </label>
-      <a href="{% url 'accounts:password_reset' %}" class="text-sm font-semibold text-accent-content hover:text-accent-content">{% trans "Forgot password?" %}</a>
-    </div>
-    <input type="hidden" name="next" value="{{ next }}" />
-    <button type="submit" class="btn-primary w-full">{% trans "Log in" %}</button>
-  </form>
+      <input type="hidden" name="next" value="{{ next }}" />
+      <button type="submit" class="btn btn--primary btn--large btn--block">{% trans "Log in" %}</button>
+    </form>
+  </div>
 {% endblock %}
 {% block auth_footer %}
-  New to {{ SITE_NAME }}? <a href="{% url 'accounts:register' %}" class="font-semibold text-accent-content hover:text-accent-content">{% trans "Create an account" %}</a>
+  New to {{ SITE_NAME }}? <a href="{% url 'accounts:register' %}" class="link">{% trans "Create an account" %}</a>
 {% endblock %}

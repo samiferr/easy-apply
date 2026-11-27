@@ -79,6 +79,33 @@ class PublicPagesTests(TestCase):
         self.assertIn('id="stop"', body)
         self.assertEqual(body.count("<h1"), 1)
 
+    def test_sign_in_and_legal_pages_share_the_marketing_shell(self):
+        """Landing, sign-in, registration, password reset and the legal pages are
+        one site: same stylesheet, no Tailwind bundle, no third-party origin."""
+        for name in [
+            "accounts:login", "accounts:register", "accounts:password_reset",
+            "legal:privacy", "legal:terms", "legal:cookies", "legal:notice", "legal:contact",
+        ]:
+            with self.subTest(name=name):
+                body = self.client.get(reverse(name)).content.decode()
+                self.assertIn("css/marketing.css", body)
+                self.assertNotIn("dist/output.css", body)
+                self.assertNotIn("fonts.googleapis.com", body)
+                self.assertIn('id="main-content"', body)
+                self.assertEqual(body.count("<h1"), 1)
+
+    def test_sign_in_form_keeps_its_fields_and_next_redirect(self):
+        body = self.client.get(reverse("accounts:login") + "?next=/jobs/").content.decode()
+        for needle in ['name="username"', 'name="password"', 'name="remember_me"', 'name="next"', "csrfmiddlewaretoken"]:
+            self.assertIn(needle, body)
+
+    def test_legal_page_has_breadcrumb_title_and_cross_links(self):
+        body = self.client.get(reverse("legal:privacy")).content.decode()
+        self.assertIn('class="crumbs"', body)
+        self.assertIn('aria-current="page"', body)
+        for name in ["legal:terms", "legal:cookies", "legal:notice", "legal:contact"]:
+            self.assertIn(reverse(name), body)
+
     def test_marketing_header_offers_sign_in_and_the_language_switch(self):
         body = self.client.get(reverse("core:home")).content.decode()
         self.assertIn(reverse("accounts:login"), body)
