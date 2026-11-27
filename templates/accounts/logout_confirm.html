@@ -2,12 +2,12 @@
 {% load i18n %}
 {% block title %}Log out · {{ SITE_NAME }}{% endblock %}
 {% block auth_content %}
-  <h1 class="card-title">Log out of {{ SITE_NAME }}?</h1>
-  <p class="mt-1 text-sm text-content-subdued">{% trans "You can always log back in with your email and password." %}</p>
+  <h1 class="auth__title">Log out of {{ SITE_NAME }}?</h1>
+  <p class="auth__lead">{% trans "You can always log back in with your email and password." %}</p>
 
-  <form method="post" action="{% url 'accounts:logout' %}" class="mt-6 flex gap-3">
+  <form method="post" action="{% url 'accounts:logout' %}" class="form__actions">
     {% csrf_token %}
-    <a href="{% url 'core:dashboard' %}" class="btn-secondary flex-1">{% trans "Cancel" %}</a>
-    <button type="submit" class="btn-primary flex-1">{% trans "Log out" %}</button>
+    <a href="{% url 'core:dashboard' %}" class="btn btn--secondary btn--large">{% trans "Cancel" %}</a>
+    <button type="submit" class="btn btn--primary btn--large">{% trans "Log out" %}</button>
   </form>
 {% endblock %}

@@ -1,0 +1,48 @@
+{% load static i18n %}{% get_current_language as LANGUAGE_CODE %}<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  {% comment %}
+  The marketing page has its own look, ported from SamFolio (static/css/marketing.css).
+  It is self-contained on purpose: it does not load the app's Tailwind bundle, and the
+  fonts are served from our own origin, so the first visit makes no third-party request.
+  The theme is light only, as SamFolio's is.
+  {% endcomment %}
+  <meta name="color-scheme" content="light" />
+  <meta name="theme-color" content="#F3F5F8" />
+  <title>{% block title %}{{ SITE_NAME }}{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}{% trans 'Analyze any job post against your profile, requirement by requirement, and generate a resume tailored to it.' %}{% endblock %}" />
+  <link rel="icon" href="{% static 'img/favicon.svg' %}" type="image/svg+xml" />
+  <script>document.documentElement.classList.add("js")</script>
+  <link rel="preload" href="{% static 'vendor/fonts/sora-latin-wght-normal.woff2' %}" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="{% static 'vendor/fonts/inter-latin-wght-normal.woff2' %}" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="{% static 'vendor/fonts/fonts.css' %}" />
+  <link rel="stylesheet" href="{% static 'css/marketing.css' %}" />
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <a class="skip-link" href="#main-content">{% trans "Skip to content" %}</a>
+
+  {% include "partials/mk_banners.html" %}
+  {% include "partials/mk_header.html" %}
+
+  {% if messages %}
+    <div class="container">
+      {% for message in messages %}
+        <p class="notice{% if message.level_tag == 'success' %} notice--success{% elif message.level_tag == 'warning' %} notice--warning{% elif message.level_tag == 'error' %} notice--error{% endif %}"
+           role="{% if message.level_tag == 'error' %}alert{% else %}status{% endif %}">{{ message }}</p>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <main id="main-content" tabindex="-1">
+    {% block content %}{% endblock %}
+  </main>
+
+  {% include "partials/mk_footer.html" %}
+
+  <script src="{% static 'js/marketing.js' %}" defer></script>
+  {% block extra_body %}{% endblock %}
+</body>
+</html>

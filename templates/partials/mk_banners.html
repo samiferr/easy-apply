@@ -1,0 +1,22 @@
+{% load i18n %}
+{% comment %}
+Staff announcements on the marketing page (the app's _portal_banners.html, drawn
+for this theme). Dismissal is per browser, under the same localStorage key the
+app uses, so a visitor who dismissed a notice does not see it again here.
+The impersonation strip is not repeated: a signed-in visitor is redirected to
+the dashboard before this page renders.
+{% endcomment %}
+{% for announcement in live_announcements %}
+  <div class="banner banner--{{ announcement.level }}" role="status" data-announcement="announcement-{{ announcement.pk }}"{% if announcement.dismissible %} data-dismissible{% endif %}>
+    <div class="container banner__inner">
+      <span class="banner__title">{{ announcement.title }}</span>
+      {% if announcement.body %}<span class="banner__body">{{ announcement.body }}</span>{% endif %}
+      {% if announcement.link_url %}
+        <a class="banner__link" href="{{ announcement.link_url }}">{{ announcement.link_label|default:_("Learn more") }}</a>
+      {% endif %}
+      {% if announcement.dismissible %}
+        <button type="button" class="banner__close" data-dismiss aria-label="{% trans 'Dismiss' %}">&times;</button>
+      {% endif %}
+    </div>
+  </div>
+{% endfor %}

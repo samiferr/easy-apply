@@ -1,0 +1,40 @@
+{% load i18n lumen %}
+<footer class="site-footer">
+  <div class="container">
+    <div class="site-footer__inner">
+      <div class="site-footer__brand">
+        <a class="wordmark" href="{% url 'core:home' %}">
+          <span class="wordmark__mark" aria-hidden="true">{% icon "check" size="m" %}</span>
+          <span class="wordmark__text">{{ SITE_NAME }}</span>
+        </a>
+        <p>{% trans "Match any job post to your profile, requirement by requirement." %}</p>
+      </div>
+
+      <nav aria-labelledby="footer-product">
+        <h2 class="site-footer__label" id="footer-product">{% trans "Product" %}</h2>
+        <ul class="site-footer__links">
+          <li><a href="{% url 'core:home' %}#how">{% trans "How it works" %}</a></li>
+          <li><a href="{% url 'core:home' %}#stop">{% trans "What you'll stop doing forever" %}</a></li>
+          <li><a href="{% url 'accounts:login' %}">{% trans "Log in" %}</a></li>
+          <li><a href="{% url 'accounts:register' %}">{% trans "Create account" %}</a></li>
+        </ul>
+      </nav>
+
+      <nav aria-labelledby="footer-legal">
+        <h2 class="site-footer__label" id="footer-legal">{% trans "Legal" %}</h2>
+        <div class="site-footer__links">
+          {% include "partials/_legal_links.html" %}
+        </div>
+      </nav>
+
+      <div>
+        <h2 class="site-footer__label">{% trans "Language" %}</h2>
+        {% include "partials/mk_language.html" %}
+      </div>
+    </div>
+
+    <div class="site-footer__legal">
+      <small>&copy; {% now "Y" %} {{ SITE_NAME }}</small>
+    </div>
+  </div>
+</footer>

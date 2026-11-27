@@ -1,0 +1,17 @@
+{% load i18n %}
+{% get_current_language as CURRENT_LANGUAGE %}
+{% get_available_languages as AVAILABLE_LANGUAGES %}
+{% comment %}
+Interface language on the marketing page: the same POST to set_language as the
+app's switcher, drawn as SamFolio's pill. Each segment is named by the language
+in its own words, and the current one is marked with aria-current.
+{% endcomment %}
+<form action="{% url 'set_language' %}" method="post" class="lang">
+  {% csrf_token %}
+  <input type="hidden" name="next" value="{{ request.get_full_path }}" />
+  {% for code, name in AVAILABLE_LANGUAGES %}
+    {% get_language_info for code as info %}
+    <button type="submit" name="language" value="{{ code }}" lang="{{ code }}" aria-label="{{ info.name_local|capfirst }}"
+      {% if code == CURRENT_LANGUAGE %}aria-current="true"{% endif %}>{{ code }}</button>
+  {% endfor %}
+</form>

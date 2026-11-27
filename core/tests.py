@@ -65,6 +65,64 @@ class PublicPagesTests(TestCase):
                 response = self.client.get(reverse(name))
                 self.assertEqual(response.status_code, 200)
 
+    def test_marketing_page_uses_its_own_self_contained_theme(self):
+        """The landing page is styled after SamFolio and must not pull in the
+        app's Tailwind bundle or any third-party origin (fonts are self-hosted)."""
+        body = self.client.get(reverse("core:home")).content.decode()
+        self.assertIn("css/marketing.css", body)
+        self.assertIn("vendor/fonts/fonts.css", body)
+        self.assertNotIn("dist/output.css", body)
+        self.assertNotIn("fonts.googleapis.com", body)
+        # Landmarks and the in-page anchors the header and footer point at.
+        self.assertIn('id="main-content"', body)
+        self.assertIn('id="how"', body)
+        self.assertIn('id="stop"', body)
+        self.assertEqual(body.count("<h1"), 1)
+
+    def test_sign_in_and_legal_pages_share_the_marketing_shell(self):
+        """Landing, sign-in, registration, password reset and the legal pages are
+        one site: same stylesheet, no Tailwind bundle, no third-party origin."""
+        for name in [
+            "accounts:login", "accounts:register", "accounts:password_reset",
+            "legal:privacy", "legal:terms", "legal:cookies", "legal:notice", "legal:contact",
+        ]:
+            with self.subTest(name=name):
+                body = self.client.get(reverse(name)).content.decode()
+                self.assertIn("css/marketing.css", body)
+                self.assertNotIn("dist/output.css", body)
+                self.assertNotIn("fonts.googleapis.com", body)
+                self.assertIn('id="main-content"', body)
+                self.assertEqual(body.count("<h1"), 1)
+
+    def test_sign_in_form_keeps_its_fields_and_next_redirect(self):
+        body = self.client.get(reverse("accounts:login") + "?next=/jobs/").content.decode()
+        for needle in ['name="username"', 'name="password"', 'name="remember_me"', 'name="next"', "csrfmiddlewaretoken"]:
+            self.assertIn(needle, body)
+
+    def test_legal_page_has_breadcrumb_title_and_cross_links(self):
+        body = self.client.get(reverse("legal:privacy")).content.decode()
+        self.assertIn('class="crumbs"', body)
+        self.assertIn('aria-current="page"', body)
+        for name in ["legal:terms", "legal:cookies", "legal:notice", "legal:contact"]:
+            self.assertIn(reverse(name), body)
+
+    def test_marketing_header_offers_sign_in_and_the_language_switch(self):
+        body = self.client.get(reverse("core:home")).content.decode()
+        self.assertIn(reverse("accounts:login"), body)
+        self.assertIn(reverse("accounts:register"), body)
+        self.assertIn(reverse("set_language"), body)
+        self.assertIn('aria-current="true"', body)  # the current language is marked
+
+    def test_marketing_page_shows_live_announcements(self):
+        from staffportal.models import Announcement
+
+        Announcement.objects.create(title="Scheduled maintenance Sunday", audience=Announcement.EVERYONE)
+        Announcement.objects.create(title="Members only notice", audience=Announcement.AUTHENTICATED)
+        body = self.client.get(reverse("core:home")).content.decode()
+        self.assertIn("Scheduled maintenance Sunday", body)
+        self.assertIn("data-announcement", body)
+        self.assertNotIn("Members only notice", body)
+
     def test_pages_render_in_french(self):
         self.client.cookies["django_language"] = "fr"
         for name in ["core:home", "legal:privacy"]:
@@ -175,6 +233,14 @@ class FrenchCatalogueTests(TestCase):
         for needle in ["C’est bien d’être", "paresseux", "Trois étapes vers un CV personnalisé", "Créer un compte"]:
             self.assertIn(needle, body, f"missing French string: {needle}")
         self.assertNotIn("It's OK to be", body)
+
+    def test_marketing_page_has_no_untranslated_english_in_french(self):
+        body = self.client.get(reverse("core:home")).content.decode()
+        for english in [
+            "Drop in your resume", "Stop reading job posts twice", "What you'll stop doing forever",
+            "Tailored resume ready to download", "Free to start", "How it works", "Get started",
+        ]:
+            self.assertNotIn(english, body, f"untranslated on the French landing page: {english}")
 
     def test_privacy_policy_is_translated(self):
         body = self.client.get(reverse("legal:privacy")).content.decode()
